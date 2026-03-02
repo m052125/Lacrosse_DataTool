@@ -1,0 +1,1127 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ドローデータ記録</title>
+<style>
+  :root {
+    --bg: #0a0f1e;
+    --surface: #111827;
+    --surface2: #1a2332;
+    --border: #243048;
+    --accent: #3b82f6;
+    --accent2: #60a5fa;
+    --red: #ef4444;
+    --green: #22c55e;
+    --yellow: #f59e0b;
+    --purple: #a855f7;
+    --text: #f1f5f9;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --kyoto: #3b82f6;
+    --enemy: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+    min-height: 100vh; font-size: 14px; overscroll-behavior: none;
+  }
+
+  .header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header-title { font-size: 15px; font-weight: 700; color: var(--accent2); }
+  .header-meta  { font-size: 11px; color: var(--text3); }
+
+  /* スコアバー：ゲット率 */
+  .rate-bar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 8px 14px; display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; align-items: center;
+  }
+  .rate-team { text-align: center; }
+  .rate-val  { font-size: 28px; font-weight: 800; line-height: 1; }
+  .rate-lbl  { font-size: 10px; color: var(--text3); font-weight: 600; letter-spacing: 0.05em; margin-top: 2px; }
+  .rate-center { text-align: center; }
+  .rate-pct-big { font-size: 36px; font-weight: 800; color: var(--yellow); line-height: 1; }
+  .rate-pct-lbl { font-size: 10px; color: var(--text3); font-weight: 600; letter-spacing: 0.05em; }
+
+  /* Qバー */
+  .q-bar {
+    background: var(--surface2); border-bottom: 1px solid var(--border);
+    padding: 7px 12px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+  }
+  .btn-q {
+    min-width: 44px; padding: 7px 12px; font-size: 13px; font-weight: 700;
+    border: none; border-radius: 8px; cursor: pointer; font-family: inherit; transition: all 0.15s;
+  }
+  .btn-q.active { background: var(--accent); color: #fff; }
+  .btn-q:not(.active) { background: var(--border); color: var(--text2); }
+  .btn-q:active { transform: scale(0.93); }
+
+  /* タブ */
+  .tabs {
+    display: flex; background: var(--surface); border-bottom: 1px solid var(--border);
+    position: sticky; top: 43px; z-index: 90;
+  }
+  .tab {
+    flex: 1; padding: 10px 2px; text-align: center;
+    font-size: 12px; font-weight: 600; color: var(--text3);
+    cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s;
+  }
+  .tab.active { color: var(--accent2); border-bottom-color: var(--accent); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .content { padding: 12px 12px 90px; }
+
+  .section-title {
+    font-size: 11px; font-weight: 700; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 8px; margin-top: 16px;
+  }
+  .section-title:first-child { margin-top: 0; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px; margin-bottom: 12px;
+  }
+
+  /* ボタン */
+  .btn {
+    border: none; border-radius: 10px; padding: 10px 18px;
+    font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.15s; font-family: inherit;
+  }
+  .btn:active { transform: scale(0.94); }
+  .btn-primary   { background: var(--accent); color: #fff; }
+  .btn-secondary { background: var(--border); color: var(--text2); }
+  .btn-danger    { background: var(--red); color: #fff; }
+  .btn-success   { background: var(--green); color: #fff; }
+  .btn-yellow    { background: var(--yellow); color: #000; }
+  .btn-sm  { padding: 7px 12px; font-size: 12px; border-radius: 8px; }
+  .btn-full{ width: 100%; padding: 14px; font-size: 15px; border-radius: 10px; margin-top: 6px; }
+
+  .form-label {
+    font-size: 11px; color: var(--text3); margin-bottom: 5px;
+    font-weight: 600; letter-spacing: 0.05em;
+  }
+  .form-group { margin-bottom: 12px; }
+
+  .btn-group { display: flex; flex-wrap: wrap; gap: 6px; }
+  .toggle-btn {
+    border: 1.5px solid var(--border); border-radius: 8px;
+    padding: 8px 13px; font-size: 13px; font-weight: 600;
+    cursor: pointer; background: transparent; color: var(--text2);
+    transition: all 0.15s; font-family: inherit;
+  }
+  .toggle-btn:active { transform: scale(0.95); }
+  .toggle-btn.active { border-color: var(--accent); background: rgba(59,130,246,0.18); color: var(--accent2); }
+
+  /* ○× 大ボタン */
+  .result-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .result-big-btn {
+    border: none; border-radius: 14px; padding: 18px 10px;
+    font-size: 22px; font-weight: 800; cursor: pointer;
+    font-family: inherit; transition: all 0.15s;
+  }
+  .result-big-btn:active { transform: scale(0.95); }
+  .result-big-btn.ok  { background: rgba(34,197,94,0.15); border: 2px solid var(--border); color: var(--text3); }
+  .result-big-btn.ng  { background: rgba(239,68,68,0.15);  border: 2px solid var(--border); color: var(--text3); }
+  .result-big-btn.ok.selected  { background: rgba(34,197,94,0.3);  border-color: var(--green);  color: var(--green); box-shadow: 0 0 0 2px rgba(34,197,94,0.3); }
+  .result-big-btn.ng.selected  { background: rgba(239,68,68,0.3);  border-color: var(--red);    color: var(--red);   box-shadow: 0 0 0 2px rgba(239,68,68,0.3); }
+
+  /* テンキー */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); z-index: 200; align-items: flex-end; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .numpad-modal {
+    background: var(--surface); border-radius: 20px 20px 0 0;
+    padding: 20px 16px 30px; width: 100%; max-width: 400px; border-top: 1px solid var(--border);
+  }
+  .numpad-title { font-size: 13px; color: var(--text3); text-align: center; margin-bottom: 12px; font-weight: 600; }
+  .numpad-display {
+    background: var(--surface2); border-radius: 10px; padding: 12px; text-align: center;
+    font-size: 32px; font-weight: 700; color: var(--text); margin-bottom: 14px; min-height: 58px;
+  }
+  .numpad-display .placeholder { color: var(--text3); font-size: 16px; }
+  .numpad-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .numkey {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px; font-size: 20px; font-weight: 700; color: var(--text);
+    cursor: pointer; text-align: center; transition: all 0.1s; font-family: inherit;
+  }
+  .numkey:active { transform: scale(0.93); background: var(--accent); color: #fff; }
+  .numkey.del { color: var(--red); font-size: 16px; }
+  .numkey.ok  { background: var(--accent); color: #fff; }
+
+  .numpad-trigger {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 10px 14px; color: var(--text); font-size: 20px; font-weight: 700;
+    min-width: 64px; text-align: center; cursor: pointer; display: inline-block;
+  }
+  .numpad-trigger.filled { border-color: var(--accent); color: var(--accent2); }
+
+  .text-input {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 9px 11px; color: var(--text); font-size: 13px; font-family: inherit; width: 100%;
+  }
+  .text-input:focus { outline: none; border-color: var(--accent); }
+
+  /* ======== 軌道入力 Canvas ======== */
+  .trajectory-wrap {
+    display: flex; gap: 10px; justify-content: center; margin-bottom: 12px; flex-wrap: wrap;
+  }
+  .trajectory-panel { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .traj-label { font-size: 11px; color: var(--text3); font-weight: 700; letter-spacing: 0.08em; }
+  .traj-canvas-wrap {
+    position: relative; border-radius: 50%; overflow: hidden;
+    border: 2px solid var(--border); cursor: crosshair;
+    touch-action: none;
+  }
+  .traj-canvas-wrap canvas { display: block; }
+  .traj-clear {
+    background: var(--border); border: none; border-radius: 6px;
+    padding: 5px 12px; font-size: 11px; color: var(--text2);
+    cursor: pointer; font-family: inherit; font-weight: 600;
+  }
+  .traj-clear:active { background: var(--red); color: #fff; }
+
+  /* 取り方カテゴリ */
+  .get-chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .get-chip {
+    border: 1.5px solid var(--border); border-radius: 20px;
+    padding: 6px 12px; font-size: 12px; font-weight: 600;
+    cursor: pointer; background: transparent; color: var(--text2);
+    transition: all 0.15s; font-family: inherit;
+  }
+  .get-chip:active { transform: scale(0.95); }
+  .get-chip.active { border-color: var(--purple); background: rgba(168,85,247,0.15); color: var(--purple); }
+
+  /* ドローログ */
+  .log-list { display: flex; flex-direction: column; gap: 6px; }
+  .log-item {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 12px; display: flex; align-items: flex-start; gap: 8px;
+  }
+  .log-item.got  { border-left: 3px solid var(--green); }
+  .log-item.lost { border-left: 3px solid var(--red); }
+  .log-item.foul { border-left: 3px solid var(--yellow); }
+  .log-badge {
+    font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 5px;
+    flex-shrink: 0; white-space: nowrap;
+  }
+  .badge-q    { background: var(--border); color: var(--text3); }
+  .badge-got  { background: rgba(34,197,94,0.2);  color: var(--green); }
+  .badge-lost { background: rgba(239,68,68,0.2);  color: var(--red); }
+  .badge-foul { background: rgba(245,158,11,0.2); color: var(--yellow); }
+  .log-main { flex: 1; min-width: 0; }
+  .log-num  { font-size: 15px; font-weight: 700; }
+  .log-detail { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .log-canvas-row { display: flex; gap: 6px; margin-top: 6px; }
+  .log-mini-canvas { border-radius: 50%; border: 1px solid var(--border); flex-shrink: 0; }
+  .log-delete {
+    background: none; border: none; color: var(--text3);
+    font-size: 15px; cursor: pointer; padding: 4px; flex-shrink: 0;
+  }
+  .log-delete:hover { color: var(--red); }
+
+  /* 集計 */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px; text-align: center;
+  }
+  .stat-val { font-size: 26px; font-weight: 800; line-height: 1.1; }
+  .stat-lbl { font-size: 10px; color: var(--text3); margin-top: 2px; font-weight: 600; letter-spacing: 0.05em; }
+  .stat-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+  .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .data-table th {
+    background: var(--surface2); padding: 8px 5px; text-align: center;
+    color: var(--text3); font-weight: 700; font-size: 11px;
+    border-bottom: 1px solid var(--border); letter-spacing: 0.05em;
+  }
+  .data-table td { padding: 8px 5px; text-align: center; border-bottom: 1px solid var(--border); color: var(--text2); }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr.total-row td { color: var(--text); font-weight: 700; background: var(--surface2); }
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 12px; }
+
+  .export-section {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 12px;
+  }
+  .export-btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+  .empty-state { text-align: center; padding: 28px 0; color: var(--text3); font-size: 13px; }
+  .empty-icon  { font-size: 28px; margin-bottom: 6px; }
+
+  /* セットアップ */
+  .setup-modal {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85); z-index: 300;
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .setup-modal.open { display: flex; }
+  .setup-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 22px; width: 100%; max-width: 380px;
+  }
+  .setup-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+  .setup-field { margin-bottom: 12px; }
+  .setup-field label { display: block; font-size: 11px; color: var(--text3); margin-bottom: 4px; font-weight: 600; letter-spacing: 0.05em; }
+
+  /* トースト */
+  .toast {
+    position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 10px 18px; font-size: 13px; font-weight: 600; color: var(--text);
+    z-index: 500; display: none; white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+  .toast.show { display: block; animation: fadeInOut 2s ease forwards; }
+  @keyframes fadeInOut {
+    0%   { opacity:0; transform:translateX(-50%) translateY(-6px); }
+    15%  { opacity:1; transform:translateX(-50%) translateY(0); }
+    75%  { opacity:1; }
+    100% { opacity:0; }
+  }
+
+  pre { font-size: 11px; color: var(--text2); white-space: pre-wrap; word-break: break-all; }
+
+  /* コートの向き表示 */
+  .court-direction {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 10px; font-size: 11px; color: var(--text3); text-align: center; margin-bottom: 10px;
+  }
+  .arrow-up { color: var(--accent2); font-size: 16px; }
+</style>
+</head>
+<body>
+
+<!-- セットアップ -->
+<div class="setup-modal open" id="setupModal">
+  <div class="setup-box">
+    <div class="setup-title">⚙️ 試合情報を入力</div>
+    <div class="setup-field">
+      <label>相手チーム名</label>
+      <input type="text" class="text-input" id="enemyName" placeholder="例: ○○大学">
+    </div>
+    <div class="setup-field">
+      <label>日付</label>
+      <input type="date" class="text-input" id="matchDate">
+    </div>
+    <div class="setup-field">
+      <label>Q数</label>
+      <select class="text-input" id="qCount">
+        <option value="4">4Q制</option>
+        <option value="2">2ピリオド制</option>
+      </select>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="startMatch()">開始</button>
+  </div>
+</div>
+
+<!-- テンキーモーダル -->
+<div class="modal-overlay" id="numpadModal">
+  <div class="numpad-modal">
+    <div class="numpad-title" id="numpadTitle">背番号を入力</div>
+    <div class="numpad-display" id="numpadDisplay"><span class="placeholder">—</span></div>
+    <div class="numpad-keys">
+      <button class="numkey" onclick="numInput('1')">1</button>
+      <button class="numkey" onclick="numInput('2')">2</button>
+      <button class="numkey" onclick="numInput('3')">3</button>
+      <button class="numkey" onclick="numInput('4')">4</button>
+      <button class="numkey" onclick="numInput('5')">5</button>
+      <button class="numkey" onclick="numInput('6')">6</button>
+      <button class="numkey" onclick="numInput('7')">7</button>
+      <button class="numkey" onclick="numInput('8')">8</button>
+      <button class="numkey" onclick="numInput('9')">9</button>
+      <button class="numkey del" onclick="numDel()">⌫</button>
+      <button class="numkey" onclick="numInput('0')">0</button>
+      <button class="numkey ok" onclick="numOK()">OK</button>
+    </div>
+    <button class="btn btn-secondary" style="width:100%;margin-top:12px;" onclick="closeNumpad()">キャンセル</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ヘッダー -->
+<div class="header">
+  <div class="header-title">🥍 ドローデータ記録</div>
+  <div class="header-meta" id="headerMeta">—</div>
+</div>
+
+<!-- ゲット率バー -->
+<div class="rate-bar">
+  <div class="rate-team">
+    <div class="rate-val" style="color:var(--green)" id="barGot">0</div>
+    <div class="rate-lbl">京大 ゲット</div>
+  </div>
+  <div class="rate-center">
+    <div class="rate-pct-big" id="barRate">—</div>
+    <div class="rate-pct-lbl">ゲット率</div>
+  </div>
+  <div class="rate-team">
+    <div class="rate-val" style="color:var(--red)" id="barLost">0</div>
+    <div class="rate-lbl">相手 ゲット</div>
+  </div>
+</div>
+
+<!-- Qバー -->
+<div class="q-bar" id="qBar"></div>
+
+<!-- タブ -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('record')">記録</div>
+  <div class="tab" onclick="switchTab('log')">ログ</div>
+  <div class="tab" onclick="switchTab('stats')">集計</div>
+  <div class="tab" onclick="switchTab('export')">出力</div>
+</div>
+
+<!-- ===== 記録タブ ===== -->
+<div class="panel active" id="panel-record">
+  <div class="content">
+
+    <!-- コート方向案内 -->
+    <div class="court-direction">
+      <span class="arrow-up">↑</span> 上方向 = 京大が攻める方向
+    </div>
+
+    <!-- ○× 結果（最初に選ぶ） -->
+    <div class="section-title">京大ゲット成否</div>
+    <div class="result-btns">
+      <button class="result-big-btn ok" id="resultOK" onclick="selectResult('ok')">○ ゲット</button>
+      <button class="result-big-btn ng" id="resultNG" onclick="selectResult('ng')">✕ 失敗</button>
+    </div>
+    <!-- ファールは別トグル -->
+    <div style="margin-bottom:12px;">
+      <button class="toggle-btn" id="resultFoul" onclick="selectResult('foul')" style="width:100%;text-align:center;">⚑ ファール（集計対象外）</button>
+    </div>
+
+    <!-- ドロワー背番号 -->
+    <div class="card">
+      <div class="form-group">
+        <div class="form-label">ドロワー背番号（京大）</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div class="numpad-trigger" id="drawerNumber" onclick="openNumpad('drawerNumber','ドロワー背番号')">—</div>
+          <button class="btn btn-secondary btn-sm" onclick="clearNum('drawerNumber','drawer')">クリア</button>
+        </div>
+      </div>
+
+      <!-- 1st（最初に触った人） -->
+      <div class="form-group">
+        <div class="form-label">1st — 最初に触った人の背番号</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div class="numpad-trigger" id="firstNumber" onclick="openNumpad('firstNumber','1st 背番号')">—</div>
+          <div class="btn-group" style="flex:1;">
+            <button class="toggle-btn" id="first1st-kyoto" onclick="selectFirstTeam('kyoto')">京大</button>
+            <button class="toggle-btn" id="first1st-enemy" onclick="selectFirstTeam('enemy')" id="first1stEnemyBtn">相手</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- get（最終取得者） -->
+      <div class="form-group">
+        <div class="form-label">get — 最終的に取った人の背番号</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div class="numpad-trigger" id="getNumber" onclick="openNumpad('getNumber','get 背番号')">—</div>
+          <div class="btn-group" style="flex:1;">
+            <button class="toggle-btn" id="get-kyoto" onclick="selectGetTeam('kyoto')">京大</button>
+            <button class="toggle-btn" id="get-enemy" onclick="selectGetTeam('enemy')" id="getEnemyBtn">相手</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 取り方 -->
+      <div class="form-group">
+        <div class="form-label">取り方</div>
+        <div class="get-chips" id="getWayChips">
+          <button class="get-chip" onclick="selectGetWay('キャッチ')">キャッチ</button>
+          <button class="get-chip" onclick="selectGetWay('スクープ')">スクープ</button>
+          <button class="get-chip" onclick="selectGetWay('GB')">GB</button>
+          <button class="get-chip" onclick="selectGetWay('インター')">インター</button>
+          <button class="get-chip" onclick="selectGetWay('チェイス')">チェイス</button>
+          <button class="get-chip" onclick="selectGetWay('ファール')">ファール</button>
+          <button class="get-chip" onclick="selectGetWay('その他')">その他</button>
+        </div>
+      </div>
+
+      <!-- メモ -->
+      <div class="form-group">
+        <div class="form-label">メモ（任意）</div>
+        <input type="text" class="text-input" id="drawNote" placeholder="補足があれば...">
+      </div>
+    </div>
+
+    <!-- 軌道入力（Canvas） -->
+    <div class="section-title">ボール軌道</div>
+    <div class="trajectory-wrap">
+      <!-- 上から見た図 -->
+      <div class="trajectory-panel">
+        <div class="traj-label">▼ 上から見た図（水平）</div>
+        <div class="traj-canvas-wrap" id="topWrap">
+          <canvas id="topCanvas" width="160" height="160"></canvas>
+        </div>
+        <button class="traj-clear" onclick="clearCanvas('top')">クリア</button>
+      </div>
+      <!-- 横から見た図 -->
+      <div class="trajectory-panel">
+        <div class="traj-label">▼ 横から見た図（垂直）</div>
+        <div class="traj-canvas-wrap" id="sideWrap">
+          <canvas id="sideCanvas" width="160" height="160"></canvas>
+        </div>
+        <button class="traj-clear" onclick="clearCanvas('side')">クリア</button>
+      </div>
+    </div>
+
+    <button class="btn btn-primary btn-full" onclick="addDraw()">✚ ドロー記録</button>
+
+  </div>
+</div>
+
+<!-- ===== ログタブ ===== -->
+<div class="panel" id="panel-log">
+  <div class="content">
+    <div class="section-title">ドローログ（Q<span id="logQLabel">1</span>）</div>
+    <div id="drawLog">
+      <div class="empty-state"><div class="empty-icon">🥍</div>まだ記録がありません</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 集計タブ ===== -->
+<div class="panel" id="panel-stats">
+  <div class="content">
+
+    <div class="section-title">全体集計</div>
+    <div class="stats-grid" id="statsGrid"></div>
+
+    <div class="section-title">Q別ドローゲット率</div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>Q</th><th>ドロー数</th><th>京大 ○</th><th>相手 ○</th><th>ファール</th><th>ゲット率</th></tr>
+        </thead>
+        <tbody id="qStatsBody"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title">ドロワー別ゲット率</div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>背番号</th><th>ドロー数</th><th>ゲット</th><th>失敗</th><th>ファール</th><th>ゲット率</th></tr>
+        </thead>
+        <tbody id="drawerStatsBody"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title">取り方別集計</div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>取り方</th><th>回数</th><th>割合</th></tr>
+        </thead>
+        <tbody id="getWayBody"></tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== 出力タブ ===== -->
+<div class="panel" id="panel-export">
+  <div class="content">
+    <div class="section-title">データ出力</div>
+    <div class="export-section">
+      <div style="color:var(--text2);font-size:13px;margin-bottom:8px;">JSON・CSV出力（Streamlit連携対応）<br>※軌道データはJSONのみ（base64画像）</div>
+      <div class="export-btn-row">
+        <button class="btn btn-primary" onclick="exportJSON()">📦 JSON出力</button>
+        <button class="btn btn-success" onclick="exportCSV()">📄 CSV出力</button>
+      </div>
+    </div>
+    <div class="section-title">JSONプレビュー</div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;overflow-x:auto;">
+      <pre id="jsonPreview">データを記録すると表示されます</pre>
+    </div>
+  </div>
+</div>
+
+<script>
+// ======== STATE ========
+const state = {
+  match: { enemy: '相手', date: '', qCount: 4 },
+  currentQ: 1,
+  draws: [],
+  form: {
+    result: null,        // 'ok' | 'ng' | 'foul'
+    drawer: null,        // 背番号string
+    firstNum: null,
+    firstTeam: null,     // 'kyoto' | 'enemy'
+    getNum: null,
+    getTeam: null,
+    getWay: null,
+  },
+  numpadTarget: null,
+  numpadValue: '',
+};
+
+// Canvas描画用
+const canvases = {
+  top:  { el: null, ctx: null, drawing: false, strokes: [] },
+  side: { el: null, ctx: null, drawing: false, strokes: [] },
+};
+
+// ======== SETUP ========
+function startMatch() {
+  const enemy  = document.getElementById('enemyName').value.trim() || '相手';
+  const date   = document.getElementById('matchDate').value;
+  const qCount = parseInt(document.getElementById('qCount').value);
+  state.match  = { enemy, date, qCount };
+  document.getElementById('headerMeta').textContent = `${date} vs ${enemy}`;
+  document.getElementById('first1st-enemy').textContent = enemy;
+  document.getElementById('get-enemy').textContent = enemy;
+  document.getElementById('setupModal').classList.remove('open');
+  buildQBar();
+  initCanvases();
+  updateRateBar();
+}
+
+function buildQBar() {
+  const bar = document.getElementById('qBar');
+  bar.innerHTML = '<span style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.08em;">Q:</span>';
+  for (let i = 1; i <= state.match.qCount; i++) {
+    const b = document.createElement('button');
+    b.className = 'btn-q' + (i === state.currentQ ? ' active' : '');
+    b.textContent = `Q${i}`;
+    b.onclick = () => setQ(i);
+    bar.appendChild(b);
+  }
+}
+
+function setQ(q) {
+  state.currentQ = q;
+  buildQBar();
+  document.getElementById('logQLabel').textContent = q;
+  renderLog();
+}
+
+// ======== UTILS ========
+function toast(msg, color) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.borderColor = color || 'var(--border)';
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+  if (name === 'stats')  updateStats();
+  if (name === 'export') updateExport();
+  if (name === 'log') {
+    document.getElementById('logQLabel').textContent = state.currentQ;
+    renderLog();
+  }
+}
+
+// ======== テンキー ========
+function openNumpad(targetId, title) {
+  state.numpadTarget = targetId;
+  state.numpadValue  = '';
+  document.getElementById('numpadTitle').textContent = title;
+  document.getElementById('numpadDisplay').innerHTML = '<span class="placeholder">—</span>';
+  document.getElementById('numpadModal').classList.add('open');
+}
+
+function numInput(v) {
+  if (state.numpadValue.length >= 3) return;
+  state.numpadValue += v;
+  document.getElementById('numpadDisplay').textContent = state.numpadValue;
+}
+
+function numDel() {
+  state.numpadValue = state.numpadValue.slice(0, -1);
+  document.getElementById('numpadDisplay').textContent = state.numpadValue || '';
+  if (!state.numpadValue) document.getElementById('numpadDisplay').innerHTML = '<span class="placeholder">—</span>';
+}
+
+function numOK() {
+  if (!state.numpadValue) { closeNumpad(); return; }
+  const el = document.getElementById(state.numpadTarget);
+  if (el) { el.textContent = '#' + state.numpadValue; el.classList.add('filled'); }
+  if (state.numpadTarget === 'drawerNumber') state.form.drawer   = state.numpadValue;
+  if (state.numpadTarget === 'firstNumber')  state.form.firstNum = state.numpadValue;
+  if (state.numpadTarget === 'getNumber')    state.form.getNum   = state.numpadValue;
+  closeNumpad();
+}
+
+function closeNumpad() {
+  document.getElementById('numpadModal').classList.remove('open');
+}
+
+function clearNum(elId, field) {
+  const el = document.getElementById(elId);
+  el.textContent = '—';
+  el.classList.remove('filled');
+  if (field === 'drawer') state.form.drawer = null;
+}
+
+// ======== フォーム ========
+function selectResult(r) {
+  state.form.result = r;
+  document.getElementById('resultOK').classList.toggle('selected', r === 'ok');
+  document.getElementById('resultNG').classList.toggle('selected', r === 'ng');
+  document.getElementById('resultFoul').classList.toggle('active', r === 'foul');
+}
+
+function selectFirstTeam(t) {
+  state.form.firstTeam = t;
+  document.getElementById('first1st-kyoto').classList.toggle('active', t === 'kyoto');
+  document.getElementById('first1st-enemy').classList.toggle('active', t === 'enemy');
+}
+
+function selectGetTeam(t) {
+  state.form.getTeam = t;
+  document.getElementById('get-kyoto').classList.toggle('active', t === 'kyoto');
+  document.getElementById('get-enemy').classList.toggle('active', t === 'enemy');
+}
+
+function selectGetWay(w) {
+  state.form.getWay = w;
+  document.querySelectorAll('.get-chip').forEach(c => c.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+// ======== Canvas ========
+function initCanvases() {
+  ['top', 'side'].forEach(key => {
+    const c = canvases[key];
+    c.el  = document.getElementById(key + 'Canvas');
+    c.ctx = c.el.getContext('2d');
+    drawCircleBackground(c, key);
+    bindCanvasEvents(c, key);
+  });
+}
+
+function drawCircleBackground(c, key) {
+  const ctx = c.ctx;
+  const size = c.el.width;
+  const r = size / 2;
+  ctx.clearRect(0, 0, size, size);
+
+  // 背景円
+  ctx.beginPath();
+  ctx.arc(r, r, r - 2, 0, Math.PI * 2);
+  ctx.fillStyle = '#111827';
+  ctx.fill();
+  ctx.strokeStyle = '#243048';
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 中心点
+  ctx.beginPath();
+  ctx.arc(r, r, 4, 0, Math.PI * 2);
+  ctx.fillStyle = '#3b82f6';
+  ctx.fill();
+
+  // ガイドライン
+  ctx.strokeStyle = '#1a2332';
+  ctx.lineWidth = 1;
+  ctx.setLineDash([4, 4]);
+  ctx.beginPath(); ctx.moveTo(r, 2); ctx.lineTo(r, size - 2); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(2, r); ctx.lineTo(size - 2, r); ctx.stroke();
+  ctx.setLineDash([]);
+
+  // 軸ラベル
+  if (key === 'top') {
+    ctx.fillStyle = '#60a5fa';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('↑攻', r, 14);
+    ctx.fillText('↓守', r, size - 4);
+  } else {
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '10px sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('高', r, 13);
+    ctx.fillText('低', r, size - 3);
+  }
+
+  // 既存ストロークを再描画
+  redrawStrokes(c);
+}
+
+function redrawStrokes(c) {
+  c.strokes.forEach(stroke => {
+    if (stroke.length < 2) return;
+    c.ctx.beginPath();
+    c.ctx.strokeStyle = '#f59e0b';
+    c.ctx.lineWidth = 3;
+    c.ctx.lineCap = 'round';
+    c.ctx.lineJoin = 'round';
+    c.ctx.moveTo(stroke[0].x, stroke[0].y);
+    stroke.forEach(p => c.ctx.lineTo(p.x, p.y));
+    c.ctx.stroke();
+
+    // 矢印（最後の点）
+    if (stroke.length >= 2) {
+      const last = stroke[stroke.length - 1];
+      const prev = stroke[stroke.length - 2];
+      drawArrow(c.ctx, prev.x, prev.y, last.x, last.y);
+    }
+  });
+}
+
+function drawArrow(ctx, fx, fy, tx, ty) {
+  const angle = Math.atan2(ty - fy, tx - fx);
+  const len = 10;
+  ctx.beginPath();
+  ctx.strokeStyle = '#f59e0b';
+  ctx.lineWidth = 2;
+  ctx.moveTo(tx, ty);
+  ctx.lineTo(tx - len * Math.cos(angle - 0.4), ty - len * Math.sin(angle - 0.4));
+  ctx.moveTo(tx, ty);
+  ctx.lineTo(tx - len * Math.cos(angle + 0.4), ty - len * Math.sin(angle + 0.4));
+  ctx.stroke();
+}
+
+function getCanvasPos(canvas, e) {
+  const rect = canvas.getBoundingClientRect();
+  const scaleX = canvas.width  / rect.width;
+  const scaleY = canvas.height / rect.height;
+  const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  return {
+    x: (clientX - rect.left) * scaleX,
+    y: (clientY - rect.top)  * scaleY,
+  };
+}
+
+function isInCircle(x, y, size) {
+  const r = size / 2;
+  return Math.hypot(x - r, y - r) <= r - 2;
+}
+
+function bindCanvasEvents(c, key) {
+  const el = c.el;
+  let currentStroke = [];
+
+  function start(e) {
+    e.preventDefault();
+    const pos = getCanvasPos(el, e);
+    if (!isInCircle(pos.x, pos.y, el.width)) return;
+    c.drawing = true;
+    currentStroke = [pos];
+  }
+
+  function move(e) {
+    e.preventDefault();
+    if (!c.drawing) return;
+    const pos = getCanvasPos(el, e);
+    if (!isInCircle(pos.x, pos.y, el.width)) return;
+    currentStroke.push(pos);
+    // リアルタイム描画
+    if (currentStroke.length >= 2) {
+      const prev = currentStroke[currentStroke.length - 2];
+      c.ctx.beginPath();
+      c.ctx.strokeStyle = '#f59e0b';
+      c.ctx.lineWidth = 3;
+      c.ctx.lineCap = 'round';
+      c.ctx.moveTo(prev.x, prev.y);
+      c.ctx.lineTo(pos.x, pos.y);
+      c.ctx.stroke();
+    }
+  }
+
+  function end(e) {
+    e.preventDefault();
+    if (!c.drawing) return;
+    c.drawing = false;
+    if (currentStroke.length >= 2) {
+      c.strokes.push([...currentStroke]);
+      // 矢印を最後に描画
+      const last = currentStroke[currentStroke.length - 1];
+      const prev = currentStroke[currentStroke.length - 2];
+      drawArrow(c.ctx, prev.x, prev.y, last.x, last.y);
+    }
+    currentStroke = [];
+  }
+
+  el.addEventListener('mousedown',  start, { passive: false });
+  el.addEventListener('mousemove',  move,  { passive: false });
+  el.addEventListener('mouseup',    end,   { passive: false });
+  el.addEventListener('touchstart', start, { passive: false });
+  el.addEventListener('touchmove',  move,  { passive: false });
+  el.addEventListener('touchend',   end,   { passive: false });
+}
+
+function clearCanvas(key) {
+  const c = canvases[key];
+  c.strokes = [];
+  drawCircleBackground(c, key);
+}
+
+function getCanvasDataURL(key) {
+  return canvases[key].el.toDataURL('image/png');
+}
+
+// ======== ドロー記録 ========
+function addDraw() {
+  const f = state.form;
+  if (!f.result) { toast('ゲット成否（○/✕/ファール）を選択してください'); return; }
+
+  const draw = {
+    id: Date.now(),
+    q: state.currentQ,
+    result: f.result,         // 'ok' | 'ng' | 'foul'
+    drawer: f.drawer || null,
+    firstNum: f.firstNum || null,
+    firstTeam: f.firstTeam || null,
+    getNum: f.getNum || null,
+    getTeam: f.getTeam || null,
+    getWay: f.getWay || null,
+    note: document.getElementById('drawNote').value.trim(),
+    topImg:  getCanvasDataURL('top'),
+    sideImg: getCanvasDataURL('side'),
+    index: state.draws.filter(d => d.q === state.currentQ).length + 1,
+  };
+  state.draws.push(draw);
+  updateRateBar();
+  renderLog();
+
+  // フォームリセット
+  state.form = { result: null, drawer: null, firstNum: null, firstTeam: null, getNum: null, getTeam: null, getWay: null };
+  document.getElementById('resultOK').classList.remove('selected');
+  document.getElementById('resultNG').classList.remove('selected');
+  document.getElementById('resultFoul').classList.remove('active');
+  ['drawerNumber','firstNumber','getNumber'].forEach(id => {
+    const el = document.getElementById(id);
+    el.textContent = '—'; el.classList.remove('filled');
+  });
+  ['first1st-kyoto','first1st-enemy','get-kyoto','get-enemy'].forEach(id => {
+    document.getElementById(id).classList.remove('active');
+  });
+  document.querySelectorAll('.get-chip').forEach(c => c.classList.remove('active'));
+  document.getElementById('drawNote').value = '';
+  clearCanvas('top');
+  clearCanvas('side');
+
+  const labels = { ok: '○ ゲット', ng: '✕ 失敗', foul: 'ファール' };
+  const colors = { ok: 'var(--green)', ng: 'var(--red)', foul: 'var(--yellow)' };
+  toast(`✔ ドロー #${draw.index} 記録 (${labels[draw.result]})`, colors[draw.result]);
+}
+
+function updateRateBar() {
+  const got  = state.draws.filter(d => d.result === 'ok').length;
+  const lost = state.draws.filter(d => d.result === 'ng').length;
+  const total = got + lost; // foulは除外
+  document.getElementById('barGot').textContent  = got;
+  document.getElementById('barLost').textContent = lost;
+  document.getElementById('barRate').textContent  = total > 0 ? Math.round(got / total * 100) + '%' : '—';
+}
+
+// ======== ログ ========
+function renderLog() {
+  const container = document.getElementById('drawLog');
+  const qDraws = state.draws.filter(d => d.q === state.currentQ);
+  if (qDraws.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">🥍</div>このQのドローはまだありません</div>';
+    return;
+  }
+  const resultLabel = { ok: '○ ゲット', ng: '✕ 失敗', foul: 'ファール' };
+  const itemCls     = { ok: 'got', ng: 'lost', foul: 'foul' };
+  const badgeCls    = { ok: 'badge-got', ng: 'badge-lost', foul: 'badge-foul' };
+  container.innerHTML = [...qDraws].reverse().map(d => {
+    const drawerText  = d.drawer   ? `#${d.drawer}` : '番号なし';
+    const firstText   = d.firstNum ? `1st: #${d.firstNum}(${d.firstTeam === 'kyoto' ? '京大' : state.match.enemy})` : '';
+    const getTextParts = [];
+    if (d.getNum)  getTextParts.push(`get: #${d.getNum}(${d.getTeam === 'kyoto' ? '京大' : state.match.enemy})`);
+    if (d.getWay)  getTextParts.push(d.getWay);
+    if (d.note)    getTextParts.push(d.note);
+    const detail = [firstText, ...getTextParts].filter(Boolean).join(' / ');
+    return `<div class="log-item ${itemCls[d.result]}">
+      <div style="display:flex;flex-direction:column;gap:4px;flex:1;min-width:0;">
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <span class="log-badge badge-q">Q${d.q} #${d.index}</span>
+          <span class="log-badge ${badgeCls[d.result]}">${resultLabel[d.result]}</span>
+          <span class="log-num">ドロワー ${drawerText}</span>
+        </div>
+        <div class="log-detail">${detail || '—'}</div>
+        <div class="log-canvas-row">
+          <img src="${d.topImg}"  width="48" height="48" class="log-mini-canvas" title="上から">
+          <img src="${d.sideImg}" width="48" height="48" class="log-mini-canvas" title="横から">
+        </div>
+      </div>
+      <button class="log-delete" onclick="deleteDraw(${d.id})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function deleteDraw(id) {
+  state.draws = state.draws.filter(d => d.id !== id);
+  updateRateBar();
+  renderLog();
+}
+
+// ======== 集計 ========
+function updateStats() {
+  const got   = state.draws.filter(d => d.result === 'ok').length;
+  const lost  = state.draws.filter(d => d.result === 'ng').length;
+  const foul  = state.draws.filter(d => d.result === 'foul').length;
+  const total = got + lost;
+  const rate  = total > 0 ? Math.round(got / total * 100) : 0;
+
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--green)">${got}</div>
+      <div class="stat-lbl">京大 ゲット</div>
+      <div class="stat-sub">${total}回中 ${rate}%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--red)">${lost}</div>
+      <div class="stat-lbl">相手 ゲット</div>
+      <div class="stat-sub">${total}回中 ${100 - rate}%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">${total + foul}</div>
+      <div class="stat-lbl">総ドロー数</div>
+      <div class="stat-sub">ファール ${foul}件</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--yellow)">${rate}%</div>
+      <div class="stat-lbl">ゲット率（F除く）</div>
+    </div>`;
+
+  // Q別
+  const qBody = document.getElementById('qStatsBody');
+  let rows = '', totG = 0, totL = 0, totF = 0;
+  for (let q = 1; q <= state.match.qCount; q++) {
+    const qD = state.draws.filter(d => d.q === q);
+    const g = qD.filter(d => d.result === 'ok').length;
+    const l = qD.filter(d => d.result === 'ng').length;
+    const f = qD.filter(d => d.result === 'foul').length;
+    const t = g + l;
+    const r = t > 0 ? Math.round(g / t * 100) + '%' : '—';
+    if (qD.length > 0) {
+      rows += `<tr><td>Q${q}</td><td>${qD.length}</td><td style="color:var(--green)">${g}</td><td style="color:var(--red)">${l}</td><td style="color:var(--yellow)">${f}</td><td>${r}</td></tr>`;
+    }
+    totG += g; totL += l; totF += f;
+  }
+  const totT = totG + totL;
+  rows += `<tr class="total-row"><td>計</td><td>${totT + totF}</td><td style="color:var(--green)">${totG}</td><td style="color:var(--red)">${totL}</td><td style="color:var(--yellow)">${totF}</td><td>${totT > 0 ? Math.round(totG/totT*100)+'%' : '—'}</td></tr>`;
+  qBody.innerHTML = rows;
+
+  // ドロワー別
+  const drawers = {};
+  state.draws.forEach(d => {
+    const key = d.drawer || '不明';
+    if (!drawers[key]) drawers[key] = { ok: 0, ng: 0, foul: 0 };
+    drawers[key][d.result]++;
+  });
+  const drawerRows = Object.entries(drawers).sort((a, b) => (b[1].ok + b[1].ng) - (a[1].ok + a[1].ng));
+  document.getElementById('drawerStatsBody').innerHTML = drawerRows.length
+    ? drawerRows.map(([num, cnt]) => {
+        const t = cnt.ok + cnt.ng;
+        const r = t > 0 ? Math.round(cnt.ok / t * 100) + '%' : '—';
+        return `<tr>
+          <td style="color:var(--accent2);font-weight:700;">#${num}</td>
+          <td>${t + cnt.foul}</td>
+          <td style="color:var(--green)">${cnt.ok}</td>
+          <td style="color:var(--red)">${cnt.ng}</td>
+          <td style="color:var(--yellow)">${cnt.foul}</td>
+          <td style="font-weight:700;">${r}</td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="6" style="color:var(--text3);padding:16px;">データなし</td></tr>';
+
+  // 取り方別
+  const ways = {};
+  state.draws.forEach(d => { if (d.getWay) ways[d.getWay] = (ways[d.getWay] || 0) + 1; });
+  const wayTotal = Object.values(ways).reduce((a, b) => a + b, 0);
+  const waySorted = Object.entries(ways).sort((a, b) => b[1] - a[1]);
+  document.getElementById('getWayBody').innerHTML = waySorted.length
+    ? waySorted.map(([w, cnt]) =>
+        `<tr><td>${w}</td><td style="color:var(--purple);font-weight:700;">${cnt}</td><td>${wayTotal > 0 ? Math.round(cnt/wayTotal*100)+'%' : '—'}</td></tr>`
+      ).join('')
+    : '<tr><td colspan="3" style="color:var(--text3);padding:16px;">データなし</td></tr>';
+}
+
+// ======== エクスポート ========
+function buildJSON() {
+  const got   = state.draws.filter(d => d.result === 'ok').length;
+  const lost  = state.draws.filter(d => d.result === 'ng').length;
+  const total = got + lost;
+  return {
+    meta: { ...state.match, exportedAt: new Date().toISOString(), tool: 'KyotoLacrosse DrawTool v1.0' },
+    draws: state.draws.map(d => ({
+      id: d.id, q: d.q, index: d.index,
+      result: d.result,
+      drawer: d.drawer, firstNum: d.firstNum, firstTeam: d.firstTeam,
+      getNum: d.getNum, getTeam: d.getTeam, getWay: d.getWay,
+      note: d.note,
+      trajectory: { top: d.topImg, side: d.sideImg },
+    })),
+    summary: {
+      total: total + state.draws.filter(d => d.result === 'foul').length,
+      got, lost, foul: state.draws.filter(d => d.result === 'foul').length,
+      get_rate_pct: total > 0 ? Math.round(got / total * 100) : null,
+    },
+  };
+}
+
+function updateExport() {
+  // 軌道画像は省いてプレビュー
+  const data = buildJSON();
+  const preview = { ...data, draws: data.draws.map(d => ({ ...d, trajectory: '(画像省略)' })) };
+  document.getElementById('jsonPreview').textContent = JSON.stringify(preview, null, 2);
+}
+
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(buildJSON(), null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `draw_${state.match.date}_${state.match.enemy}.json`;
+  a.click();
+}
+
+function exportCSV() {
+  const bom = '\uFEFF';
+  const header = 'Q,#,結果,ドロワー,1st番号,1stチーム,get番号,getチーム,取り方,メモ';
+  const rows = state.draws.map(d =>
+    [d.q, d.index,
+     d.result === 'ok' ? '○' : d.result === 'ng' ? '✕' : 'ファール',
+     d.drawer || '', d.firstNum || '', d.firstTeam === 'kyoto' ? '京大' : d.firstTeam === 'enemy' ? state.match.enemy : '',
+     d.getNum || '', d.getTeam === 'kyoto' ? '京大' : d.getTeam === 'enemy' ? state.match.enemy : '',
+     d.getWay || '', d.note || ''
+    ].join(',')
+  );
+  const blob = new Blob([bom + [header, ...rows].join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `draw_${state.match.date}.csv`;
+  a.click();
+}
+
+// ======== INIT ========
+document.getElementById('matchDate').value = new Date().toISOString().slice(0, 10);
+buildQBar();
+// Canvas は setupModal が閉じた後に初期化（initCanvases()はstartMatch内）
+// デモ用：ページロード時にも仮初期化
+window.addEventListener('load', () => {
+  // setupModalが開いている間はcanvasサイズが0になるため、
+  // DOMContentLoaded後に一度だけ仮描画しておく
+  setTimeout(() => {
+    if (!state.match.date) return; // まだsetup前なら何もしない
+  }, 100);
+});
+</script>
+</body>
+</html>

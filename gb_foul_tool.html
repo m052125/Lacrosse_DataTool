@@ -1,0 +1,1015 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>GB・ファール記録</title>
+<style>
+  :root {
+    --bg: #0a0f1e;
+    --surface: #111827;
+    --surface2: #1a2332;
+    --border: #243048;
+    --accent: #3b82f6;
+    --accent2: #60a5fa;
+    --red: #ef4444;
+    --green: #22c55e;
+    --yellow: #f59e0b;
+    --text: #f1f5f9;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --kyoto: #3b82f6;
+    --enemy: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* ヘッダー */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header-title { font-size: 15px; font-weight: 700; color: var(--accent2); }
+  .header-meta  { font-size: 11px; color: var(--text3); text-align: right; }
+
+  /* スコアバー（GBゲット率） */
+  .stat-bar {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 14px;
+    display: grid; grid-template-columns: 1fr auto 1fr; gap: 8px; align-items: center;
+  }
+  .stat-bar-item { text-align: center; }
+  .stat-bar-val  { font-size: 28px; font-weight: 800; line-height: 1; }
+  .stat-bar-lbl  { font-size: 10px; color: var(--text3); font-weight: 600; letter-spacing: 0.05em; margin-top: 2px; }
+  .stat-bar-rate { font-size: 13px; font-weight: 700; color: var(--yellow); }
+  .stat-bar-center { text-align: center; }
+  .gb-rate-big { font-size: 36px; font-weight: 800; color: var(--yellow); line-height: 1; }
+  .gb-rate-lbl { font-size: 10px; color: var(--text3); font-weight: 600; letter-spacing: 0.05em; }
+
+  /* Q切り替え */
+  .q-bar {
+    background: var(--surface2); border-bottom: 1px solid var(--border);
+    padding: 7px 12px; display: flex; gap: 6px; align-items: center;
+  }
+  .btn-q {
+    min-width: 44px; padding: 7px 12px; font-size: 13px; font-weight: 700;
+    border: none; border-radius: 8px; cursor: pointer; font-family: inherit; transition: all 0.15s;
+  }
+  .btn-q.active { background: var(--accent); color: #fff; }
+  .btn-q:not(.active) { background: var(--border); color: var(--text2); }
+  .btn-q:active { transform: scale(0.93); }
+
+  /* タブ */
+  .tabs {
+    display: flex; background: var(--surface); border-bottom: 1px solid var(--border);
+    position: sticky; top: 43px; z-index: 90;
+  }
+  .tab {
+    flex: 1; padding: 11px 4px; text-align: center;
+    font-size: 12px; font-weight: 600; color: var(--text3);
+    cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s;
+  }
+  .tab.active { color: var(--accent2); border-bottom-color: var(--accent); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* コンテンツ */
+  .content { padding: 12px 12px 90px; }
+
+  /* セクションタイトル */
+  .section-title {
+    font-size: 11px; font-weight: 700; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.12em;
+    margin-bottom: 8px; margin-top: 16px;
+  }
+  .section-title:first-child { margin-top: 0; }
+
+  /* カード */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px; margin-bottom: 12px;
+  }
+
+  /* ボタン共通 */
+  .btn {
+    border: none; border-radius: 10px; padding: 10px 18px;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    transition: all 0.15s; font-family: inherit;
+  }
+  .btn:active { transform: scale(0.94); }
+  .btn-primary  { background: var(--accent); color: #fff; }
+  .btn-secondary{ background: var(--border); color: var(--text2); }
+  .btn-danger   { background: var(--red); color: #fff; }
+  .btn-success  { background: var(--green); color: #fff; }
+  .btn-sm { padding: 7px 12px; font-size: 12px; border-radius: 8px; }
+  .btn-full { width: 100%; padding: 14px; font-size: 15px; border-radius: 10px; margin-top: 6px; }
+
+  /* フォームグループ */
+  .form-label {
+    font-size: 11px; color: var(--text3); margin-bottom: 5px;
+    font-weight: 600; letter-spacing: 0.05em;
+  }
+  .form-group { margin-bottom: 12px; }
+
+  /* トグルボタン */
+  .btn-group { display: flex; flex-wrap: wrap; gap: 6px; }
+  .toggle-btn {
+    border: 1.5px solid var(--border); border-radius: 8px;
+    padding: 9px 14px; font-size: 13px; font-weight: 600;
+    cursor: pointer; background: transparent; color: var(--text2);
+    transition: all 0.15s; font-family: inherit;
+  }
+  .toggle-btn:active { transform: scale(0.95); }
+  .toggle-btn.active { border-color: var(--accent); background: rgba(59,130,246,0.18); color: var(--accent2); }
+
+  /* GB結果ボタン（大きめ） */
+  .gb-result-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .gb-big-btn {
+    border: none; border-radius: 14px; padding: 20px 10px;
+    font-size: 15px; font-weight: 800; cursor: pointer;
+    font-family: inherit; transition: all 0.15s; letter-spacing: 0.02em;
+  }
+  .gb-big-btn:active { transform: scale(0.95); }
+  .gb-big-btn.kyoto { background: var(--kyoto); color: #fff; }
+  .gb-big-btn.enemy { background: var(--enemy); color: #fff; }
+  .gb-big-btn.selected-kyoto { box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--kyoto); }
+  .gb-big-btn.selected-enemy { box-shadow: 0 0 0 3px #fff, 0 0 0 5px var(--enemy); }
+
+  /* 場所ボタン */
+  .location-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+  .loc-btn {
+    border: 1.5px solid var(--border); border-radius: 10px;
+    padding: 12px 6px; font-size: 13px; font-weight: 700;
+    cursor: pointer; background: transparent; color: var(--text2);
+    text-align: center; transition: all 0.15s; font-family: inherit;
+  }
+  .loc-btn:active { transform: scale(0.95); }
+  .loc-btn .loc-icon { font-size: 18px; display: block; margin-bottom: 3px; }
+  .loc-btn.active { border-color: var(--yellow); background: rgba(245,158,11,0.15); color: var(--yellow); }
+
+  /* テンキーモーダル */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); z-index: 200;
+    align-items: flex-end; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .numpad-modal {
+    background: var(--surface); border-radius: 20px 20px 0 0;
+    padding: 20px 16px 30px; width: 100%; max-width: 400px;
+    border-top: 1px solid var(--border);
+  }
+  .numpad-title { font-size: 13px; color: var(--text3); text-align: center; margin-bottom: 12px; font-weight: 600; }
+  .numpad-display {
+    background: var(--surface2); border-radius: 10px; padding: 12px;
+    text-align: center; font-size: 32px; font-weight: 700; color: var(--text);
+    margin-bottom: 14px; min-height: 58px; font-variant-numeric: tabular-nums;
+  }
+  .numpad-display .placeholder { color: var(--text3); font-size: 16px; }
+  .numpad-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .numkey {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px; font-size: 20px; font-weight: 700; color: var(--text);
+    cursor: pointer; text-align: center; transition: all 0.1s; font-family: inherit;
+  }
+  .numkey:active { transform: scale(0.93); background: var(--accent); }
+  .numkey.del { color: var(--red); font-size: 16px; }
+  .numkey.ok  { background: var(--accent); color: #fff; }
+
+  /* テキスト入力 */
+  .text-input {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 9px 11px; color: var(--text);
+    font-size: 13px; font-family: inherit; width: 100%;
+  }
+  .text-input:focus { outline: none; border-color: var(--accent); }
+
+  /* 背番号表示トリガー */
+  .numpad-trigger {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 10px 14px; color: var(--text);
+    font-size: 20px; font-weight: 700; min-width: 64px;
+    text-align: center; cursor: pointer; font-variant-numeric: tabular-nums;
+  }
+  .numpad-trigger.filled { border-color: var(--accent); color: var(--accent2); }
+
+  /* ログ */
+  .log-list { display: flex; flex-direction: column; gap: 6px; }
+  .log-item {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .log-item.kyoto-gb { border-left: 3px solid var(--kyoto); }
+  .log-item.enemy-gb { border-left: 3px solid var(--enemy); }
+  .log-item.foul-item { border-left: 3px solid var(--yellow); }
+  .log-badge {
+    font-size: 10px; font-weight: 700; padding: 3px 7px;
+    border-radius: 5px; flex-shrink: 0; white-space: nowrap;
+  }
+  .badge-q    { background: var(--border); color: var(--text3); }
+  .badge-kyoto{ background: rgba(59,130,246,0.2); color: var(--accent2); }
+  .badge-enemy{ background: rgba(239,68,68,0.2); color: var(--red); }
+  .badge-foul { background: rgba(245,158,11,0.2); color: var(--yellow); }
+  .log-main { flex: 1; }
+  .log-number { font-size: 15px; font-weight: 700; }
+  .log-detail { font-size: 11px; color: var(--text3); margin-top: 1px; }
+  .log-delete {
+    background: none; border: none; color: var(--text3);
+    font-size: 15px; cursor: pointer; padding: 4px; border-radius: 4px;
+  }
+  .log-delete:hover { color: var(--red); }
+
+  /* 統計カード */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px; text-align: center;
+  }
+  .stat-val { font-size: 26px; font-weight: 800; line-height: 1.1; }
+  .stat-lbl { font-size: 10px; color: var(--text3); margin-top: 2px; font-weight: 600; letter-spacing: 0.05em; }
+  .stat-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+  /* テーブル */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .data-table th {
+    background: var(--surface2); padding: 8px 6px; text-align: center;
+    color: var(--text3); font-weight: 700; font-size: 11px;
+    border-bottom: 1px solid var(--border); letter-spacing: 0.05em;
+  }
+  .data-table td { padding: 8px 6px; text-align: center; border-bottom: 1px solid var(--border); color: var(--text2); }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr.total-row td { color: var(--text); font-weight: 700; background: var(--surface2); }
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 12px; }
+
+  /* エクスポート */
+  .export-section {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px; margin-bottom: 12px;
+  }
+  .export-btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+  /* empty */
+  .empty-state { text-align: center; padding: 28px 0; color: var(--text3); font-size: 13px; }
+  .empty-icon  { font-size: 28px; margin-bottom: 6px; }
+
+  /* セットアップモーダル */
+  .setup-modal {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85); z-index: 300;
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .setup-modal.open { display: flex; }
+  .setup-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 22px; width: 100%; max-width: 380px;
+  }
+  .setup-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+  .setup-field { margin-bottom: 12px; }
+  .setup-field label { display: block; font-size: 11px; color: var(--text3); margin-bottom: 4px; font-weight: 600; letter-spacing: 0.05em; }
+
+  /* トースト */
+  .toast {
+    position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 10px 18px;
+    font-size: 13px; font-weight: 600; color: var(--text);
+    z-index: 500; display: none; white-space: nowrap;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+  .toast.show { display: block; animation: fadeInOut 2s ease forwards; }
+  @keyframes fadeInOut {
+    0%   { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+    15%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+    75%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  pre { font-size: 11px; color: var(--text2); white-space: pre-wrap; word-break: break-all; }
+
+  /* ファール名候補チップ */
+  .foul-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 8px; }
+  .foul-chip {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 20px; padding: 5px 12px; font-size: 12px; font-weight: 600;
+    cursor: pointer; color: var(--text2); transition: all 0.15s; font-family: inherit;
+  }
+  .foul-chip:active { transform: scale(0.95); }
+  .foul-chip:hover  { border-color: var(--yellow); color: var(--yellow); }
+</style>
+</head>
+<body>
+
+<!-- セットアップ -->
+<div class="setup-modal open" id="setupModal">
+  <div class="setup-box">
+    <div class="setup-title">⚙️ 試合情報を入力</div>
+    <div class="setup-field">
+      <label>相手チーム名</label>
+      <input type="text" class="text-input" id="enemyName" placeholder="例: ○○大学">
+    </div>
+    <div class="setup-field">
+      <label>日付</label>
+      <input type="date" class="text-input" id="matchDate">
+    </div>
+    <div class="setup-field">
+      <label>Q数</label>
+      <select class="text-input" id="qCount">
+        <option value="4">4Q制</option>
+        <option value="2">2ピリオド制</option>
+      </select>
+    </div>
+    <button class="btn btn-primary btn-full" onclick="startMatch()">開始</button>
+  </div>
+</div>
+
+<!-- テンキーモーダル -->
+<div class="modal-overlay" id="numpadModal">
+  <div class="numpad-modal">
+    <div class="numpad-title" id="numpadTitle">背番号を入力</div>
+    <div class="numpad-display" id="numpadDisplay"><span class="placeholder">—</span></div>
+    <div class="numpad-keys">
+      <button class="numkey" onclick="numInput('1')">1</button>
+      <button class="numkey" onclick="numInput('2')">2</button>
+      <button class="numkey" onclick="numInput('3')">3</button>
+      <button class="numkey" onclick="numInput('4')">4</button>
+      <button class="numkey" onclick="numInput('5')">5</button>
+      <button class="numkey" onclick="numInput('6')">6</button>
+      <button class="numkey" onclick="numInput('7')">7</button>
+      <button class="numkey" onclick="numInput('8')">8</button>
+      <button class="numkey" onclick="numInput('9')">9</button>
+      <button class="numkey del" onclick="numDel()">⌫</button>
+      <button class="numkey" onclick="numInput('0')">0</button>
+      <button class="numkey ok" onclick="numOK()">OK</button>
+    </div>
+    <button class="btn btn-secondary" style="width:100%;margin-top:12px;" onclick="closeNumpad()">キャンセル</button>
+  </div>
+</div>
+
+<!-- トースト -->
+<div class="toast" id="toast"></div>
+
+<!-- ヘッダー -->
+<div class="header">
+  <div class="header-title">🏃 GB・ファール記録</div>
+  <div class="header-meta" id="headerMeta">—</div>
+</div>
+
+<!-- GBゲット率バー -->
+<div class="stat-bar">
+  <div class="stat-bar-item">
+    <div class="stat-bar-val" style="color:var(--kyoto)" id="barKyoto">0</div>
+    <div class="stat-bar-lbl">京大 GB</div>
+  </div>
+  <div class="stat-bar-center">
+    <div class="gb-rate-big" id="barRate">—</div>
+    <div class="gb-rate-lbl">ゲット率</div>
+  </div>
+  <div class="stat-bar-item">
+    <div class="stat-bar-val" style="color:var(--enemy)" id="barEnemy">0</div>
+    <div class="stat-bar-lbl" id="barEnemyLbl">相手 GB</div>
+  </div>
+</div>
+
+<!-- Q切り替え -->
+<div class="q-bar" id="qBar"></div>
+
+<!-- タブ -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('gb')">GB記録</div>
+  <div class="tab" onclick="switchTab('foul')">ファール記録</div>
+  <div class="tab" onclick="switchTab('stats')">集計</div>
+  <div class="tab" onclick="switchTab('export')">出力</div>
+</div>
+
+<!-- ===== GBタブ ===== -->
+<div class="panel active" id="panel-gb">
+  <div class="content">
+
+    <div class="section-title">GB記録</div>
+    <div class="card">
+
+      <!-- 結果（大ボタン） -->
+      <div class="form-group">
+        <div class="form-label">ゲットしたチーム</div>
+        <div class="gb-result-btns">
+          <button class="gb-big-btn kyoto" id="gbBtnKyoto" onclick="selectGBTeam('kyoto')">
+            🔵 京大<br><span style="font-size:12px;font-weight:500;opacity:0.8;">ゲット</span>
+          </button>
+          <button class="gb-big-btn enemy" id="gbBtnEnemy" onclick="selectGBTeam('enemy')">
+            🔴 相手<br><span style="font-size:12px;font-weight:500;opacity:0.8;" id="gbEnemyBtnLabel">ゲット</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 場所 -->
+      <div class="form-group">
+        <div class="form-label">場所</div>
+        <div class="location-btns">
+          <button class="loc-btn" id="locSelf" onclick="selectLoc('self')">
+            <span class="loc-icon">🛡</span>自陣
+          </button>
+          <button class="loc-btn" id="locCenter" onclick="selectLoc('center')">
+            <span class="loc-icon">⚡</span>センター
+          </button>
+          <button class="loc-btn" id="locEnemy" onclick="selectLoc('enemy')">
+            <span class="loc-icon">⚔️</span>敵陣
+          </button>
+        </div>
+      </div>
+
+      <!-- 背番号（任意） -->
+      <div class="form-group">
+        <div class="form-label">背番号（任意）</div>
+        <div style="display:flex;gap:8px;align-items:center;">
+          <div class="numpad-trigger" id="gbNumber" onclick="openNumpad('gbNumber','背番号')">—</div>
+          <button class="btn btn-secondary btn-sm" onclick="clearGBNumber()">クリア</button>
+        </div>
+      </div>
+
+      <!-- メモ -->
+      <div class="form-group">
+        <div class="form-label">メモ（任意）</div>
+        <input type="text" class="text-input" id="gbNote" placeholder="補足があれば...">
+      </div>
+
+      <button class="btn btn-primary btn-full" onclick="addGB()">✚ GB記録</button>
+    </div>
+
+    <div class="section-title">GBログ（Q<span id="gbLogQLabel">1</span>）</div>
+    <div id="gbLog">
+      <div class="empty-state"><div class="empty-icon">🏃</div>まだ記録がありません</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== ファールタブ ===== -->
+<div class="panel" id="panel-foul">
+  <div class="content">
+
+    <div class="section-title">ファール記録（京大が取られたファール）</div>
+    <div class="card">
+
+      <!-- 背番号 -->
+      <div class="form-group">
+        <div class="form-label">背番号</div>
+        <div class="numpad-trigger" id="foulNumber" onclick="openNumpad('foulNumber','背番号')">—</div>
+      </div>
+
+      <!-- ファール名クイック選択 -->
+      <div class="form-group">
+        <div class="form-label">ファール名（よく使うもの）</div>
+        <div class="foul-chips" id="foulChips">
+          <button class="foul-chip" onclick="selectFoulChip('スラッシング')">スラッシング</button>
+          <button class="foul-chip" onclick="selectFoulChip('クロスチェック')">クロスチェック</button>
+          <button class="foul-chip" onclick="selectFoulChip('ホールディング')">ホールディング</button>
+          <button class="foul-chip" onclick="selectFoulChip('イリーガルボディチェック')">イリーガルボディチェック</button>
+          <button class="foul-chip" onclick="selectFoulChip('プッシング')">プッシング</button>
+          <button class="foul-chip" onclick="selectFoulChip('オフサイド')">オフサイド</button>
+          <button class="foul-chip" onclick="selectFoulChip('クリーシング')">クリーシング</button>
+          <button class="foul-chip" onclick="selectFoulChip('スタッフィング')">スタッフィング</button>
+          <button class="foul-chip" onclick="selectFoulChip('その他')">その他</button>
+        </div>
+      </div>
+
+      <!-- ファール名テキスト -->
+      <div class="form-group">
+        <div class="form-label">ファール名（直接入力・チップ選択で自動入力）</div>
+        <input type="text" class="text-input" id="foulName" placeholder="ファール名を入力">
+      </div>
+
+      <!-- メモ -->
+      <div class="form-group">
+        <div class="form-label">メモ（任意）</div>
+        <input type="text" class="text-input" id="foulNote" placeholder="状況など...">
+      </div>
+
+      <button class="btn btn-yellow btn-full" style="color:#000;" onclick="addFoul()">✚ ファール記録</button>
+    </div>
+
+    <div class="section-title">ファールログ（Q<span id="foulLogQLabel">1</span>）</div>
+    <div id="foulLog">
+      <div class="empty-state"><div class="empty-icon">🚩</div>まだ記録がありません</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== 集計タブ ===== -->
+<div class="panel" id="panel-stats">
+  <div class="content">
+
+    <div class="section-title">GB総合</div>
+    <div class="stats-grid" id="gbStatsGrid"></div>
+
+    <div class="section-title">Q別GBゲット数</div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Q</th>
+            <th>京大</th>
+            <th>相手</th>
+            <th>合計</th>
+            <th>京大率</th>
+          </tr>
+        </thead>
+        <tbody id="gbQBody"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title">場所別GBゲット数（全体）</div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>場所</th><th>京大</th><th>相手</th><th>京大率</th></tr>
+        </thead>
+        <tbody id="gbLocBody"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title">ファール集計</div>
+    <div class="stats-grid" id="foulStatsGrid"></div>
+
+    <div class="section-title">ファール内訳</div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>ファール名</th><th>回数</th><th>割合</th></tr>
+        </thead>
+        <tbody id="foulTypeBody"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title">選手別ファール</div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>背番号</th><th>回数</th><th>内訳</th></tr>
+        </thead>
+        <tbody id="foulPlayerBody"></tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== 出力タブ ===== -->
+<div class="panel" id="panel-export">
+  <div class="content">
+    <div class="section-title">データ出力</div>
+    <div class="export-section">
+      <div style="color:var(--text2);font-size:13px;margin-bottom:8px;">Streamlit連携用JSON・CSV出力</div>
+      <div class="export-btn-row">
+        <button class="btn btn-primary" onclick="exportJSON()">📦 JSON出力</button>
+        <button class="btn btn-success" onclick="exportGBCSV()">📄 GB CSV</button>
+        <button class="btn btn-yellow" style="color:#000" onclick="exportFoulCSV()">📄 ファールCSV</button>
+      </div>
+    </div>
+    <div class="section-title">JSONプレビュー</div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;overflow-x:auto;">
+      <pre id="jsonPreview">データを記録すると表示されます</pre>
+    </div>
+  </div>
+</div>
+
+<script>
+// ======== STATE ========
+const state = {
+  match: { enemy: '相手', date: '', qCount: 4 },
+  currentQ: 1,
+  gbForm: { team: null, loc: null, number: null },
+  foulForm: { number: null },
+  numpadTarget: null,
+  numpadValue: '',
+  gbs: [],    // { id, q, team, loc, number, note }
+  fouls: [],  // { id, q, number, name, note }
+};
+
+const LOC_LABELS = { self: '自陣', center: 'センター', enemy: '敵陣' };
+
+// ======== SETUP ========
+function startMatch() {
+  const enemy  = document.getElementById('enemyName').value.trim() || '相手';
+  const date   = document.getElementById('matchDate').value;
+  const qCount = parseInt(document.getElementById('qCount').value);
+  state.match  = { enemy, date, qCount };
+  document.getElementById('headerMeta').textContent   = `${date} vs ${enemy}`;
+  document.getElementById('barEnemyLbl').textContent  = `${enemy} GB`;
+  document.getElementById('gbEnemyBtnLabel').textContent = enemy + ' ゲット';
+  document.getElementById('setupModal').classList.remove('open');
+  buildQBar();
+  updateStatBar();
+}
+
+function buildQBar() {
+  const bar = document.getElementById('qBar');
+  bar.innerHTML = '<span style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.08em;">Q:</span>';
+  for (let i = 1; i <= state.match.qCount; i++) {
+    const b = document.createElement('button');
+    b.className = 'btn-q' + (i === state.currentQ ? ' active' : '');
+    b.textContent = `Q${i}`;
+    b.onclick = () => setQ(i);
+    bar.appendChild(b);
+  }
+}
+
+function setQ(q) {
+  state.currentQ = q;
+  buildQBar();
+  document.getElementById('gbLogQLabel').textContent   = q;
+  document.getElementById('foulLogQLabel').textContent = q;
+  renderGBLog();
+  renderFoulLog();
+}
+
+// ======== UTILS ========
+function toast(msg, color) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.borderColor = color || 'var(--border)';
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+  if (name === 'stats') updateStats();
+  if (name === 'export') updateExport();
+}
+
+// ======== テンキー ========
+function openNumpad(targetId, title) {
+  state.numpadTarget = targetId;
+  state.numpadValue  = '';
+  document.getElementById('numpadTitle').textContent = title;
+  document.getElementById('numpadDisplay').innerHTML = '<span class="placeholder">—</span>';
+  document.getElementById('numpadModal').classList.add('open');
+}
+
+function numInput(v) {
+  if (state.numpadValue.length >= 3) return;
+  state.numpadValue += v;
+  document.getElementById('numpadDisplay').textContent = state.numpadValue;
+}
+
+function numDel() {
+  state.numpadValue = state.numpadValue.slice(0, -1);
+  document.getElementById('numpadDisplay').textContent = state.numpadValue || '';
+  if (!state.numpadValue) document.getElementById('numpadDisplay').innerHTML = '<span class="placeholder">—</span>';
+}
+
+function numOK() {
+  if (!state.numpadValue) { closeNumpad(); return; }
+  const el = document.getElementById(state.numpadTarget);
+  if (el) { el.textContent = '#' + state.numpadValue; el.classList.add('filled'); }
+  if (state.numpadTarget === 'gbNumber')   state.gbForm.number   = state.numpadValue;
+  if (state.numpadTarget === 'foulNumber') state.foulForm.number = state.numpadValue;
+  closeNumpad();
+}
+
+function closeNumpad() {
+  document.getElementById('numpadModal').classList.remove('open');
+}
+
+// ======== GB フォーム ========
+function selectGBTeam(team) {
+  state.gbForm.team = team;
+  document.getElementById('gbBtnKyoto').classList.toggle('selected-kyoto', team === 'kyoto');
+  document.getElementById('gbBtnEnemy').classList.toggle('selected-enemy', team === 'enemy');
+}
+
+function selectLoc(loc) {
+  state.gbForm.loc = loc;
+  ['self','center','enemy'].forEach(l => {
+    document.getElementById('loc' + l.charAt(0).toUpperCase() + l.slice(1))
+            .classList.toggle('active', l === loc);
+  });
+}
+
+function clearGBNumber() {
+  state.gbForm.number = null;
+  const el = document.getElementById('gbNumber');
+  el.textContent = '—';
+  el.classList.remove('filled');
+}
+
+function addGB() {
+  if (!state.gbForm.team) { toast('ゲットチームを選択してください'); return; }
+  if (!state.gbForm.loc)  { toast('場所を選択してください'); return; }
+  const gb = {
+    id: Date.now(),
+    q: state.currentQ,
+    team: state.gbForm.team,
+    loc: state.gbForm.loc,
+    number: state.gbForm.number || null,
+    note: document.getElementById('gbNote').value.trim(),
+  };
+  state.gbs.push(gb);
+  updateStatBar();
+  renderGBLog();
+
+  // リセット
+  state.gbForm.team = null;
+  state.gbForm.loc  = null;
+  state.gbForm.number = null;
+  document.getElementById('gbBtnKyoto').classList.remove('selected-kyoto');
+  document.getElementById('gbBtnEnemy').classList.remove('selected-enemy');
+  ['Self','Center','Enemy'].forEach(l => document.getElementById('loc' + l).classList.remove('active'));
+  document.getElementById('gbNumber').textContent = '—';
+  document.getElementById('gbNumber').classList.remove('filled');
+  document.getElementById('gbNote').value = '';
+
+  const teamLabel = gb.team === 'kyoto' ? '京大' : state.match.enemy;
+  toast(`✔ GB: ${teamLabel} / ${LOC_LABELS[gb.loc]}`, gb.team === 'kyoto' ? 'var(--kyoto)' : 'var(--enemy)');
+}
+
+function renderGBLog() {
+  const container = document.getElementById('gbLog');
+  document.getElementById('gbLogQLabel').textContent = state.currentQ;
+  const qGBs = state.gbs.filter(g => g.q === state.currentQ);
+  if (qGBs.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">🏃</div>このQのGBはまだありません</div>';
+    return;
+  }
+  container.innerHTML = [...qGBs].reverse().map(g => {
+    const isKyoto    = g.team === 'kyoto';
+    const itemCls    = isKyoto ? 'kyoto-gb' : 'enemy-gb';
+    const badgeCls   = isKyoto ? 'badge-kyoto' : 'badge-enemy';
+    const teamLabel  = isKyoto ? '京大' : state.match.enemy;
+    const numText    = g.number ? ` #${g.number}` : '';
+    return `<div class="log-item ${itemCls}">
+      <span class="log-badge badge-q">Q${g.q}</span>
+      <span class="log-badge ${badgeCls}">${teamLabel}</span>
+      <div class="log-main">
+        <div class="log-number">${LOC_LABELS[g.loc]}${numText}</div>
+        <div class="log-detail">${g.note || '—'}</div>
+      </div>
+      <button class="log-delete" onclick="deleteGB(${g.id})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function deleteGB(id) {
+  state.gbs = state.gbs.filter(g => g.id !== id);
+  updateStatBar();
+  renderGBLog();
+}
+
+function updateStatBar() {
+  const kyoto = state.gbs.filter(g => g.team === 'kyoto').length;
+  const enemy = state.gbs.filter(g => g.team === 'enemy').length;
+  const total = kyoto + enemy;
+  document.getElementById('barKyoto').textContent = kyoto;
+  document.getElementById('barEnemy').textContent = enemy;
+  document.getElementById('barRate').textContent  = total > 0 ? Math.round(kyoto / total * 100) + '%' : '—';
+}
+
+// ======== ファールフォーム ========
+function selectFoulChip(name) {
+  document.getElementById('foulName').value = name;
+}
+
+function addFoul() {
+  const name = document.getElementById('foulName').value.trim();
+  if (!name)  { toast('ファール名を入力してください'); return; }
+  const foul = {
+    id: Date.now(),
+    q: state.currentQ,
+    number: state.foulForm.number || null,
+    name,
+    note: document.getElementById('foulNote').value.trim(),
+  };
+  state.fouls.push(foul);
+  renderFoulLog();
+
+  // リセット
+  state.foulForm.number = null;
+  document.getElementById('foulNumber').textContent = '—';
+  document.getElementById('foulNumber').classList.remove('filled');
+  document.getElementById('foulName').value  = '';
+  document.getElementById('foulNote').value  = '';
+
+  const numText = foul.number ? ` #${foul.number}` : '';
+  toast(`🚩 ファール: ${foul.name}${numText}`, 'var(--yellow)');
+}
+
+function renderFoulLog() {
+  const container = document.getElementById('foulLog');
+  document.getElementById('foulLogQLabel').textContent = state.currentQ;
+  const qFouls = state.fouls.filter(f => f.q === state.currentQ);
+  if (qFouls.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">🚩</div>このQのファールはまだありません</div>';
+    return;
+  }
+  container.innerHTML = [...qFouls].reverse().map(f => {
+    const numText = f.number ? `#${f.number}` : '番号なし';
+    return `<div class="log-item foul-item">
+      <span class="log-badge badge-q">Q${f.q}</span>
+      <span class="log-badge badge-foul">ファール</span>
+      <div class="log-main">
+        <div class="log-number">${numText} — ${f.name}</div>
+        <div class="log-detail">${f.note || '—'}</div>
+      </div>
+      <button class="log-delete" onclick="deleteFoul(${f.id})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function deleteFoul(id) {
+  state.fouls = state.fouls.filter(f => f.id !== id);
+  renderFoulLog();
+}
+
+// ======== 集計 ========
+function updateStats() {
+  const kyotoTotal = state.gbs.filter(g => g.team === 'kyoto').length;
+  const enemyTotal = state.gbs.filter(g => g.team === 'enemy').length;
+  const total = kyotoTotal + enemyTotal;
+  const rate  = total > 0 ? Math.round(kyotoTotal / total * 100) : 0;
+
+  document.getElementById('gbStatsGrid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--kyoto)">${kyotoTotal}</div>
+      <div class="stat-lbl">京大 GBゲット</div>
+      <div class="stat-sub">${total}回中 ${rate}%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--enemy)">${enemyTotal}</div>
+      <div class="stat-lbl">${state.match.enemy} GBゲット</div>
+      <div class="stat-sub">${total}回中 ${100 - rate}%</div>
+    </div>`;
+
+  // Q別
+  const qBody = document.getElementById('gbQBody');
+  let rows = '', totK = 0, totE = 0;
+  for (let q = 1; q <= state.match.qCount; q++) {
+    const k = state.gbs.filter(g => g.q === q && g.team === 'kyoto').length;
+    const e = state.gbs.filter(g => g.q === q && g.team === 'enemy').length;
+    const t = k + e;
+    const r = t > 0 ? Math.round(k / t * 100) + '%' : '—';
+    if (t > 0) rows += `<tr><td>Q${q}</td><td style="color:var(--kyoto)">${k}</td><td style="color:var(--enemy)">${e}</td><td>${t}</td><td>${r}</td></tr>`;
+    totK += k; totE += e;
+  }
+  const totT = totK + totE;
+  rows += `<tr class="total-row"><td>計</td><td style="color:var(--kyoto)">${totK}</td><td style="color:var(--enemy)">${totE}</td><td>${totT}</td><td>${totT > 0 ? Math.round(totK/totT*100) + '%' : '—'}</td></tr>`;
+  qBody.innerHTML = rows;
+
+  // 場所別
+  const locBody = document.getElementById('gbLocBody');
+  locBody.innerHTML = ['self','center','enemy'].map(loc => {
+    const k = state.gbs.filter(g => g.loc === loc && g.team === 'kyoto').length;
+    const e = state.gbs.filter(g => g.loc === loc && g.team === 'enemy').length;
+    const t = k + e;
+    const r = t > 0 ? Math.round(k / t * 100) + '%' : '—';
+    return `<tr>
+      <td>${LOC_LABELS[loc]}</td>
+      <td style="color:var(--kyoto)">${k}</td>
+      <td style="color:var(--enemy)">${e}</td>
+      <td>${r}</td>
+    </tr>`;
+  }).join('');
+
+  // ファール集計
+  const foulTotal = state.fouls.length;
+  const foulPlayers = [...new Set(state.fouls.map(f => f.number).filter(Boolean))].length;
+  document.getElementById('foulStatsGrid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-val" style="color:var(--yellow)">${foulTotal}</div>
+      <div class="stat-lbl">総ファール数</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-val">${foulPlayers}</div>
+      <div class="stat-lbl">ファール選手数</div>
+    </div>`;
+
+  // ファール種別
+  const foulTypes = {};
+  state.fouls.forEach(f => { foulTypes[f.name] = (foulTypes[f.name] || 0) + 1; });
+  const sorted = Object.entries(foulTypes).sort((a, b) => b[1] - a[1]);
+  document.getElementById('foulTypeBody').innerHTML = sorted.length
+    ? sorted.map(([name, cnt]) =>
+        `<tr><td>${name}</td><td style="color:var(--yellow);font-weight:700;">${cnt}</td><td>${foulTotal > 0 ? Math.round(cnt/foulTotal*100) + '%' : '—'}</td></tr>`
+      ).join('')
+    : '<tr><td colspan="3" style="color:var(--text3);padding:16px;">データなし</td></tr>';
+
+  // 選手別ファール
+  const playerFouls = {};
+  state.fouls.forEach(f => {
+    const key = f.number || '?';
+    if (!playerFouls[key]) playerFouls[key] = [];
+    playerFouls[key].push(f.name);
+  });
+  const playerSorted = Object.entries(playerFouls).sort((a, b) => b[1].length - a[1].length);
+  document.getElementById('foulPlayerBody').innerHTML = playerSorted.length
+    ? playerSorted.map(([num, names]) => {
+        const counts = {};
+        names.forEach(n => counts[n] = (counts[n]||0)+1);
+        const detail = Object.entries(counts).map(([n,c]) => c > 1 ? `${n}×${c}` : n).join(', ');
+        return `<tr>
+          <td style="color:var(--accent2);font-weight:700;">#${num}</td>
+          <td style="color:var(--yellow);font-weight:700;">${names.length}</td>
+          <td style="font-size:11px;text-align:left;padding-left:8px;">${detail}</td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="3" style="color:var(--text3);padding:16px;">データなし</td></tr>';
+}
+
+// ======== エクスポート ========
+function buildJSON() {
+  const kyotoTotal = state.gbs.filter(g => g.team === 'kyoto').length;
+  const enemyTotal = state.gbs.filter(g => g.team === 'enemy').length;
+  const total = kyotoTotal + enemyTotal;
+  return {
+    meta: { ...state.match, exportedAt: new Date().toISOString(), tool: 'KyotoLacrosse GBFoulTool v1.0' },
+    gb: {
+      records: state.gbs,
+      summary: {
+        kyoto_get: kyotoTotal,
+        enemy_get: enemyTotal,
+        kyoto_pct: total > 0 ? Math.round(kyotoTotal / total * 100) : null,
+        by_location: ['self','center','enemy'].map(loc => ({
+          loc,
+          kyoto: state.gbs.filter(g => g.loc === loc && g.team === 'kyoto').length,
+          enemy: state.gbs.filter(g => g.loc === loc && g.team === 'enemy').length,
+        })),
+      },
+    },
+    fouls: {
+      records: state.fouls,
+      summary: {
+        total: state.fouls.length,
+        by_type: (() => {
+          const t = {};
+          state.fouls.forEach(f => t[f.name] = (t[f.name]||0)+1);
+          return t;
+        })(),
+        by_player: (() => {
+          const p = {};
+          state.fouls.forEach(f => { const k = f.number||'?'; p[k]=(p[k]||0)+1; });
+          return p;
+        })(),
+      },
+    },
+  };
+}
+
+function updateExport() {
+  document.getElementById('jsonPreview').textContent = JSON.stringify(buildJSON(), null, 2);
+}
+
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(buildJSON(), null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `gb_foul_${state.match.date}_${state.match.enemy}.json`;
+  a.click();
+}
+
+function exportGBCSV() {
+  const bom = '\uFEFF';
+  const header = 'Q,チーム,場所,背番号,メモ';
+  const rows = state.gbs.map(g =>
+    `${g.q},${g.team==='kyoto'?'京大':state.match.enemy},${LOC_LABELS[g.loc]},${g.number||''},${g.note||''}`
+  );
+  dl([header,...rows].join('\n'), `gb_${state.match.date}.csv`);
+}
+
+function exportFoulCSV() {
+  const header = 'Q,背番号,ファール名,メモ';
+  const rows = state.fouls.map(f =>
+    `${f.q},${f.number||''},${f.name},${f.note||''}`
+  );
+  dl([header,...rows].join('\n'), `foul_${state.match.date}.csv`);
+}
+
+function dl(csv, filename) {
+  const bom = '\uFEFF';
+  const blob = new Blob([bom+csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
+// ======== INIT ========
+document.getElementById('matchDate').value = new Date().toISOString().slice(0,10);
+buildQBar();
+</script>
+</body>
+</html>

@@ -1,0 +1,1022 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ポゼッション計測</title>
+<style>
+  :root {
+    --bg: #0a0f1e;
+    --surface: #111827;
+    --surface2: #1a2332;
+    --border: #243048;
+    --accent: #3b82f6;
+    --accent2: #60a5fa;
+    --red: #ef4444;
+    --green: #22c55e;
+    --yellow: #f59e0b;
+    --purple: #a855f7;
+    --text: #f1f5f9;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --kyoto: #3b82f6;
+    --enemy: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+    min-height: 100vh;
+    font-size: 14px;
+    overscroll-behavior: none;
+  }
+
+  /* ヘッダー */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header-title { font-size: 15px; font-weight: 700; color: var(--accent2); }
+  .header-q { font-size: 12px; color: var(--text3); }
+
+  /* タブ */
+  .tabs {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky; top: 43px; z-index: 90;
+  }
+  .tab {
+    flex: 1; padding: 11px 4px; text-align: center;
+    font-size: 12px; font-weight: 600; color: var(--text3);
+    cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s;
+  }
+  .tab.active { color: var(--accent2); border-bottom-color: var(--accent); }
+
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Q切り替えバー */
+  .q-bar {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 12px;
+    display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+  }
+  .btn-q {
+    min-width: 44px; padding: 7px 12px; font-size: 13px; font-weight: 700;
+    border: none; border-radius: 8px; cursor: pointer; font-family: inherit;
+    transition: all 0.15s;
+  }
+  .btn-q.active { background: var(--accent); color: #fff; }
+  .btn-q:not(.active) { background: var(--border); color: var(--text2); }
+  .btn-q:active { transform: scale(0.93); }
+  .q-label { font-size: 11px; color: var(--text3); font-weight: 600; letter-spacing: 0.08em; margin-left: auto; }
+
+  /* 共通ボタン */
+  .btn {
+    border: none; border-radius: 10px; padding: 10px 18px;
+    font-size: 14px; font-weight: 700; cursor: pointer;
+    transition: all 0.15s; font-family: inherit;
+  }
+  .btn:active { transform: scale(0.94); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-secondary { background: var(--border); color: var(--text2); }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-success { background: var(--green); color: #fff; }
+  .btn-yellow { background: var(--yellow); color: #000; }
+  .btn-purple { background: var(--purple); color: #fff; }
+  .btn-sm { padding: 7px 13px; font-size: 12px; border-radius: 8px; }
+
+  /* ======== OFポゼッション ======== */
+  .of-content { padding: 12px 12px 100px; }
+
+  /* メインストップウォッチ */
+  .of-watch-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px 16px 16px;
+    margin-bottom: 14px;
+    text-align: center;
+  }
+  .of-set-label {
+    font-size: 11px; font-weight: 700; color: var(--text3);
+    letter-spacing: 0.1em; text-transform: uppercase; margin-bottom: 6px;
+  }
+  .of-set-num {
+    font-size: 15px; font-weight: 700; color: var(--accent2); margin-bottom: 10px;
+  }
+  .of-timer {
+    font-size: 64px; font-weight: 800; font-variant-numeric: tabular-nums;
+    line-height: 1; letter-spacing: -2px;
+    color: var(--text);
+    margin-bottom: 6px;
+  }
+  .of-timer.running { color: var(--green); }
+  .of-timer.paused { color: var(--yellow); }
+
+  .of-status {
+    font-size: 12px; color: var(--text3); margin-bottom: 16px; min-height: 18px;
+  }
+
+  /* 操作ボタン群 */
+  .of-actions {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;
+  }
+  .of-actions-bottom { display: flex; gap: 8px; }
+  .of-actions-bottom .btn { flex: 1; }
+
+  .big-btn {
+    padding: 20px 10px; font-size: 16px; font-weight: 800;
+    border-radius: 14px; border: none; cursor: pointer;
+    font-family: inherit; transition: all 0.15s; letter-spacing: 0.02em;
+  }
+  .big-btn:active { transform: scale(0.95); }
+  .big-btn-start { background: var(--green); color: #fff; }
+  .big-btn-pause { background: var(--yellow); color: #000; }
+  .big-btn-to { background: var(--red); color: #fff; }
+  .big-btn-goal { background: var(--accent); color: #fff; }
+  .big-btn-resume { background: var(--purple); color: #fff; }
+
+  /* セット累計表示 */
+  .of-totals {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px 14px;
+    margin-bottom: 14px;
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 8px; text-align: center;
+  }
+  .total-item .val {
+    font-size: 22px; font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+  .total-item .lbl { font-size: 10px; color: var(--text3); margin-top: 2px; font-weight: 600; letter-spacing: 0.05em; }
+  .total-item .sub { font-size: 11px; color: var(--text2); margin-top: 1px; }
+
+  /* セットログ */
+  .section-title {
+    font-size: 11px; font-weight: 700; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.12em;
+    margin-bottom: 8px; margin-top: 14px;
+  }
+  .set-log { display: flex; flex-direction: column; gap: 5px; }
+  .set-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 9px 12px;
+    display: flex; align-items: center; gap: 8px;
+  }
+  .set-item.ended-goal { border-left: 3px solid var(--accent); }
+  .set-item.ended-to    { border-left: 3px solid var(--red); }
+  .set-item.ended-qend  { border-left: 3px solid var(--yellow); }
+  .set-badge {
+    font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 5px; flex-shrink: 0;
+  }
+  .badge-goal { background: rgba(59,130,246,0.2); color: var(--accent2); }
+  .badge-to   { background: rgba(239,68,68,0.2);  color: var(--red); }
+  .badge-qend { background: rgba(245,158,11,0.2); color: var(--yellow); }
+  .badge-q    { background: var(--border); color: var(--text3); }
+  .set-main { flex: 1; }
+  .set-time { font-size: 18px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .set-detail { font-size: 11px; color: var(--text3); margin-top: 1px; }
+  .log-delete { background: none; border: none; color: var(--text3); font-size: 15px; cursor: pointer; padding: 4px; }
+  .log-delete:hover { color: var(--red); }
+
+  .empty-state { text-align: center; padding: 28px 0; color: var(--text3); font-size: 13px; }
+  .empty-icon { font-size: 28px; margin-bottom: 6px; }
+
+  /* ======== CLRDポゼッション ======== */
+  .clrd-content { padding: 12px 12px 100px; }
+
+  .clrd-watches {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;
+  }
+  .clrd-card {
+    background: var(--surface);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    padding: 14px 10px;
+    text-align: center;
+    transition: border-color 0.2s;
+  }
+  .clrd-card.active-team { border-color: var(--accent); }
+  .clrd-card.active-team.kyoto-card { border-color: var(--kyoto); }
+  .clrd-card.active-team.enemy-card { border-color: var(--enemy); }
+
+  .clrd-team-name {
+    font-size: 13px; font-weight: 700; margin-bottom: 8px;
+  }
+  .clrd-team-name.kyoto { color: var(--kyoto); }
+  .clrd-team-name.enemy { color: var(--enemy); }
+
+  .clrd-watch-time {
+    font-size: 36px; font-weight: 800; font-variant-numeric: tabular-nums;
+    line-height: 1; letter-spacing: -1px; margin-bottom: 8px;
+  }
+  .clrd-watch-time.running { color: var(--green); }
+  .clrd-watch-time.stopped { color: var(--text2); }
+
+  .clrd-watch-btn {
+    width: 100%; padding: 12px 6px; font-size: 13px; font-weight: 700;
+    border: none; border-radius: 10px; cursor: pointer; font-family: inherit;
+    transition: all 0.15s;
+  }
+  .clrd-watch-btn:active { transform: scale(0.95); }
+  .clrd-watch-btn.start  { background: var(--green); color: #fff; }
+  .clrd-watch-btn.stop   { background: var(--yellow); color: #000; }
+  .clrd-watch-btn.reset  { background: var(--border); color: var(--text2); margin-top: 5px; }
+
+  /* CLRDグローバル操作 */
+  .clrd-global {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 12px;
+    margin-bottom: 14px;
+    display: flex; gap: 8px; flex-wrap: wrap; align-items: center;
+  }
+  .clrd-global .btn { flex: 1; min-width: 100px; }
+
+  /* CLRD Q別サマリー */
+  .clrd-summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden; margin-bottom: 10px;
+  }
+  .clrd-summary-header {
+    padding: 8px 12px; background: var(--surface2);
+    font-size: 12px; font-weight: 700; color: var(--text2);
+    display: flex; justify-content: space-between;
+  }
+  .clrd-summary-row {
+    display: grid; grid-template-columns: 1fr 1fr;
+    border-top: 1px solid var(--border);
+  }
+  .clrd-summary-cell {
+    padding: 10px 12px; text-align: center;
+  }
+  .clrd-summary-cell:first-child { border-right: 1px solid var(--border); }
+  .clrd-time-val { font-size: 20px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .clrd-time-lbl { font-size: 10px; color: var(--text3); margin-top: 2px; font-weight: 600; }
+
+  /* 全体集計テーブル */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .data-table th {
+    background: var(--surface2); padding: 8px 6px; text-align: center;
+    color: var(--text3); font-weight: 700; font-size: 11px;
+    border-bottom: 1px solid var(--border); letter-spacing: 0.05em;
+  }
+  .data-table td { padding: 8px 6px; text-align: center; border-bottom: 1px solid var(--border); color: var(--text2); }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr.total-row td { color: var(--text); font-weight: 700; background: var(--surface2); }
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 12px; }
+
+  /* 出力 */
+  .export-section {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px; margin-bottom: 12px;
+  }
+  .export-btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+  /* セットアップモーダル */
+  .setup-modal {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85); z-index: 300;
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .setup-modal.open { display: flex; }
+  .setup-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 22px; width: 100%; max-width: 380px;
+  }
+  .setup-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+  .setup-field { margin-bottom: 12px; }
+  .setup-field label { display: block; font-size: 11px; color: var(--text3); margin-bottom: 4px; font-weight: 600; letter-spacing: 0.05em; }
+  .text-input {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 9px 11px; color: var(--text);
+    font-size: 13px; font-family: inherit; width: 100%;
+  }
+  .text-input:focus { outline: none; border-color: var(--accent); }
+
+  /* 確定モーダル */
+  .confirm-modal {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.75); z-index: 400;
+    align-items: flex-end; justify-content: center;
+  }
+  .confirm-modal.open { display: flex; }
+  .confirm-box {
+    background: var(--surface); border-radius: 20px 20px 0 0;
+    padding: 22px 18px 32px; width: 100%; max-width: 420px;
+    border-top: 1px solid var(--border);
+  }
+  .confirm-title { font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .confirm-time { font-size: 44px; font-weight: 800; font-variant-numeric: tabular-nums; color: var(--accent2); text-align: center; margin: 10px 0; }
+  .confirm-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 14px; }
+  .confirm-btns .btn { padding: 16px; font-size: 15px; }
+
+  /* ポップアップ通知 */
+  .toast {
+    position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 10px 18px;
+    font-size: 13px; font-weight: 600; color: var(--text);
+    z-index: 500; display: none; white-space: nowrap;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+  .toast.show { display: block; animation: fadeInOut 2.2s ease forwards; }
+  @keyframes fadeInOut {
+    0%   { opacity: 0; transform: translateX(-50%) translateY(-6px); }
+    15%  { opacity: 1; transform: translateX(-50%) translateY(0); }
+    75%  { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* jsonプレビュー */
+  pre { font-size: 11px; color: var(--text2); white-space: pre-wrap; word-break: break-all; }
+</style>
+</head>
+<body>
+
+<!-- セットアップ -->
+<div class="setup-modal open" id="setupModal">
+  <div class="setup-box">
+    <div class="setup-title">⚙️ 試合情報を入力</div>
+    <div class="setup-field">
+      <label>相手チーム名</label>
+      <input type="text" class="text-input" id="enemyName" placeholder="例: ○○大学">
+    </div>
+    <div class="setup-field">
+      <label>日付</label>
+      <input type="date" class="text-input" id="matchDate">
+    </div>
+    <div class="setup-field">
+      <label>Q数</label>
+      <select class="text-input" id="qCount">
+        <option value="4">4Q制</option>
+        <option value="2">2ピリオド制</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" style="width:100%;padding:14px;font-size:15px;margin-top:4px;" onclick="startMatch()">計測開始</button>
+  </div>
+</div>
+
+<!-- OFセット終了確認モーダル -->
+<div class="confirm-modal" id="confirmModal">
+  <div class="confirm-box">
+    <div class="confirm-title" id="confirmTitle">このセットの終了理由は？</div>
+    <div class="confirm-time" id="confirmTime">00:00</div>
+    <div class="confirm-btns">
+      <button class="btn btn-danger" onclick="endSet('to')">🔄 ターンオーバー</button>
+      <button class="btn btn-primary" onclick="endSet('goal')">⚽ 得点（ショット）</button>
+    </div>
+    <button class="btn btn-yellow" style="width:100%;margin-top:8px;padding:13px;" onclick="endSet('qend')">⏱ Q終了（途中カット）</button>
+    <button class="btn btn-secondary" style="width:100%;margin-top:8px;padding:11px;font-size:13px;" onclick="closeConfirm()">キャンセル（計測に戻る）</button>
+  </div>
+</div>
+
+<!-- トースト通知 -->
+<div class="toast" id="toast"></div>
+
+<!-- ヘッダー -->
+<div class="header">
+  <div class="header-title">⏱ ポゼッション計測</div>
+  <div class="header-q" id="headerMeta">—</div>
+</div>
+
+<!-- タブ -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('of')">OFポゼッション</div>
+  <div class="tab" onclick="switchTab('clrd')">CLRDポゼッション</div>
+  <div class="tab" onclick="switchTab('summary')">集計・出力</div>
+</div>
+
+<!-- Q切り替えバー -->
+<div class="q-bar" id="qBar"></div>
+
+<!-- ===== OFポゼッションタブ ===== -->
+<div class="panel active" id="panel-of">
+  <div class="of-content">
+
+    <!-- メインストップウォッチ -->
+    <div class="of-watch-card">
+      <div class="of-set-label">OFセット</div>
+      <div class="of-set-num" id="ofSetNum">— / —</div>
+      <div class="of-timer" id="ofTimer">00:00</div>
+      <div class="of-status" id="ofStatus">待機中 — 開始ボタンでセット計測スタート</div>
+      <div class="of-actions">
+        <button class="big-btn big-btn-start" id="ofStartBtn" onclick="ofStart()">▶ 開始 / 再開</button>
+        <button class="big-btn big-btn-pause" id="ofPauseBtn" onclick="ofPause()" disabled>⏸ 一時停止</button>
+      </div>
+      <div class="of-actions-bottom">
+        <button class="btn btn-danger" id="ofEndBtn" onclick="ofEnd()" disabled>■ セット終了</button>
+        <button class="btn btn-secondary btn-sm" onclick="ofUndo()">↩ 直前取消</button>
+      </div>
+    </div>
+
+    <!-- Q別累計 -->
+    <div class="of-totals" id="ofTotals">
+      <div class="total-item">
+        <div class="val" id="ofTotalSets">0</div>
+        <div class="lbl">セット数</div>
+      </div>
+      <div class="total-item">
+        <div class="val" id="ofTotalTime">00:00</div>
+        <div class="lbl">OFポゼ合計</div>
+      </div>
+      <div class="total-item">
+        <div class="val" id="ofAvgGoal">—</div>
+        <div class="lbl">得点平均時間</div>
+        <div class="sub" id="ofGoalCount" style="font-size:10px;color:var(--text3)"></div>
+      </div>
+    </div>
+
+    <!-- セットログ -->
+    <div class="section-title">セットログ（Q<span id="ofLogQLabel">1</span>）</div>
+    <div class="set-log" id="ofSetLog">
+      <div class="empty-state"><div class="empty-icon">⏱</div>セットを開始してください</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== CLRDポゼッションタブ ===== -->
+<div class="panel" id="panel-clrd">
+  <div class="clrd-content">
+
+    <!-- 2つのストップウォッチ -->
+    <div class="clrd-watches">
+      <!-- 京大 -->
+      <div class="clrd-card kyoto-card" id="clrdCardKyoto">
+        <div class="clrd-team-name kyoto">京大</div>
+        <div class="clrd-watch-time stopped" id="clrdTimeKyoto">00:00</div>
+        <button class="clrd-watch-btn start" id="clrdBtnKyoto" onclick="clrdToggle('kyoto')">▶ 開始</button>
+        <button class="clrd-watch-btn reset" onclick="clrdReset('kyoto')">↩ リセット</button>
+      </div>
+      <!-- 相手 -->
+      <div class="clrd-card enemy-card" id="clrdCardEnemy">
+        <div class="clrd-team-name enemy" id="clrdEnemyName">相手</div>
+        <div class="clrd-watch-time stopped" id="clrdTimeEnemy">00:00</div>
+        <button class="clrd-watch-btn start" id="clrdBtnEnemy" onclick="clrdToggle('enemy')">▶ 開始</button>
+        <button class="clrd-watch-btn reset" onclick="clrdReset('enemy')">↩ リセット</button>
+      </div>
+    </div>
+
+    <!-- グローバル操作 -->
+    <div class="clrd-global">
+      <button class="btn btn-secondary" onclick="clrdBothStop()">⏸ 両方停止</button>
+      <button class="btn btn-yellow" onclick="clrdSaveQ()">✔ このQを保存</button>
+    </div>
+
+    <!-- Q別サマリー -->
+    <div class="section-title">Q別CLRDポゼッション</div>
+    <div id="clrdQSummary">
+      <div class="empty-state"><div class="empty-icon">⏱</div>「このQを保存」で記録されます</div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== 集計・出力タブ ===== -->
+<div class="panel" id="panel-summary">
+  <div class="of-content">
+
+    <div class="section-title">OFポゼッション Q別集計</div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Q</th>
+            <th>セット数</th>
+            <th>OF合計</th>
+            <th>得点数</th>
+            <th>得点平均</th>
+            <th>TO数</th>
+          </tr>
+        </thead>
+        <tbody id="summaryOfBody"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title">CLRDポゼッション Q別集計</div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>Q</th><th>京大</th><th>相手</th><th>京大%</th></tr>
+        </thead>
+        <tbody id="summaryCLBody"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title">データ出力</div>
+    <div class="export-section">
+      <div style="color:var(--text2);font-size:13px;margin-bottom:8px;">スコアシートツールと合わせてStreamlitに渡せるJSONを出力します。</div>
+      <div class="export-btn-row">
+        <button class="btn btn-primary" onclick="exportJSON()">📦 JSON出力</button>
+        <button class="btn btn-success" onclick="exportCSV()">📄 CSV出力</button>
+      </div>
+    </div>
+
+    <div class="section-title">JSONプレビュー</div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;">
+      <pre id="jsonPreview">データを記録すると表示されます</pre>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ======== STATE ========
+const state = {
+  match: { enemy: '相手', date: '', qCount: 4 },
+  currentQ: 1,
+
+  // OFポゼッション
+  of: {
+    running: false,
+    paused: false,
+    centisec: 0,       // 現在セットの経過(cs)
+    interval: null,
+    sets: [],          // { q, endType, duration_cs, index }
+    pendingEnd: false, // 終了確認中
+  },
+
+  // CLRDポゼッション
+  clrd: {
+    kyoto: { running: false, cs: 0, interval: null },
+    enemy: { running: false, cs: 0, interval: null },
+    saved: [],         // { q, kyoto_cs, enemy_cs }
+  },
+};
+
+// ======== SETUP ========
+function startMatch() {
+  const enemy = document.getElementById('enemyName').value.trim() || '相手';
+  const date  = document.getElementById('matchDate').value;
+  const qCount = parseInt(document.getElementById('qCount').value);
+  state.match = { enemy, date, qCount };
+  document.getElementById('headerMeta').textContent = `${date} vs ${enemy}`;
+  document.getElementById('clrdEnemyName').textContent = enemy;
+  document.getElementById('setupModal').classList.remove('open');
+  buildQBar();
+  updateOfDisplay();
+  renderClrdSummary();
+  updateSummaryTables();
+}
+
+function buildQBar() {
+  const bar = document.getElementById('qBar');
+  bar.innerHTML = '<span style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.08em;">Q:</span>';
+  for (let i = 1; i <= state.match.qCount; i++) {
+    const b = document.createElement('button');
+    b.className = 'btn-q' + (i === state.currentQ ? ' active' : '');
+    b.textContent = `Q${i}`;
+    b.onclick = () => setQ(i);
+    bar.appendChild(b);
+  }
+  // Q終了ボタン
+  const end = document.createElement('button');
+  end.className = 'btn-q';
+  end.style.cssText = 'background:var(--yellow);color:#000;margin-left:auto;';
+  end.textContent = 'Q終了';
+  end.onclick = onQEnd;
+  bar.appendChild(end);
+}
+
+function setQ(q) {
+  state.currentQ = q;
+  buildQBar();
+  updateOfDisplay();
+  document.getElementById('ofLogQLabel').textContent = q;
+  renderOfLog();
+  updateOfTotals();
+}
+
+// ======== UTILS ========
+function csToMMSS(cs) {
+  const s = Math.floor(cs / 100);
+  const m = Math.floor(s / 60);
+  return `${String(m).padStart(2,'0')}:${String(s % 60).padStart(2,'0')}`;
+}
+
+function csToHMS(cs) {
+  const s = Math.floor(cs / 100);
+  const m = Math.floor(s / 60);
+  const h = Math.floor(m / 60);
+  if (h > 0) return `${h}:${String(m%60).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+  return `${String(m).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+}
+
+function toast(msg, color) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.borderColor = color || 'var(--border)';
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+  if (name === 'summary') { updateSummaryTables(); updateExportPreview(); }
+}
+
+// ======== OFポゼッション ========
+function ofStart() {
+  if (state.of.running) return;
+  state.of.running = true;
+  state.of.paused  = false;
+  state.of.interval = setInterval(() => {
+    state.of.centisec++;
+    updateOfDisplay();
+  }, 10);
+  document.getElementById('ofPauseBtn').disabled = false;
+  document.getElementById('ofEndBtn').disabled   = false;
+  document.getElementById('ofStartBtn').disabled = true;
+  setOfTimerColor('running');
+  updateOfStatus('計測中 — ポゼッションを失ったら一時停止');
+}
+
+function ofPause() {
+  if (!state.of.running) return;
+  clearInterval(state.of.interval);
+  state.of.running = false;
+  state.of.paused  = true;
+  document.getElementById('ofStartBtn').disabled = false;
+  setOfTimerColor('paused');
+  updateOfStatus('一時停止中 — リカバーしたら再開、ターンオーバーならセット終了');
+}
+
+function ofEnd() {
+  if (!state.of.running && !state.of.paused) return;
+  if (state.of.running) {
+    clearInterval(state.of.interval);
+    state.of.running = false;
+  }
+  // 確認モーダルを出す
+  document.getElementById('confirmTime').textContent = csToMMSS(state.of.centisec);
+  document.getElementById('confirmModal').classList.add('open');
+}
+
+function endSet(type) {
+  const set = {
+    id: Date.now(),
+    q: state.currentQ,
+    endType: type,  // 'to' | 'goal' | 'qend'
+    duration_cs: state.of.centisec,
+    index: state.of.sets.filter(s => s.q === state.currentQ).length + 1,
+  };
+  state.of.sets.push(set);
+  closeConfirm();
+
+  // リセット
+  state.of.centisec = 0;
+  state.of.paused = false;
+  state.of.running = false;
+  document.getElementById('ofStartBtn').disabled = false;
+  document.getElementById('ofPauseBtn').disabled = true;
+  document.getElementById('ofEndBtn').disabled   = true;
+  setOfTimerColor('');
+  updateOfDisplay();
+  updateOfTotals();
+  renderOfLog();
+  updateSummaryTables();
+
+  const labels = { to: 'ターンオーバー', goal: '得点', qend: 'Q終了' };
+  toast(`✔ セット記録: ${csToMMSS(set.duration_cs)} (${labels[type]})`,
+        type === 'goal' ? 'var(--accent)' : type === 'to' ? 'var(--red)' : 'var(--yellow)');
+}
+
+function closeConfirm() {
+  document.getElementById('confirmModal').classList.remove('open');
+  updateOfStatus(state.of.paused
+    ? '一時停止中 — リカバーしたら再開、ターンオーバーならセット終了'
+    : '待機中 — 開始ボタンでセット計測スタート');
+  if (!state.of.paused) setOfTimerColor('');
+}
+
+function ofUndo() {
+  const qSets = state.of.sets.filter(s => s.q === state.currentQ);
+  if (qSets.length === 0) { toast('取り消すセットがありません'); return; }
+  const last = qSets[qSets.length - 1];
+  state.of.sets = state.of.sets.filter(s => s.id !== last.id);
+  renderOfLog(); updateOfTotals(); updateSummaryTables();
+  toast(`↩ セット#${last.index} を取消 (${csToMMSS(last.duration_cs)})`);
+}
+
+function onQEnd() {
+  // 計測中なら停止してQ終了セットとして保存
+  if (state.of.running || state.of.paused) {
+    if (state.of.running) { clearInterval(state.of.interval); state.of.running = false; }
+    if (state.of.centisec > 0) endSet('qend');
+  }
+  // CLRD両方停止して保存
+  if (state.clrd.kyoto.running) clrdToggle('kyoto');
+  if (state.clrd.enemy.running) clrdToggle('enemy');
+  clrdSaveQ();
+  toast(`Q${state.currentQ} 終了 — データ保存済み`, 'var(--yellow)');
+}
+
+function updateOfDisplay() {
+  document.getElementById('ofTimer').textContent = csToMMSS(state.of.centisec);
+  const qSets = state.of.sets.filter(s => s.q === state.currentQ);
+  document.getElementById('ofSetNum').textContent =
+    `セット #${qSets.length + 1}（Q${state.currentQ}）`;
+}
+
+function setOfTimerColor(cls) {
+  const el = document.getElementById('ofTimer');
+  el.classList.remove('running','paused');
+  if (cls) el.classList.add(cls);
+}
+
+function updateOfStatus(msg) {
+  document.getElementById('ofStatus').textContent = msg;
+}
+
+function updateOfTotals() {
+  const qSets = state.of.sets.filter(s => s.q === state.currentQ);
+  const totalCs = qSets.reduce((a, s) => a + s.duration_cs, 0);
+  const goalSets = qSets.filter(s => s.endType === 'goal');
+  const goalCs  = goalSets.reduce((a, s) => a + s.duration_cs, 0);
+  const avgGoal = goalSets.length > 0 ? csToMMSS(Math.round(goalCs / goalSets.length)) : '—';
+
+  document.getElementById('ofTotalSets').textContent = qSets.length;
+  document.getElementById('ofTotalTime').textContent = csToMMSS(totalCs);
+  document.getElementById('ofAvgGoal').textContent   = avgGoal;
+  document.getElementById('ofGoalCount').textContent = goalSets.length > 0 ? `${goalSets.length}得点` : '';
+}
+
+function renderOfLog() {
+  const container = document.getElementById('ofSetLog');
+  document.getElementById('ofLogQLabel').textContent = state.currentQ;
+  const qSets = state.of.sets.filter(s => s.q === state.currentQ);
+  if (qSets.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">⏱</div>このQのセットはまだありません</div>';
+    return;
+  }
+  const labels = { to: 'ターンオーバー', goal: '得点', qend: 'Q終了' };
+  const badgeCls = { to: 'badge-to', goal: 'badge-goal', qend: 'badge-qend' };
+  const itemCls  = { to: 'ended-to', goal: 'ended-goal', qend: 'ended-qend' };
+  container.innerHTML = [...qSets].reverse().map(s =>
+    `<div class="set-item ${itemCls[s.endType]}">
+      <span class="set-badge badge-q">#${s.index}</span>
+      <span class="set-badge ${badgeCls[s.endType]}">${labels[s.endType]}</span>
+      <div class="set-main">
+        <div class="set-time">${csToMMSS(s.duration_cs)}</div>
+      </div>
+      <button class="log-delete" onclick="deleteSet(${s.id})">✕</button>
+    </div>`
+  ).join('');
+}
+
+function deleteSet(id) {
+  state.of.sets = state.of.sets.filter(s => s.id !== id);
+  renderOfLog(); updateOfTotals(); updateSummaryTables();
+}
+
+// ======== CLRDポゼッション ========
+function clrdToggle(team) {
+  const c = state.clrd[team];
+  const btn = document.getElementById(`clrdBtn${team === 'kyoto' ? 'Kyoto' : 'Enemy'}`);
+  const card = document.getElementById(`clrdCard${team === 'kyoto' ? 'Kyoto' : 'Enemy'}`);
+  const timeEl = document.getElementById(`clrdTime${team === 'kyoto' ? 'Kyoto' : 'Enemy'}`);
+
+  if (c.running) {
+    clearInterval(c.interval);
+    c.running = false;
+    btn.textContent = '▶ 開始';
+    btn.className = 'clrd-watch-btn start';
+    card.classList.remove('active-team');
+    timeEl.classList.remove('running');
+    timeEl.classList.add('stopped');
+  } else {
+    c.running = true;
+    c.interval = setInterval(() => {
+      c.cs++;
+      document.getElementById(`clrdTime${team === 'kyoto' ? 'Kyoto' : 'Enemy'}`).textContent = csToMMSS(c.cs);
+    }, 10);
+    btn.textContent = '⏸ 停止';
+    btn.className = 'clrd-watch-btn stop';
+    card.classList.add('active-team');
+    timeEl.classList.add('running');
+    timeEl.classList.remove('stopped');
+  }
+}
+
+function clrdReset(team) {
+  const c = state.clrd[team];
+  if (c.running) { clearInterval(c.interval); c.running = false; }
+  c.cs = 0;
+  const suffix = team === 'kyoto' ? 'Kyoto' : 'Enemy';
+  document.getElementById(`clrdTime${suffix}`).textContent = '00:00';
+  document.getElementById(`clrdBtn${suffix}`).textContent = '▶ 開始';
+  document.getElementById(`clrdBtn${suffix}`).className = 'clrd-watch-btn start';
+  document.getElementById(`clrdCard${suffix}`).classList.remove('active-team');
+  document.getElementById(`clrdTime${suffix}`).classList.remove('running');
+  document.getElementById(`clrdTime${suffix}`).classList.add('stopped');
+}
+
+function clrdBothStop() {
+  if (state.clrd.kyoto.running) clrdToggle('kyoto');
+  if (state.clrd.enemy.running) clrdToggle('enemy');
+  toast('⏸ 両方停止しました');
+}
+
+function clrdSaveQ() {
+  const kyotoCs = state.clrd.kyoto.cs;
+  const enemyCs = state.clrd.enemy.cs;
+  if (kyotoCs === 0 && enemyCs === 0) { toast('まだ計測データがありません'); return; }
+
+  // 同じQの保存済みを上書き
+  const existing = state.clrd.saved.findIndex(s => s.q === state.currentQ);
+  const record = { q: state.currentQ, kyoto_cs: kyotoCs, enemy_cs: enemyCs };
+  if (existing >= 0) state.clrd.saved[existing] = record;
+  else state.clrd.saved.push(record);
+
+  renderClrdSummary();
+  updateSummaryTables();
+  toast(`✔ Q${state.currentQ} CLRDデータ保存`, 'var(--green)');
+}
+
+function renderClrdSummary() {
+  const container = document.getElementById('clrdQSummary');
+  if (state.clrd.saved.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">⏱</div>「このQを保存」で記録されます</div>';
+    return;
+  }
+  container.innerHTML = state.clrd.saved.map(s => {
+    const total = s.kyoto_cs + s.enemy_cs;
+    const kyotoPct = total > 0 ? Math.round(s.kyoto_cs / total * 100) : 0;
+    return `<div class="clrd-summary-card">
+      <div class="clrd-summary-header">
+        <span>Q${s.q}</span>
+        <span style="color:var(--text3)">合計 ${csToMMSS(total)}</span>
+      </div>
+      <div class="clrd-summary-row">
+        <div class="clrd-summary-cell">
+          <div class="clrd-time-val" style="color:var(--kyoto)">${csToMMSS(s.kyoto_cs)}</div>
+          <div class="clrd-time-lbl">京大 (${kyotoPct}%)</div>
+        </div>
+        <div class="clrd-summary-cell">
+          <div class="clrd-time-val" style="color:var(--enemy)">${csToMMSS(s.enemy_cs)}</div>
+          <div class="clrd-time-lbl">${state.match.enemy} (${100 - kyotoPct}%)</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ======== 集計テーブル ========
+function updateSummaryTables() {
+  // OFポゼ
+  const ofBody = document.getElementById('summaryOfBody');
+  let ofRows = '';
+  let ofTotals = { sets:0, cs:0, goals:0, goalCs:0, tos:0 };
+  for (let q = 1; q <= state.match.qCount; q++) {
+    const qSets = state.of.sets.filter(s => s.q === q);
+    if (qSets.length === 0) continue;
+    const totalCs = qSets.reduce((a,s) => a + s.duration_cs, 0);
+    const goals   = qSets.filter(s => s.endType === 'goal');
+    const goalCs  = goals.reduce((a,s) => a + s.duration_cs, 0);
+    const tos     = qSets.filter(s => s.endType === 'to').length;
+    const avg     = goals.length > 0 ? csToMMSS(Math.round(goalCs / goals.length)) : '—';
+    ofRows += `<tr>
+      <td>Q${q}</td><td>${qSets.length}</td><td>${csToMMSS(totalCs)}</td>
+      <td>${goals.length}</td><td>${avg}</td><td>${tos}</td>
+    </tr>`;
+    ofTotals.sets += qSets.length; ofTotals.cs += totalCs;
+    ofTotals.goals += goals.length; ofTotals.goalCs += goalCs; ofTotals.tos += tos;
+  }
+  if (ofTotals.sets > 0) {
+    const avgGoal = ofTotals.goals > 0 ? csToMMSS(Math.round(ofTotals.goalCs / ofTotals.goals)) : '—';
+    ofRows += `<tr class="total-row">
+      <td>計</td><td>${ofTotals.sets}</td><td>${csToMMSS(ofTotals.cs)}</td>
+      <td>${ofTotals.goals}</td><td>${avgGoal}</td><td>${ofTotals.tos}</td>
+    </tr>`;
+  }
+  ofBody.innerHTML = ofRows || '<tr><td colspan="6" style="color:var(--text3);padding:16px;">データなし</td></tr>';
+
+  // CLRD
+  const clBody = document.getElementById('summaryCLBody');
+  let clRows = '';
+  let totK = 0, totE = 0;
+  for (const s of state.clrd.saved) {
+    const tot = s.kyoto_cs + s.enemy_cs;
+    const pct = tot > 0 ? Math.round(s.kyoto_cs / tot * 100) : 0;
+    clRows += `<tr>
+      <td>Q${s.q}</td>
+      <td style="color:var(--kyoto)">${csToMMSS(s.kyoto_cs)}</td>
+      <td style="color:var(--enemy)">${csToMMSS(s.enemy_cs)}</td>
+      <td>${pct}%</td>
+    </tr>`;
+    totK += s.kyoto_cs; totE += s.enemy_cs;
+  }
+  if (totK + totE > 0) {
+    const tot = totK + totE;
+    const pct = Math.round(totK / tot * 100);
+    clRows += `<tr class="total-row">
+      <td>計</td>
+      <td style="color:var(--kyoto)">${csToMMSS(totK)}</td>
+      <td style="color:var(--enemy)">${csToMMSS(totE)}</td>
+      <td>${pct}%</td>
+    </tr>`;
+  }
+  clBody.innerHTML = clRows || '<tr><td colspan="4" style="color:var(--text3);padding:16px;">データなし</td></tr>';
+}
+
+// ======== エクスポート ========
+function buildJSON() {
+  return {
+    meta: {
+      ...state.match,
+      exportedAt: new Date().toISOString(),
+      tool: 'KyotoLacrosse PossessionTool v1.0',
+    },
+    of_possession: {
+      sets: state.of.sets.map(s => ({
+        ...s,
+        duration_mmss: csToMMSS(s.duration_cs),
+        duration_sec: Math.floor(s.duration_cs / 100),
+      })),
+      by_q: Array.from({ length: state.match.qCount }, (_, i) => {
+        const q = i + 1;
+        const qSets = state.of.sets.filter(s => s.q === q);
+        const goalSets = qSets.filter(s => s.endType === 'goal');
+        const totalCs = qSets.reduce((a, s) => a + s.duration_cs, 0);
+        const goalCs  = goalSets.reduce((a, s) => a + s.duration_cs, 0);
+        return {
+          q,
+          set_count: qSets.length,
+          total_sec: Math.floor(totalCs / 100),
+          goal_count: goalSets.length,
+          to_count: qSets.filter(s => s.endType === 'to').length,
+          avg_goal_sec: goalSets.length > 0 ? Math.floor(goalCs / goalSets.length / 100) : null,
+        };
+      }),
+    },
+    clrd_possession: {
+      by_q: state.clrd.saved.map(s => ({
+        q: s.q,
+        kyoto_sec: Math.floor(s.kyoto_cs / 100),
+        enemy_sec: Math.floor(s.enemy_cs / 100),
+        kyoto_pct: (s.kyoto_cs + s.enemy_cs) > 0
+          ? Math.round(s.kyoto_cs / (s.kyoto_cs + s.enemy_cs) * 100) : 0,
+      })),
+    },
+  };
+}
+
+function updateExportPreview() {
+  document.getElementById('jsonPreview').textContent = JSON.stringify(buildJSON(), null, 2);
+}
+
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(buildJSON(), null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `possession_${state.match.date}_${state.match.enemy}.json`;
+  a.click();
+}
+
+function exportCSV() {
+  const bom = '\uFEFF';
+  const ofHeader = 'Q,セット番号,終了理由,時間(秒),時間(mm:ss)';
+  const ofRows = state.of.sets.map(s =>
+    `${s.q},${s.index},${s.endType === 'goal' ? '得点' : s.endType === 'to' ? 'ターンオーバー' : 'Q終了'},${Math.floor(s.duration_cs/100)},${csToMMSS(s.duration_cs)}`
+  );
+  const clHeader = '\nQ,京大(秒),相手(秒),京大%';
+  const clRows = state.clrd.saved.map(s => {
+    const tot = s.kyoto_cs + s.enemy_cs;
+    const pct = tot > 0 ? Math.round(s.kyoto_cs / tot * 100) : 0;
+    return `${s.q},${Math.floor(s.kyoto_cs/100)},${Math.floor(s.enemy_cs/100)},${pct}`;
+  });
+  const csv = [ofHeader, ...ofRows, clHeader, ...clRows].join('\n');
+  const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `possession_${state.match.date}.csv`;
+  a.click();
+}
+
+// ======== INIT ========
+document.getElementById('matchDate').value = new Date().toISOString().slice(0, 10);
+buildQBar();
+</script>
+</body>
+</html>

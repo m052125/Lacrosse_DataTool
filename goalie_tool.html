@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ゴーリーデータ記録</title>
+<style>
+  :root {
+    --bg: #0a0f1e;
+    --surface: #111827;
+    --surface2: #1a2332;
+    --border: #243048;
+    --accent: #3b82f6;
+    --accent2: #60a5fa;
+    --red: #ef4444;
+    --green: #22c55e;
+    --yellow: #f59e0b;
+    --purple: #a855f7;
+    --text: #f1f5f9;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --kyoto: #3b82f6;
+    --enemy: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: var(--bg); color: var(--text);
+    font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+    min-height: 100vh; font-size: 14px;
+  }
+
+  .header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 10px 14px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .header-title { font-size: 15px; font-weight: 700; color: var(--accent2); }
+  .header-meta  { font-size: 11px; color: var(--text3); }
+
+  /* セーブ率バー */
+  .save-bar {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 8px 14px; display: grid; grid-template-columns: 1fr auto 1fr; gap: 6px; align-items: center;
+  }
+  .save-team { text-align: center; }
+  .save-val  { font-size: 26px; font-weight: 800; line-height: 1; }
+  .save-lbl  { font-size: 10px; color: var(--text3); font-weight: 600; letter-spacing: 0.05em; margin-top: 2px; }
+  .save-center { text-align: center; }
+  .save-vs   { font-size: 13px; color: var(--text3); font-weight: 700; }
+
+  /* Qバー */
+  .q-bar {
+    background: var(--surface2); border-bottom: 1px solid var(--border);
+    padding: 7px 12px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap;
+  }
+  .btn-q {
+    min-width: 44px; padding: 7px 12px; font-size: 13px; font-weight: 700;
+    border: none; border-radius: 8px; cursor: pointer; font-family: inherit; transition: all 0.15s;
+  }
+  .btn-q.active      { background: var(--accent); color: #fff; }
+  .btn-q:not(.active){ background: var(--border); color: var(--text2); }
+  .btn-q:active { transform: scale(0.93); }
+
+  /* タブ */
+  .tabs {
+    display: flex; background: var(--surface); border-bottom: 1px solid var(--border);
+    position: sticky; top: 43px; z-index: 90;
+  }
+  .tab {
+    flex: 1; padding: 10px 2px; text-align: center;
+    font-size: 12px; font-weight: 600; color: var(--text3);
+    cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s;
+  }
+  .tab.active { color: var(--accent2); border-bottom-color: var(--accent); }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  .content { padding: 12px 12px 90px; }
+
+  .section-title {
+    font-size: 11px; font-weight: 700; color: var(--text3);
+    text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 8px; margin-top: 16px;
+  }
+  .section-title:first-child { margin-top: 0; }
+
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 14px; margin-bottom: 12px;
+  }
+
+  /* ボタン */
+  .btn { border: none; border-radius: 10px; padding: 10px 18px; font-size: 14px; font-weight: 700; cursor: pointer; transition: all 0.15s; font-family: inherit; }
+  .btn:active { transform: scale(0.94); }
+  .btn-primary   { background: var(--accent);  color: #fff; }
+  .btn-secondary { background: var(--border);  color: var(--text2); }
+  .btn-success   { background: var(--green);   color: #fff; }
+  .btn-yellow    { background: var(--yellow);  color: #000; }
+  .btn-sm   { padding: 7px 12px; font-size: 12px; border-radius: 8px; }
+  .btn-full { width: 100%; padding: 13px; font-size: 14px; border-radius: 10px; margin-top: 6px; }
+
+  .form-label { font-size: 11px; color: var(--text3); margin-bottom: 5px; font-weight: 600; letter-spacing: 0.05em; }
+  .form-group { margin-bottom: 12px; }
+
+  .btn-group { display: flex; flex-wrap: wrap; gap: 6px; }
+  .toggle-btn {
+    border: 1.5px solid var(--border); border-radius: 8px;
+    padding: 8px 13px; font-size: 13px; font-weight: 600;
+    cursor: pointer; background: transparent; color: var(--text2);
+    transition: all 0.15s; font-family: inherit;
+  }
+  .toggle-btn:active { transform: scale(0.95); }
+  .toggle-btn.active { border-color: var(--accent); background: rgba(59,130,246,0.18); color: var(--accent2); }
+
+  /* テンキー */
+  .modal-overlay {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.7); z-index: 200; align-items: flex-end; justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .numpad-modal {
+    background: var(--surface); border-radius: 20px 20px 0 0;
+    padding: 20px 16px 30px; width: 100%; max-width: 400px; border-top: 1px solid var(--border);
+  }
+  .numpad-title { font-size: 13px; color: var(--text3); text-align: center; margin-bottom: 12px; font-weight: 600; }
+  .numpad-display {
+    background: var(--surface2); border-radius: 10px; padding: 12px; text-align: center;
+    font-size: 32px; font-weight: 700; color: var(--text); margin-bottom: 14px; min-height: 58px;
+  }
+  .numpad-display .ph { color: var(--text3); font-size: 16px; }
+  .numpad-keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .numkey {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px; font-size: 20px; font-weight: 700; color: var(--text);
+    cursor: pointer; text-align: center; transition: all 0.1s; font-family: inherit;
+  }
+  .numkey:active { transform: scale(0.93); background: var(--accent); color: #fff; }
+  .numkey.del { color: var(--red); font-size: 16px; }
+  .numkey.ok  { background: var(--accent); color: #fff; }
+  .numpad-trigger {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 9px 13px; color: var(--text); font-size: 18px; font-weight: 700;
+    min-width: 58px; text-align: center; cursor: pointer; display: inline-block;
+  }
+  .numpad-trigger.filled { border-color: var(--accent); color: var(--accent2); }
+
+  .text-input {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 9px 11px; color: var(--text); font-size: 13px; font-family: inherit; width: 100%;
+  }
+  .text-input:focus { outline: none; border-color: var(--accent); }
+
+  /* ======== ゴーリーセットアップカード ======== */
+  .goalie-setup-row {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px;
+  }
+  .goalie-setup-card {
+    background: var(--surface); border: 2px solid var(--border); border-radius: 12px; padding: 12px;
+  }
+  .goalie-setup-card.kyoto-card { border-color: var(--kyoto); }
+  .goalie-setup-card.enemy-card { border-color: var(--enemy); }
+  .goalie-name { font-size: 12px; font-weight: 700; margin-bottom: 8px; }
+  .goalie-name.kyoto { color: var(--kyoto); }
+  .goalie-name.enemy { color: var(--enemy); }
+
+  /* ======== ショット入力エリア ======== */
+  .shot-input-wrap {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 14px;
+  }
+  .shot-panel {
+    background: var(--surface); border: 2px solid var(--border); border-radius: 14px; padding: 10px;
+  }
+  .shot-panel.kyoto-panel { border-color: rgba(59,130,246,0.4); }
+  .shot-panel.enemy-panel { border-color: rgba(239,68,68,0.4); }
+  .shot-panel.selected-panel.kyoto-panel { border-color: var(--kyoto); box-shadow: 0 0 0 2px rgba(59,130,246,0.2); }
+  .shot-panel.selected-panel.enemy-panel { border-color: var(--enemy); box-shadow: 0 0 0 2px rgba(239,68,68,0.2); }
+  .panel-header {
+    display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;
+  }
+  .panel-team-name { font-size: 12px; font-weight: 700; }
+  .panel-team-name.kyoto { color: var(--kyoto); }
+  .panel-team-name.enemy { color: var(--enemy); }
+  .panel-goalie-info { font-size: 10px; color: var(--text3); }
+
+  /* ゴール枠（3×3） */
+  .goal-frame-wrap { margin-bottom: 8px; }
+  .goal-frame-label {
+    font-size: 10px; color: var(--text3); text-align: center; margin-bottom: 4px;
+    font-weight: 600; letter-spacing: 0.05em;
+  }
+  .goal-frame {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    border: 2px solid var(--text3); border-radius: 6px; overflow: hidden;
+    aspect-ratio: 3/2; width: 100%;
+  }
+  .goal-cell {
+    border: 1px solid rgba(100,116,139,0.3);
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; transition: background 0.15s;
+    font-size: 16px; font-weight: 700; min-height: 36px;
+    position: relative; background: rgba(26,35,50,0.5);
+  }
+  .goal-cell:active { transform: scale(0.95); }
+  .goal-cell.has-shot { background: rgba(59,130,246,0.1); }
+
+  /* セル内マーカー */
+  .cell-markers { display: flex; flex-wrap: wrap; gap: 1px; justify-content: center; align-items: center; padding: 2px; }
+  .shot-marker {
+    width: 14px; height: 14px; border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 8px; font-weight: 700; flex-shrink: 0;
+  }
+  .marker-goal { background: var(--green);  color: #fff; }
+  .marker-save { background: var(--yellow); color: #000; }
+  .marker-miss { background: rgba(239,68,68,0.3); border: 1px solid var(--red); color: var(--red); }
+
+  /* 結果選択ボタン */
+  .result-select { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-bottom: 6px; }
+  .result-btn {
+    border: 1.5px solid var(--border); border-radius: 8px; padding: 7px 4px;
+    font-size: 11px; font-weight: 700; cursor: pointer; background: transparent;
+    color: var(--text2); transition: all 0.15s; font-family: inherit; text-align: center;
+  }
+  .result-btn:active { transform: scale(0.95); }
+  .result-btn.r-goal.active { border-color: var(--green);  background: rgba(34,197,94,0.2);  color: var(--green); }
+  .result-btn.r-save.active { border-color: var(--yellow); background: rgba(245,158,11,0.2); color: var(--yellow); }
+  .result-btn.r-miss.active { border-color: var(--red);    background: rgba(239,68,68,0.2);  color: var(--red); }
+
+  /* パネル下部stats */
+  .panel-mini-stats {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; margin-top: 6px;
+  }
+  .mini-stat { text-align: center; }
+  .mini-stat-val { font-size: 16px; font-weight: 800; line-height: 1; }
+  .mini-stat-lbl { font-size: 9px; color: var(--text3); font-weight: 600; letter-spacing: 0.03em; }
+
+  /* ログ */
+  .log-list { display: flex; flex-direction: column; gap: 6px; }
+  .log-item {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; padding: 10px 12px; display: flex; align-items: center; gap: 8px;
+  }
+  .log-item.goal-item { border-left: 3px solid var(--green); }
+  .log-item.save-item { border-left: 3px solid var(--yellow); }
+  .log-item.miss-item { border-left: 3px solid var(--red); }
+  .log-badge {
+    font-size: 10px; font-weight: 700; padding: 3px 7px; border-radius: 5px; flex-shrink: 0;
+  }
+  .badge-q    { background: var(--border); color: var(--text3); }
+  .badge-goal { background: rgba(34,197,94,0.2);  color: var(--green); }
+  .badge-save { background: rgba(245,158,11,0.2); color: var(--yellow); }
+  .badge-miss { background: rgba(239,68,68,0.15); color: var(--red); }
+  .badge-k    { background: rgba(59,130,246,0.2); color: var(--accent2); }
+  .badge-e    { background: rgba(239,68,68,0.15); color: var(--red); }
+  .log-main { flex: 1; }
+  .log-num  { font-size: 14px; font-weight: 700; }
+  .log-detail { font-size: 11px; color: var(--text3); margin-top: 1px; }
+  .log-delete { background: none; border: none; color: var(--text3); font-size: 15px; cursor: pointer; padding: 4px; }
+  .log-delete:hover { color: var(--red); }
+
+  /* 集計 */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; text-align: center;
+  }
+  .stat-val { font-size: 26px; font-weight: 800; line-height: 1.1; }
+  .stat-lbl { font-size: 10px; color: var(--text3); margin-top: 2px; font-weight: 600; letter-spacing: 0.05em; }
+  .stat-sub { font-size: 11px; color: var(--text2); margin-top: 2px; }
+
+  .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .data-table th {
+    background: var(--surface2); padding: 8px 5px; text-align: center;
+    color: var(--text3); font-weight: 700; font-size: 11px;
+    border-bottom: 1px solid var(--border); letter-spacing: 0.05em;
+  }
+  .data-table td { padding: 8px 5px; text-align: center; border-bottom: 1px solid var(--border); color: var(--text2); }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr.total-row td { color: var(--text); font-weight: 700; background: var(--surface2); }
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 12px; }
+
+  /* コースヒートマップ */
+  .heatmap-wrap { display: flex; gap: 16px; justify-content: center; flex-wrap: wrap; margin-bottom: 14px; }
+  .heatmap-panel { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .heatmap-label { font-size: 11px; font-weight: 700; }
+  .heatmap-grid {
+    display: grid; grid-template-columns: repeat(3, 1fr);
+    border: 2px solid var(--text3); border-radius: 6px; overflow: hidden;
+    width: 150px;
+  }
+  .heat-cell {
+    height: 44px; display: flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; border: 1px solid rgba(100,116,139,0.2);
+    flex-direction: column; gap: 1px;
+  }
+  .heat-count { font-size: 16px; font-weight: 800; }
+  .heat-sub   { font-size: 9px; color: var(--text3); }
+
+  .export-section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 14px; margin-bottom: 12px; }
+  .export-btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+  .empty-state { text-align: center; padding: 28px 0; color: var(--text3); font-size: 13px; }
+  .empty-icon  { font-size: 28px; margin-bottom: 6px; }
+
+  /* セットアップモーダル */
+  .setup-modal {
+    display: none; position: fixed; inset: 0;
+    background: rgba(0,0,0,0.85); z-index: 300;
+    align-items: center; justify-content: center; padding: 20px;
+  }
+  .setup-modal.open { display: flex; }
+  .setup-box {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 22px; width: 100%; max-width: 380px;
+    max-height: 90vh; overflow-y: auto;
+  }
+  .setup-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+  .setup-field { margin-bottom: 12px; }
+  .setup-field label { display: block; font-size: 11px; color: var(--text3); margin-bottom: 4px; font-weight: 600; letter-spacing: 0.05em; }
+  .setup-section { font-size: 12px; font-weight: 700; color: var(--text2); margin: 14px 0 8px; padding-bottom: 4px; border-bottom: 1px solid var(--border); }
+
+  .toast {
+    position: fixed; top: 60px; left: 50%; transform: translateX(-50%);
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+    padding: 10px 18px; font-size: 13px; font-weight: 600; color: var(--text);
+    z-index: 500; display: none; white-space: nowrap; box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+  }
+  .toast.show { display: block; animation: fadeInOut 2s ease forwards; }
+  @keyframes fadeInOut {
+    0%   { opacity:0; transform:translateX(-50%) translateY(-6px); }
+    15%  { opacity:1; transform:translateX(-50%) translateY(0); }
+    75%  { opacity:1; }
+    100% { opacity:0; }
+  }
+
+  pre { font-size: 11px; color: var(--text2); white-space: pre-wrap; word-break: break-all; }
+
+  /* ゴーリー交代バナー */
+  .change-banner {
+    background: var(--surface2); border: 1px solid var(--border); border-radius: 8px;
+    padding: 6px 10px; font-size: 11px; color: var(--text3); text-align: center; margin-bottom: 10px;
+  }
+</style>
+</head>
+<body>
+
+<!-- セットアップモーダル -->
+<div class="setup-modal open" id="setupModal">
+  <div class="setup-box">
+    <div class="setup-title">⚙️ 試合情報・ゴーリー設定</div>
+
+    <div class="setup-field">
+      <label>相手チーム名</label>
+      <input type="text" class="text-input" id="enemyName" placeholder="例: ○○大学">
+    </div>
+    <div class="setup-field">
+      <label>日付</label>
+      <input type="date" class="text-input" id="matchDate">
+    </div>
+    <div class="setup-field">
+      <label>Q数</label>
+      <select class="text-input" id="qCount">
+        <option value="4">4Q制</option>
+        <option value="2">2ピリオド制</option>
+      </select>
+    </div>
+
+    <div class="setup-section">🔵 京大ゴーリー（初期）</div>
+    <div class="setup-field">
+      <label>背番号</label>
+      <input type="number" class="text-input" id="kyotoGNum" placeholder="例: 31" min="1" max="99">
+    </div>
+    <div class="setup-field">
+      <label>利き腕</label>
+      <select class="text-input" id="kyotoGHand">
+        <option value="右">右利き</option>
+        <option value="左">左利き</option>
+      </select>
+    </div>
+
+    <div class="setup-section">🔴 相手ゴーリー（初期）</div>
+    <div class="setup-field">
+      <label>背番号</label>
+      <input type="number" class="text-input" id="enemyGNum" placeholder="例: 1" min="1" max="99">
+    </div>
+    <div class="setup-field">
+      <label>利き腕</label>
+      <select class="text-input" id="enemyGHand">
+        <option value="右">右利き</option>
+        <option value="左">左利き</option>
+      </select>
+    </div>
+
+    <button class="btn btn-primary btn-full" onclick="startMatch()">開始</button>
+  </div>
+</div>
+
+<!-- テンキーモーダル -->
+<div class="modal-overlay" id="numpadModal">
+  <div class="numpad-modal">
+    <div class="numpad-title" id="numpadTitle">背番号を入力</div>
+    <div class="numpad-display" id="numpadDisplay"><span class="ph">—</span></div>
+    <div class="numpad-keys">
+      <button class="numkey" onclick="numInput('1')">1</button>
+      <button class="numkey" onclick="numInput('2')">2</button>
+      <button class="numkey" onclick="numInput('3')">3</button>
+      <button class="numkey" onclick="numInput('4')">4</button>
+      <button class="numkey" onclick="numInput('5')">5</button>
+      <button class="numkey" onclick="numInput('6')">6</button>
+      <button class="numkey" onclick="numInput('7')">7</button>
+      <button class="numkey" onclick="numInput('8')">8</button>
+      <button class="numkey" onclick="numInput('9')">9</button>
+      <button class="numkey del" onclick="numDel()">⌫</button>
+      <button class="numkey" onclick="numInput('0')">0</button>
+      <button class="numkey ok" onclick="numOK()">OK</button>
+    </div>
+    <button class="btn btn-secondary" style="width:100%;margin-top:12px;" onclick="closeNumpad()">キャンセル</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ヘッダー -->
+<div class="header">
+  <div class="header-title">🥅 ゴーリーデータ</div>
+  <div class="header-meta" id="headerMeta">—</div>
+</div>
+
+<!-- セーブ率バー -->
+<div class="save-bar">
+  <div class="save-team">
+    <div class="save-val" style="color:var(--kyoto)" id="barKyotoSave">—</div>
+    <div class="save-lbl">京大 セーブ率</div>
+  </div>
+  <div class="save-center">
+    <div class="save-vs">vs</div>
+  </div>
+  <div class="save-team">
+    <div class="save-val" style="color:var(--enemy)" id="barEnemySave">—</div>
+    <div class="save-lbl" id="barEnemyLbl">相手 セーブ率</div>
+  </div>
+</div>
+
+<!-- Qバー -->
+<div class="q-bar" id="qBar"></div>
+
+<!-- タブ -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('record')">ショット記録</div>
+  <div class="tab" onclick="switchTab('log')">ログ</div>
+  <div class="tab" onclick="switchTab('stats')">集計</div>
+  <div class="tab" onclick="switchTab('export')">出力</div>
+</div>
+
+<!-- ===== ショット記録タブ ===== -->
+<div class="panel active" id="panel-record">
+  <div class="content">
+
+    <div class="change-banner" id="changeBanner">Q1 — 京大 G/#<span id="bannerKyoto">—</span> vs 相手 G/#<span id="bannerEnemy">—</span></div>
+
+    <!-- 両チームのゴール枠を横並び -->
+    <div class="shot-input-wrap">
+
+      <!-- 京大ゴーリー（被ショット = 相手が打った） -->
+      <div class="shot-panel kyoto-panel" id="panelKyoto">
+        <div class="panel-header">
+          <div class="panel-team-name kyoto">🔵 京大 G</div>
+          <div class="panel-goalie-info" id="kyotoGInfo">—</div>
+        </div>
+        <!-- 結果選択 -->
+        <div class="result-select" id="kyotoResultSelect">
+          <button class="result-btn r-goal" onclick="selectResult('kyoto','goal')">⚽得点</button>
+          <button class="result-btn r-save" onclick="selectResult('kyoto','save')">セーブ</button>
+          <button class="result-btn r-miss" onclick="selectResult('kyoto','miss')">枠外</button>
+        </div>
+        <!-- ゴール枠 -->
+        <div class="goal-frame-wrap">
+          <div class="goal-frame-label">← 左　コース　右 →</div>
+          <div class="goal-frame" id="frameKyoto"></div>
+        </div>
+        <!-- ミニ集計 -->
+        <div class="panel-mini-stats">
+          <div class="mini-stat">
+            <div class="mini-stat-val" style="color:var(--green)"  id="kyotoGoalQ">0</div>
+            <div class="mini-stat-lbl">失点</div>
+          </div>
+          <div class="mini-stat">
+            <div class="mini-stat-val" style="color:var(--yellow)" id="kyotoSaveQ">0</div>
+            <div class="mini-stat-lbl">セーブ</div>
+          </div>
+          <div class="mini-stat">
+            <div class="mini-stat-val" style="color:var(--red)"    id="kyotoSaveRateQ">—</div>
+            <div class="mini-stat-lbl">セーブ率</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 相手ゴーリー（被ショット = 京大が打った） -->
+      <div class="shot-panel enemy-panel" id="panelEnemy">
+        <div class="panel-header">
+          <div class="panel-team-name enemy" id="enemyPanelName">🔴 相手 G</div>
+          <div class="panel-goalie-info" id="enemyGInfo">—</div>
+        </div>
+        <div class="result-select" id="enemyResultSelect">
+          <button class="result-btn r-goal" onclick="selectResult('enemy','goal')">⚽得点</button>
+          <button class="result-btn r-save" onclick="selectResult('enemy','save')">セーブ</button>
+          <button class="result-btn r-miss" onclick="selectResult('enemy','miss')">枠外</button>
+        </div>
+        <div class="goal-frame-wrap">
+          <div class="goal-frame-label">← 左　コース　右 →</div>
+          <div class="goal-frame" id="frameEnemy"></div>
+        </div>
+        <div class="panel-mini-stats">
+          <div class="mini-stat">
+            <div class="mini-stat-val" style="color:var(--green)"  id="enemyGoalQ">0</div>
+            <div class="mini-stat-lbl">失点</div>
+          </div>
+          <div class="mini-stat">
+            <div class="mini-stat-val" style="color:var(--yellow)" id="enemySaveQ">0</div>
+            <div class="mini-stat-lbl">セーブ</div>
+          </div>
+          <div class="mini-stat">
+            <div class="mini-stat-val" style="color:var(--red)"    id="enemySaveRateQ">—</div>
+            <div class="mini-stat-lbl">セーブ率</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- ゴーリー交代 -->
+    <div class="section-title">ゴーリー交代</div>
+    <div class="card" style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
+      <button class="btn btn-secondary btn-sm" onclick="changeGoalie('kyoto')">🔵 京大G 交代</button>
+      <button class="btn btn-secondary btn-sm" onclick="changeGoalie('enemy')">🔴 相手G 交代</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== ログタブ ===== -->
+<div class="panel" id="panel-log">
+  <div class="content">
+    <div class="section-title">ショットログ（Q<span id="logQLabel">1</span>）</div>
+    <div id="shotLog">
+      <div class="empty-state"><div class="empty-icon">🥅</div>まだ記録がありません</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 集計タブ ===== -->
+<div class="panel" id="panel-stats">
+  <div class="content">
+
+    <div class="section-title">全体集計</div>
+    <div class="stats-grid" id="statsGrid"></div>
+
+    <div class="section-title">コース別ヒートマップ</div>
+    <div class="heatmap-wrap" id="heatmapWrap"></div>
+
+    <div class="section-title">Q別セーブ率・失点率</div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>Q</th><th>G</th><th>被ショット</th><th>失点</th><th>セーブ</th><th>枠外</th><th>セーブ率</th><th>失点率</th></tr>
+        </thead>
+        <tbody id="qStatsBody"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title">ゴーリー別集計</div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr><th>チーム</th><th>#</th><th>利き腕</th><th>被ショット</th><th>失点</th><th>セーブ率</th></tr>
+        </thead>
+        <tbody id="goalieStatsBody"></tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
+<!-- ===== 出力タブ ===== -->
+<div class="panel" id="panel-export">
+  <div class="content">
+    <div class="section-title">データ出力</div>
+    <div class="export-section">
+      <div style="color:var(--text2);font-size:13px;margin-bottom:8px;">Streamlit連携用JSON・CSV出力</div>
+      <div class="export-btn-row">
+        <button class="btn btn-primary" onclick="exportJSON()">📦 JSON出力</button>
+        <button class="btn btn-success" onclick="exportCSV()">📄 CSV出力</button>
+      </div>
+    </div>
+    <div class="section-title">JSONプレビュー</div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;overflow-x:auto;">
+      <pre id="jsonPreview">データを記録すると表示されます</pre>
+    </div>
+  </div>
+</div>
+
+<script>
+// ======== STATE ========
+// コースの位置名（3×3、上段が高め）
+// インデックス: 0=左上, 1=中上, 2=右上, 3=左中, 4=中, 5=右中, 6=左下, 7=中下, 8=右下
+const COURSE_NAMES = ['左上','中上','右上','左中','中央','右中','左下','中下','右下'];
+
+const state = {
+  match: { enemy: '相手', date: '', qCount: 4 },
+  currentQ: 1,
+  shots: [],  // { id, q, side, result, course, goalieNum, goalieHand }
+  goalies: {
+    kyoto: [], // { num, hand, fromQ }
+    enemy: [],
+  },
+  pendingResult: { kyoto: null, enemy: null },
+  numpadTarget: null,
+  numpadValue: '',
+  changeTarget: null,
+};
+
+// ======== SETUP ========
+function startMatch() {
+  const enemy  = document.getElementById('enemyName').value.trim() || '相手';
+  const date   = document.getElementById('matchDate').value;
+  const qCount = parseInt(document.getElementById('qCount').value);
+  const kyotoNum  = document.getElementById('kyotoGNum').value  || '?';
+  const kyotoHand = document.getElementById('kyotoGHand').value;
+  const enemyNum  = document.getElementById('enemyGNum').value  || '?';
+  const enemyHand = document.getElementById('enemyGHand').value;
+
+  state.match = { enemy, date, qCount };
+  state.goalies.kyoto = [{ num: kyotoNum, hand: kyotoHand, fromQ: 1 }];
+  state.goalies.enemy = [{ num: enemyNum, hand: enemyHand, fromQ: 1 }];
+
+  document.getElementById('headerMeta').textContent   = `${date} vs ${enemy}`;
+  document.getElementById('barEnemyLbl').textContent  = `${enemy} セーブ率`;
+  document.getElementById('enemyPanelName').textContent = `🔴 ${enemy} G`;
+  document.getElementById('setupModal').classList.remove('open');
+
+  buildQBar();
+  buildGoalFrames();
+  updateGInfo();
+  updateBanner();
+  updateSaveBar();
+}
+
+function buildQBar() {
+  const bar = document.getElementById('qBar');
+  bar.innerHTML = '<span style="font-size:11px;color:var(--text3);font-weight:600;letter-spacing:0.08em;">Q:</span>';
+  for (let i = 1; i <= state.match.qCount; i++) {
+    const b = document.createElement('button');
+    b.className = 'btn-q' + (i === state.currentQ ? ' active' : '');
+    b.textContent = `Q${i}`;
+    b.onclick = () => setQ(i);
+    bar.appendChild(b);
+  }
+}
+
+function setQ(q) {
+  state.currentQ = q;
+  buildQBar();
+  updateBanner();
+  updateGInfo();
+  refreshFrames();
+  updateMiniStats();
+  document.getElementById('logQLabel').textContent = q;
+  renderLog();
+}
+
+// ======== UTILS ========
+function toast(msg, color) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.style.borderColor = color || 'var(--border)';
+  el.classList.remove('show');
+  void el.offsetWidth;
+  el.classList.add('show');
+}
+
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+  if (name === 'stats')  updateStats();
+  if (name === 'export') updateExport();
+  if (name === 'log') {
+    document.getElementById('logQLabel').textContent = state.currentQ;
+    renderLog();
+  }
+}
+
+function getGoalie(side, q) {
+  const list = state.goalies[side];
+  // そのQに存在しているゴーリーを取得
+  let g = list[0];
+  for (const gg of list) { if (gg.fromQ <= q) g = gg; }
+  return g;
+}
+
+function updateGInfo() {
+  const kg = getGoalie('kyoto', state.currentQ);
+  const eg = getGoalie('enemy', state.currentQ);
+  document.getElementById('kyotoGInfo').textContent = kg ? `#${kg.num} ${kg.hand}` : '—';
+  document.getElementById('enemyGInfo').textContent = eg ? `#${eg.num} ${eg.hand}` : '—';
+}
+
+function updateBanner() {
+  const kg = getGoalie('kyoto', state.currentQ);
+  const eg = getGoalie('enemy', state.currentQ);
+  document.getElementById('changeBanner').innerHTML =
+    `Q${state.currentQ} — 🔵京大 G/#${kg?.num||'?'} (${kg?.hand||'—'}) vs 🔴${state.match.enemy} G/#${eg?.num||'?'} (${eg?.hand||'—'})`;
+}
+
+// ======== ゴーリー交代 ========
+function changeGoalie(side) {
+  state.changeTarget = side;
+  openNumpad('changeGoalie', `${side === 'kyoto' ? '京大' : state.match.enemy} 新ゴーリー背番号`);
+}
+
+// numOKの後でchangeGoalieを処理
+function finishChangeGoalie(num) {
+  const side  = state.changeTarget;
+  const hand  = prompt(`利き腕を入力 (右 or 左)`) || '右';
+  state.goalies[side].push({ num, hand, fromQ: state.currentQ });
+  updateGInfo();
+  updateBanner();
+  toast(`✔ G交代: ${side === 'kyoto' ? '京大' : state.match.enemy} → #${num}(${hand})`, 'var(--yellow)');
+  state.changeTarget = null;
+}
+
+// ======== テンキー ========
+function openNumpad(targetId, title) {
+  state.numpadTarget = targetId;
+  state.numpadValue  = '';
+  document.getElementById('numpadTitle').textContent = title;
+  document.getElementById('numpadDisplay').innerHTML = '<span class="ph">—</span>';
+  document.getElementById('numpadModal').classList.add('open');
+}
+
+function numInput(v) {
+  if (state.numpadValue.length >= 3) return;
+  state.numpadValue += v;
+  document.getElementById('numpadDisplay').textContent = state.numpadValue;
+}
+
+function numDel() {
+  state.numpadValue = state.numpadValue.slice(0, -1);
+  document.getElementById('numpadDisplay').textContent = state.numpadValue || '';
+  if (!state.numpadValue) document.getElementById('numpadDisplay').innerHTML = '<span class="ph">—</span>';
+}
+
+function numOK() {
+  if (!state.numpadValue) { closeNumpad(); return; }
+  if (state.numpadTarget === 'changeGoalie') {
+    closeNumpad();
+    finishChangeGoalie(state.numpadValue);
+    return;
+  }
+  closeNumpad();
+}
+
+function closeNumpad() {
+  document.getElementById('numpadModal').classList.remove('open');
+}
+
+// ======== ゴール枠 ========
+function buildGoalFrames() {
+  buildFrame('kyoto');
+  buildFrame('enemy');
+}
+
+function buildFrame(side) {
+  const frame = document.getElementById(`frame${side === 'kyoto' ? 'Kyoto' : 'Enemy'}`);
+  frame.innerHTML = '';
+  for (let i = 0; i < 9; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'goal-cell';
+    cell.id = `cell-${side}-${i}`;
+    cell.onclick = () => onCellTap(side, i);
+    const markers = document.createElement('div');
+    markers.className = 'cell-markers';
+    markers.id = `markers-${side}-${i}`;
+    cell.appendChild(markers);
+    frame.appendChild(cell);
+  }
+}
+
+function onCellTap(side, courseIdx) {
+  const result = state.pendingResult[side];
+  if (!result) {
+    toast('先に結果（得点/セーブ/枠外）を選択してください', 'var(--red)');
+    return;
+  }
+  const goalie = getGoalie(side, state.currentQ);
+  const shot = {
+    id: Date.now(),
+    q: state.currentQ,
+    side,
+    result,
+    course: courseIdx,
+    courseName: COURSE_NAMES[courseIdx],
+    goalieNum:  goalie?.num  || '?',
+    goalieHand: goalie?.hand || '?',
+  };
+  state.shots.push(shot);
+
+  // マーカーを追加
+  addMarkerToCell(side, courseIdx, result);
+  updateMiniStats();
+  updateSaveBar();
+  renderLog();
+
+  // 結果リセット
+  state.pendingResult[side] = null;
+  document.querySelectorAll(`#${side === 'kyoto' ? 'kyoto' : 'enemy'}ResultSelect .result-btn`)
+    .forEach(b => b.classList.remove('active'));
+
+  const labels = { goal: '⚽ 得点', save: 'セーブ', miss: '枠外' };
+  const colors = { goal: 'var(--green)', save: 'var(--yellow)', miss: 'var(--red)' };
+  toast(`✔ ${side === 'kyoto' ? '京大G' : state.match.enemy + 'G'}: ${labels[result]} / ${COURSE_NAMES[courseIdx]}`, colors[result]);
+}
+
+function addMarkerToCell(side, courseIdx, result) {
+  const markers = document.getElementById(`markers-${side}-${courseIdx}`);
+  if (!markers) return;
+  const m = document.createElement('div');
+  m.className = `shot-marker marker-${result}`;
+  m.textContent = result === 'goal' ? '⚽' : result === 'save' ? 'セ' : '✓';
+  markers.appendChild(m);
+  document.getElementById(`cell-${side}-${courseIdx}`).classList.add('has-shot');
+}
+
+function refreshFrames() {
+  // Q切り替え時にフレームを再描画
+  buildGoalFrames();
+  const qShots = state.shots.filter(s => s.q === state.currentQ);
+  qShots.forEach(s => addMarkerToCell(s.side, s.course, s.result));
+}
+
+function selectResult(side, result) {
+  state.pendingResult[side] = result;
+  const prefix = side === 'kyoto' ? 'kyoto' : 'enemy';
+  document.querySelectorAll(`#${prefix}ResultSelect .result-btn`).forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  // パネルをハイライト
+  document.getElementById(`panel${side === 'kyoto' ? 'Kyoto' : 'Enemy'}`).classList.add('selected-panel');
+  setTimeout(() => {
+    document.getElementById(`panel${side === 'kyoto' ? 'Kyoto' : 'Enemy'}`).classList.remove('selected-panel');
+  }, 1500);
+}
+
+// ======== ミニ集計 ========
+function updateMiniStats() {
+  ['kyoto','enemy'].forEach(side => {
+    const qShots = state.shots.filter(s => s.q === state.currentQ && s.side === side);
+    const goal = qShots.filter(s => s.result === 'goal').length;
+    const save = qShots.filter(s => s.result === 'save').length;
+    const total = goal + save; // 枠外はセーブ率に含めない
+    const rate  = total > 0 ? Math.round(save / total * 100) + '%' : '—';
+    const sfx   = side === 'kyoto' ? 'Kyoto' : 'Enemy';
+    document.getElementById(`${side}GoalQ${sfx === 'Kyoto' ? '' : ''}`);
+    const goalEl = document.getElementById(side + 'GoalQ');
+    const saveEl = document.getElementById(side + 'SaveQ');
+    const rateEl = document.getElementById(side + 'SaveRateQ');
+    if (goalEl) goalEl.textContent = goal;
+    if (saveEl) saveEl.textContent = save;
+    if (rateEl) rateEl.textContent = rate;
+  });
+}
+
+function updateSaveBar() {
+  ['kyoto','enemy'].forEach(side => {
+    const shots = state.shots.filter(s => s.side === side);
+    const goal  = shots.filter(s => s.result === 'goal').length;
+    const save  = shots.filter(s => s.result === 'save').length;
+    const total = goal + save;
+    const rate  = total > 0 ? Math.round(save / total * 100) + '%' : '—';
+    document.getElementById(`bar${side === 'kyoto' ? 'Kyoto' : 'Enemy'}Save`).textContent = rate;
+  });
+}
+
+// ======== ログ ========
+function renderLog() {
+  const container = document.getElementById('shotLog');
+  const qShots = state.shots.filter(s => s.q === state.currentQ);
+  if (qShots.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">🥅</div>このQのショットはまだありません</div>';
+    return;
+  }
+  const resultLabel = { goal: '⚽ 得点', save: 'セーブ', miss: '枠外' };
+  const itemCls     = { goal: 'goal-item', save: 'save-item', miss: 'miss-item' };
+  const badgeCls    = { goal: 'badge-goal', save: 'badge-save', miss: 'badge-miss' };
+  container.innerHTML = [...qShots].reverse().map(s => {
+    const sideLabel = s.side === 'kyoto' ? '京大G' : `${state.match.enemy}G`;
+    const sideBadge = s.side === 'kyoto' ? 'badge-k' : 'badge-e';
+    return `<div class="log-item ${itemCls[s.result]}">
+      <span class="log-badge badge-q">Q${s.q}</span>
+      <span class="log-badge ${sideBadge}">${sideLabel}</span>
+      <span class="log-badge ${badgeCls[s.result]}">${resultLabel[s.result]}</span>
+      <div class="log-main">
+        <div class="log-num">${s.courseName}</div>
+        <div class="log-detail">G#${s.goalieNum} ${s.goalieHand}利き</div>
+      </div>
+      <button class="log-delete" onclick="deleteShot(${s.id})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function deleteShot(id) {
+  state.shots = state.shots.filter(s => s.id !== id);
+  refreshFrames();
+  updateMiniStats();
+  updateSaveBar();
+  renderLog();
+}
+
+// ======== 集計 ========
+function updateStats() {
+  // 全体
+  const statsGrid = document.getElementById('statsGrid');
+  let html = '';
+  ['kyoto','enemy'].forEach(side => {
+    const shots = state.shots.filter(s => s.side === side);
+    const goal  = shots.filter(s => s.result === 'goal').length;
+    const save  = shots.filter(s => s.result === 'save').length;
+    const miss  = shots.filter(s => s.result === 'miss').length;
+    const total = goal + save;
+    const saveRate = total > 0 ? Math.round(save / total * 100) : 0;
+    const goalRate = total > 0 ? Math.round(goal / total * 100) : 0;
+    const name  = side === 'kyoto' ? '京大' : state.match.enemy;
+    const color = side === 'kyoto' ? 'var(--kyoto)' : 'var(--enemy)';
+    html += `
+      <div class="stat-card">
+        <div class="stat-val" style="color:${color}">${saveRate}%</div>
+        <div class="stat-lbl">${name} G セーブ率</div>
+        <div class="stat-sub">${save}セーブ / ${total}本</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val" style="color:var(--red)">${goalRate}%</div>
+        <div class="stat-lbl">${name} G 失点率</div>
+        <div class="stat-sub">${goal}失点 / ${total}本</div>
+      </div>`;
+  });
+  statsGrid.innerHTML = html;
+
+  // ヒートマップ
+  const hmWrap = document.getElementById('heatmapWrap');
+  hmWrap.innerHTML = '';
+  ['kyoto','enemy'].forEach(side => {
+    const shots = state.shots.filter(s => s.side === side);
+    const name  = side === 'kyoto' ? '🔵 京大G 被ショット' : `🔴 ${state.match.enemy}G 被ショット`;
+    const color = side === 'kyoto' ? 'var(--kyoto)' : 'var(--enemy)';
+    const panel = document.createElement('div');
+    panel.className = 'heatmap-panel';
+    panel.innerHTML = `<div class="heatmap-label" style="color:${color}">${name}</div>`;
+    const grid = document.createElement('div');
+    grid.className = 'heatmap-grid';
+    for (let i = 0; i < 9; i++) {
+      const cellShots = shots.filter(s => s.course === i);
+      const total = cellShots.length;
+      const goals = cellShots.filter(s => s.result === 'goal').length;
+      const saves = cellShots.filter(s => s.result === 'save').length;
+      const intensity = Math.min(total / Math.max(shots.length, 1), 1);
+      const bg = total > 0
+        ? `rgba(239,68,68,${0.1 + intensity * 0.5})`
+        : 'rgba(26,35,50,0.3)';
+      const cell = document.createElement('div');
+      cell.className = 'heat-cell';
+      cell.style.background = bg;
+      cell.innerHTML = `<div class="heat-count">${total > 0 ? total : '—'}</div>${total > 0 ? `<div class="heat-sub">${goals}点/${saves}セ</div>` : ''}`;
+      grid.appendChild(cell);
+    }
+    panel.appendChild(grid);
+    hmWrap.appendChild(panel);
+  });
+
+  // Q別
+  const qBody = document.getElementById('qStatsBody');
+  let rows = '';
+  for (let q = 1; q <= state.match.qCount; q++) {
+    for (const side of ['kyoto', 'enemy']) {
+      const qShots = state.shots.filter(s => s.q === q && s.side === side);
+      if (qShots.length === 0) continue;
+      const goal = qShots.filter(s => s.result === 'goal').length;
+      const save = qShots.filter(s => s.result === 'save').length;
+      const miss = qShots.filter(s => s.result === 'miss').length;
+      const total = goal + save;
+      const saveRate = total > 0 ? Math.round(save / total * 100) + '%' : '—';
+      const goalRate = total > 0 ? Math.round(goal / total * 100) + '%' : '—';
+      const g = getGoalie(side, q);
+      const name  = side === 'kyoto' ? '京大' : state.match.enemy;
+      const color = side === 'kyoto' ? 'var(--kyoto)' : 'var(--enemy)';
+      rows += `<tr>
+        <td>Q${q}</td>
+        <td style="color:${color};font-weight:700;">${name}</td>
+        <td>${qShots.length}</td>
+        <td style="color:var(--red)">${goal}</td>
+        <td style="color:var(--yellow)">${save}</td>
+        <td>${miss}</td>
+        <td style="font-weight:700;">${saveRate}</td>
+        <td>${goalRate}</td>
+      </tr>`;
+    }
+  }
+  qBody.innerHTML = rows || '<tr><td colspan="8" style="color:var(--text3);padding:16px;">データなし</td></tr>';
+
+  // ゴーリー別
+  const gBody = document.getElementById('goalieStatsBody');
+  const goalieRows = [];
+  for (const side of ['kyoto', 'enemy']) {
+    const gList = state.goalies[side];
+    gList.forEach((g, idx) => {
+      const nextFromQ = gList[idx + 1]?.fromQ || state.match.qCount + 1;
+      const gShots = state.shots.filter(s =>
+        s.side === side &&
+        s.q >= g.fromQ && s.q < nextFromQ
+      );
+      if (gShots.length === 0 && gList.length === 1) {
+        // ショットなしでも表示
+        goalieRows.push({ side, g, shots: gShots });
+        return;
+      }
+      if (gShots.length > 0) goalieRows.push({ side, g, shots: gShots });
+    });
+  }
+  gBody.innerHTML = goalieRows.map(({ side, g, shots }) => {
+    const goal  = shots.filter(s => s.result === 'goal').length;
+    const save  = shots.filter(s => s.result === 'save').length;
+    const total = goal + save;
+    const rate  = total > 0 ? Math.round(save / total * 100) + '%' : '—';
+    const name  = side === 'kyoto' ? '京大' : state.match.enemy;
+    const color = side === 'kyoto' ? 'var(--kyoto)' : 'var(--enemy)';
+    return `<tr>
+      <td style="color:${color};font-weight:700;">${name}</td>
+      <td style="color:var(--accent2);font-weight:700;">#${g.num}</td>
+      <td>${g.hand}利き</td>
+      <td>${shots.length}</td>
+      <td style="color:var(--red)">${goal}</td>
+      <td style="font-weight:700;">${rate}</td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="6" style="color:var(--text3);padding:16px;">データなし</td></tr>';
+}
+
+// ======== エクスポート ========
+function buildJSON() {
+  const summary = {};
+  ['kyoto','enemy'].forEach(side => {
+    const shots = state.shots.filter(s => s.side === side);
+    const goal  = shots.filter(s => s.result === 'goal').length;
+    const save  = shots.filter(s => s.result === 'save').length;
+    const total = goal + save;
+    summary[side] = {
+      total_shots: shots.length,
+      goals: goal,
+      saves: save,
+      misses: shots.filter(s => s.result === 'miss').length,
+      save_rate_pct: total > 0 ? Math.round(save / total * 100) : null,
+      goal_rate_pct: total > 0 ? Math.round(goal / total * 100) : null,
+      by_course: COURSE_NAMES.map((name, i) => ({
+        course: i, name,
+        total: shots.filter(s => s.course === i).length,
+        goals: shots.filter(s => s.course === i && s.result === 'goal').length,
+        saves: shots.filter(s => s.course === i && s.result === 'save').length,
+      })),
+    };
+  });
+  return {
+    meta: { ...state.match, exportedAt: new Date().toISOString(), tool: 'KyotoLacrosse GoalieTool v1.0' },
+    goalies: state.goalies,
+    shots: state.shots,
+    summary,
+  };
+}
+
+function updateExport() {
+  document.getElementById('jsonPreview').textContent = JSON.stringify(buildJSON(), null, 2);
+}
+
+function exportJSON() {
+  const blob = new Blob([JSON.stringify(buildJSON(), null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `goalie_${state.match.date}_${state.match.enemy}.json`;
+  a.click();
+}
+
+function exportCSV() {
+  const bom = '\uFEFF';
+  const header = 'Q,G側,結果,コース番号,コース名,G背番号,G利き腕';
+  const rows = state.shots.map(s =>
+    `${s.q},${s.side === 'kyoto' ? '京大' : state.match.enemy},${s.result === 'goal' ? '得点' : s.result === 'save' ? 'セーブ' : '枠外'},${s.course},${s.courseName},${s.goalieNum},${s.goalieHand}`
+  );
+  const blob = new Blob([bom + [header, ...rows].join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `goalie_${state.match.date}.csv`;
+  a.click();
+}
+
+// ======== INIT ========
+document.getElementById('matchDate').value = new Date().toISOString().slice(0, 10);
+buildQBar();
+</script>
+</body>
+</html>
