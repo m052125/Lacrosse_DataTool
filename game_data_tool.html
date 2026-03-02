@@ -1,0 +1,1368 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>試合データ収集ツール</title>
+<style>
+  :root {
+    --bg: #0a0f1e;
+    --surface: #111827;
+    --surface2: #1a2332;
+    --border: #243048;
+    --accent: #3b82f6;
+    --accent2: #60a5fa;
+    --red: #ef4444;
+    --green: #22c55e;
+    --yellow: #f59e0b;
+    --text: #f1f5f9;
+    --text2: #94a3b8;
+    --text3: #64748b;
+    --kyoto: #3b82f6;
+    --enemy: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Hiragino Kaku Gothic ProN', 'Noto Sans JP', sans-serif;
+    min-height: 100vh;
+    font-size: 14px;
+  }
+
+  /* ヘッダー */
+  .header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent2);
+    letter-spacing: 0.05em;
+  }
+  .header-meta {
+    font-size: 11px;
+    color: var(--text3);
+    text-align: right;
+  }
+
+  /* スコアバー */
+  .score-bar {
+    background: var(--surface);
+    border-bottom: 2px solid var(--border);
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+  .score-team {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+  }
+  .score-label {
+    font-size: 11px;
+    color: var(--text3);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .score-num {
+    font-size: 36px;
+    font-weight: 800;
+    line-height: 1;
+  }
+  .score-num.kyoto { color: var(--kyoto); }
+  .score-num.enemy { color: var(--enemy); }
+  .score-center {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+  }
+  .score-vs { font-size: 13px; color: var(--text3); font-weight: 700; }
+  .q-badge {
+    background: var(--accent);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 2px 10px;
+    border-radius: 20px;
+  }
+  .timer-display {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--yellow);
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Q制御・タイマー */
+  .controls {
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    padding: 8px 14px;
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .btn {
+    border: none;
+    border-radius: 8px;
+    padding: 8px 16px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .btn:active { transform: scale(0.95); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-secondary { background: var(--border); color: var(--text2); }
+  .btn-danger { background: var(--red); color: #fff; }
+  .btn-success { background: var(--green); color: #fff; }
+  .btn-yellow { background: var(--yellow); color: #000; }
+  .btn-sm { padding: 6px 12px; font-size: 12px; }
+  .btn-q { min-width: 40px; padding: 6px 10px; font-size: 13px; }
+  .btn-q.active { background: var(--accent); color: #fff; }
+  .btn-q:not(.active) { background: var(--border); color: var(--text2); }
+
+  /* タブ */
+  .tabs {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 47px;
+    z-index: 90;
+  }
+  .tab {
+    flex: 1;
+    padding: 11px 4px;
+    text-align: center;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text3);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: all 0.2s;
+    letter-spacing: 0.02em;
+  }
+  .tab.active {
+    color: var(--accent2);
+    border-bottom-color: var(--accent);
+  }
+
+  /* メインコンテンツ */
+  .content { padding: 12px 12px 80px; }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* セクションタイトル */
+  .section-title {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    margin-bottom: 8px;
+    margin-top: 16px;
+  }
+  .section-title:first-child { margin-top: 0; }
+
+  /* ショット入力フォーム */
+  .shot-form {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .form-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 10px;
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .form-label {
+    font-size: 11px;
+    color: var(--text3);
+    margin-bottom: 4px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+  .form-group { display: flex; flex-direction: column; }
+  .numpad-trigger {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 14px;
+    color: var(--text);
+    font-size: 20px;
+    font-weight: 700;
+    min-width: 60px;
+    text-align: center;
+    cursor: pointer;
+    font-variant-numeric: tabular-nums;
+  }
+  .numpad-trigger.filled { border-color: var(--accent); color: var(--accent2); }
+
+  .btn-group { display: flex; flex-wrap: wrap; gap: 5px; }
+  .toggle-btn {
+    border: 1.5px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    background: transparent;
+    color: var(--text2);
+    transition: all 0.15s;
+    font-family: inherit;
+  }
+  .toggle-btn:active { transform: scale(0.95); }
+  .toggle-btn.active { border-color: var(--accent); background: rgba(59,130,246,0.2); color: var(--accent2); }
+  .toggle-btn.result-goal { --c: var(--green); }
+  .toggle-btn.result-save { --c: var(--yellow); }
+  .toggle-btn.result-miss { --c: var(--red); }
+  .toggle-btn.result-goal.active { border-color: var(--green); background: rgba(34,197,94,0.2); color: var(--green); }
+  .toggle-btn.result-save.active { border-color: var(--yellow); background: rgba(245,158,11,0.2); color: var(--yellow); }
+  .toggle-btn.result-miss.active { border-color: var(--red); background: rgba(239,68,68,0.2); color: var(--red); }
+
+  .text-input {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    color: var(--text);
+    font-size: 13px;
+    font-family: inherit;
+    width: 100%;
+  }
+  .text-input:focus { outline: none; border-color: var(--accent); }
+
+  .submit-btn {
+    width: 100%;
+    padding: 14px;
+    font-size: 15px;
+    font-weight: 700;
+    border-radius: 10px;
+    margin-top: 4px;
+  }
+
+  /* ログリスト */
+  .log-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .log-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .log-item.goal { border-left: 3px solid var(--green); }
+  .log-item.save { border-left: 3px solid var(--yellow); }
+  .log-item.miss { border-left: 3px solid var(--red); }
+  .log-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 7px;
+    border-radius: 5px;
+    flex-shrink: 0;
+  }
+  .badge-goal { background: rgba(34,197,94,0.2); color: var(--green); }
+  .badge-save { background: rgba(245,158,11,0.2); color: var(--yellow); }
+  .badge-miss { background: rgba(239,68,68,0.2); color: var(--red); }
+  .badge-q { background: var(--border); color: var(--text3); }
+  .log-main { flex: 1; }
+  .log-number { font-size: 16px; font-weight: 700; color: var(--accent2); }
+  .log-detail { font-size: 11px; color: var(--text3); margin-top: 1px; }
+  .log-time { font-size: 12px; color: var(--text3); font-variant-numeric: tabular-nums; flex-shrink: 0; }
+  .log-delete {
+    background: none;
+    border: none;
+    color: var(--text3);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+  }
+  .log-delete:hover { color: var(--red); }
+
+  /* ターンオーバー入力 */
+  .to-form {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+
+  /* 集計カード */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+  }
+  .stat-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+  }
+  .stat-value {
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1.1;
+  }
+  .stat-label { font-size: 10px; color: var(--text3); margin-top: 2px; font-weight: 600; letter-spacing: 0.05em; }
+  .stat-sub { font-size: 12px; color: var(--text2); margin-top: 2px; }
+
+  /* テーブル */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .data-table th {
+    background: var(--surface2);
+    padding: 8px 6px;
+    text-align: center;
+    color: var(--text3);
+    font-weight: 700;
+    font-size: 11px;
+    border-bottom: 1px solid var(--border);
+    letter-spacing: 0.05em;
+  }
+  .data-table td {
+    padding: 8px 6px;
+    text-align: center;
+    border-bottom: 1px solid var(--border);
+    color: var(--text2);
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr.total-row td { color: var(--text); font-weight: 700; background: var(--surface2); }
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    margin-bottom: 12px;
+  }
+
+  /* TOログ */
+  .to-item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .to-item.kyoto-to { border-left: 3px solid var(--kyoto); }
+  .to-item.enemy-to { border-left: 3px solid var(--enemy); }
+
+  /* テンキー モーダル */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.7);
+    z-index: 200;
+    align-items: flex-end;
+    justify-content: center;
+  }
+  .modal-overlay.open { display: flex; }
+  .numpad-modal {
+    background: var(--surface);
+    border-radius: 20px 20px 0 0;
+    padding: 20px 16px 30px;
+    width: 100%;
+    max-width: 400px;
+    border-top: 1px solid var(--border);
+  }
+  .numpad-title {
+    font-size: 13px;
+    color: var(--text3);
+    text-align: center;
+    margin-bottom: 12px;
+    font-weight: 600;
+  }
+  .numpad-display {
+    background: var(--surface2);
+    border-radius: 10px;
+    padding: 12px;
+    text-align: center;
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: 14px;
+    min-height: 58px;
+    font-variant-numeric: tabular-nums;
+  }
+  .numpad-display .placeholder { color: var(--text3); font-size: 16px; }
+  .numpad-keys {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+  .numkey {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--text);
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.1s;
+    font-family: inherit;
+  }
+  .numkey:active { transform: scale(0.93); background: var(--accent); }
+  .numkey.del { color: var(--red); font-size: 16px; }
+  .numkey.ok { background: var(--accent); color: #fff; }
+  .numkey.ok:active { background: var(--accent2); }
+
+  /* タイムアウトバナー */
+  .to-banner {
+    display: none;
+    background: var(--yellow);
+    color: #000;
+    text-align: center;
+    padding: 8px;
+    font-weight: 700;
+    font-size: 13px;
+  }
+  .to-banner.show { display: block; }
+
+  /* エクスポート */
+  .export-section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 12px;
+  }
+  .export-btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+
+  /* フローティング */
+  .fab {
+    position: fixed;
+    bottom: 20px;
+    right: 16px;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 50%;
+    width: 56px;
+    height: 56px;
+    font-size: 22px;
+    cursor: pointer;
+    box-shadow: 0 4px 20px rgba(59,130,246,0.5);
+    z-index: 150;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.15s;
+  }
+  .fab:active { transform: scale(0.9); }
+
+  /* Q別集計バー */
+  .q-tabs { display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; }
+
+  /* empty */
+  .empty-state {
+    text-align: center;
+    padding: 30px 0;
+    color: var(--text3);
+    font-size: 13px;
+  }
+  .empty-icon { font-size: 32px; margin-bottom: 8px; }
+
+  /* CL成功率 */
+  .cl-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+  }
+  .cl-label { font-size: 13px; color: var(--text2); min-width: 28px; }
+  .cl-btns { display: flex; gap: 6px; }
+  .cl-count { font-size: 20px; font-weight: 700; min-width: 32px; text-align: center; }
+  .cl-count.success { color: var(--green); }
+  .cl-count.fail { color: var(--red); }
+
+  /* 試合情報設定 */
+  .setup-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 300;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .setup-modal.open { display: flex; }
+  .setup-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    width: 100%;
+    max-width: 380px;
+  }
+  .setup-title {
+    font-size: 16px;
+    font-weight: 700;
+    margin-bottom: 16px;
+    color: var(--text);
+  }
+  .setup-field { margin-bottom: 12px; }
+  .setup-field label { display: block; font-size: 11px; color: var(--text3); margin-bottom: 4px; font-weight: 600; letter-spacing: 0.05em; }
+  select.text-input { appearance: none; }
+
+  /* タイムアウトポップアップ */
+  .to-popup {
+    display: none;
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: var(--yellow);
+    color: #000;
+    border-radius: 16px;
+    padding: 20px 28px;
+    text-align: center;
+    font-weight: 700;
+    font-size: 18px;
+    z-index: 400;
+    box-shadow: 0 8px 30px rgba(245,158,11,0.5);
+    animation: pop 0.3s ease;
+  }
+  @keyframes pop { from { transform: translate(-50%,-50%) scale(0.8); opacity: 0; } to { transform: translate(-50%,-50%) scale(1); opacity: 1; } }
+
+  .divider { border: none; border-top: 1px solid var(--border); margin: 14px 0; }
+</style>
+</head>
+<body>
+
+<!-- 試合情報セットアップモーダル -->
+<div class="setup-modal open" id="setupModal">
+  <div class="setup-box">
+    <div class="setup-title">⚙️ 試合情報を入力</div>
+    <div class="setup-field">
+      <label>相手チーム名</label>
+      <input type="text" class="text-input" id="enemyName" placeholder="例: ○○大学" value="">
+    </div>
+    <div class="setup-field">
+      <label>日付</label>
+      <input type="date" class="text-input" id="matchDate">
+    </div>
+    <div class="setup-field">
+      <label>Q数</label>
+      <select class="text-input" id="qCount">
+        <option value="4">4Q制</option>
+        <option value="2">2ピリオド制</option>
+      </select>
+    </div>
+    <div class="setup-field">
+      <label>Q時間（分）</label>
+      <select class="text-input" id="qMinutes">
+        <option value="15">15分</option>
+        <option value="12">12分</option>
+        <option value="10">10分</option>
+      </select>
+    </div>
+    <button class="btn btn-primary submit-btn" onclick="startMatch()">試合開始</button>
+  </div>
+</div>
+
+<!-- テンキーモーダル -->
+<div class="modal-overlay" id="numpadModal">
+  <div class="numpad-modal">
+    <div class="numpad-title" id="numpadTitle">背番号を入力</div>
+    <div class="numpad-display" id="numpadDisplay"><span class="placeholder">—</span></div>
+    <div class="numpad-keys">
+      <button class="numkey" onclick="numInput('1')">1</button>
+      <button class="numkey" onclick="numInput('2')">2</button>
+      <button class="numkey" onclick="numInput('3')">3</button>
+      <button class="numkey" onclick="numInput('4')">4</button>
+      <button class="numkey" onclick="numInput('5')">5</button>
+      <button class="numkey" onclick="numInput('6')">6</button>
+      <button class="numkey" onclick="numInput('7')">7</button>
+      <button class="numkey" onclick="numInput('8')">8</button>
+      <button class="numkey" onclick="numInput('9')">9</button>
+      <button class="numkey del" onclick="numDel()">⌫</button>
+      <button class="numkey" onclick="numInput('0')">0</button>
+      <button class="numkey ok" onclick="numOK()">OK</button>
+    </div>
+    <button class="btn btn-secondary" style="width:100%;margin-top:12px;" onclick="closeNumpad()">キャンセル</button>
+  </div>
+</div>
+
+<!-- タイムアウト表示 -->
+<div class="to-popup" id="toPopup"></div>
+
+<!-- ヘッダー -->
+<div class="header">
+  <div class="header-title">📊 試合データ</div>
+  <div class="header-meta" id="headerMeta">—</div>
+</div>
+
+<!-- スコアバー -->
+<div class="score-bar">
+  <div class="score-team">
+    <div class="score-label">京大</div>
+    <div class="score-num kyoto" id="scoreKyoto">0</div>
+  </div>
+  <div class="score-center">
+    <div class="timer-display" id="timerDisplay">--:--</div>
+    <div class="score-vs">vs</div>
+    <div class="q-badge" id="qBadge">Q1</div>
+  </div>
+  <div class="score-team">
+    <div class="score-label" id="enemyLabel">相手</div>
+    <div class="score-num enemy" id="scoreEnemy">0</div>
+  </div>
+</div>
+
+<!-- Q・タイマー操作 -->
+<div class="controls" id="controlsBar">
+  <div style="display:flex;gap:5px;" id="qButtons"></div>
+  <button class="btn btn-success btn-sm" id="timerBtn" onclick="toggleTimer()">▶ 開始</button>
+  <button class="btn btn-yellow btn-sm" onclick="recordTO()">T.O.宣告</button>
+  <button class="btn btn-secondary btn-sm" onclick="openSetup()">⚙</button>
+</div>
+
+<!-- タブ -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('scoresheet')">スコアシート</div>
+  <div class="tab" onclick="switchTab('turnover')">ターンオーバー</div>
+  <div class="tab" onclick="switchTab('stats')">集計</div>
+  <div class="tab" onclick="switchTab('export')">出力</div>
+</div>
+
+<!-- ===== スコアシートタブ ===== -->
+<div class="panel active" id="panel-scoresheet">
+  <div class="content">
+    <div class="section-title">ショット記録</div>
+    <div class="shot-form">
+      <!-- チーム選択 -->
+      <div class="form-group" style="margin-bottom:10px;">
+        <div class="form-label">チーム</div>
+        <div class="btn-group">
+          <button class="toggle-btn active" id="teamKyoto" onclick="selectTeam('kyoto')">京大</button>
+          <button class="toggle-btn" id="teamEnemy" onclick="selectTeam('enemy')">相手</button>
+        </div>
+      </div>
+      <!-- 結果 -->
+      <div class="form-group" style="margin-bottom:10px;">
+        <div class="form-label">結果</div>
+        <div class="btn-group">
+          <button class="toggle-btn result-goal" onclick="selectResult('goal')">⚽ 得点</button>
+          <button class="toggle-btn result-save" onclick="selectResult('save')">🥅 セーブ</button>
+          <button class="toggle-btn result-miss" onclick="selectResult('miss')">✗ 枠外</button>
+        </div>
+      </div>
+      <!-- 背番号 -->
+      <div class="form-row">
+        <div class="form-group">
+          <div class="form-label">背番号</div>
+          <div class="numpad-trigger" id="shotNumber" onclick="openNumpad('shotNumber', '背番号')">—</div>
+        </div>
+        <!-- 速/遅 -->
+        <div class="form-group">
+          <div class="form-label">速/遅</div>
+          <div class="btn-group">
+            <button class="toggle-btn speed-btn" onclick="selectSpeed('fast')">速</button>
+            <button class="toggle-btn speed-btn" onclick="selectSpeed('slow')">遅(ち)</button>
+            <button class="toggle-btn speed-btn" onclick="selectSpeed('freesh')">フリシュー</button>
+          </div>
+        </div>
+      </div>
+      <!-- 攻め方 -->
+      <div class="form-group" style="margin-bottom:10px;">
+        <div class="form-label">攻め方</div>
+        <div class="btn-group" id="attackButtons">
+          <button class="toggle-btn" onclick="selectAttack('右上ワン')">右上1on1</button>
+          <button class="toggle-btn" onclick="selectAttack('右よこワン')">右よこ1on1</button>
+          <button class="toggle-btn" onclick="selectAttack('右うらワン')">右うら1on1</button>
+          <button class="toggle-btn" onclick="selectAttack('左上ワン')">左上1on1</button>
+          <button class="toggle-btn" onclick="selectAttack('左よこワン')">左よこ1on1</button>
+          <button class="toggle-btn" onclick="selectAttack('左うらワン')">左うら1on1</button>
+          <button class="toggle-btn" onclick="selectAttack('センターワン')">センター1on1</button>
+          <button class="toggle-btn" onclick="selectAttack('フィード')">フィード</button>
+          <button class="toggle-btn" onclick="selectAttack('GB')">GB</button>
+          <button class="toggle-btn" onclick="selectAttack('ミドル')">ミドル</button>
+          <button class="toggle-btn" onclick="selectAttack('ブレイク')">ブレイク</button>
+          <button class="toggle-btn" onclick="selectAttack('フリシュー')">フリシュー</button>
+          <button class="toggle-btn" onclick="selectAttack('other')">その他</button>
+        </div>
+      </div>
+      <!-- フィードアシスト番号 / フリシュー番号 / その他テキスト -->
+      <div class="form-group" id="attackDetail" style="display:none;margin-bottom:10px;">
+        <div class="form-label" id="attackDetailLabel">詳細</div>
+        <div style="display:flex;gap:8px;align-items:center;" id="attackDetailInner"></div>
+      </div>
+      <!-- メモ -->
+      <div class="form-group" style="margin-bottom:10px;">
+        <div class="form-label">メモ（任意）</div>
+        <input type="text" class="text-input" id="shotNote" placeholder="補足があれば...">
+      </div>
+      <button class="btn btn-primary submit-btn" onclick="addShot()">✚ ショット記録</button>
+    </div>
+
+    <!-- CL成功率 -->
+    <div class="section-title">クリア成功率（Qごと）</div>
+    <div class="shot-form" id="clSection">
+    </div>
+
+    <div class="section-title">ショットログ</div>
+    <div id="shotLog">
+      <div class="empty-state"><div class="empty-icon">🥍</div>まだ記録がありません</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== ターンオーバータブ ===== -->
+<div class="panel" id="panel-turnover">
+  <div class="content">
+    <div class="section-title">ターンオーバー記録</div>
+    <div class="to-form">
+      <div class="form-group" style="margin-bottom:10px;">
+        <div class="form-label">方向（誰のターンオーバー）</div>
+        <div class="btn-group">
+          <button class="toggle-btn active" id="toSideKyoto" onclick="selectTOSide('kyoto')">京大が奪われた</button>
+          <button class="toggle-btn" id="toSideEnemy" onclick="selectTOSide('enemy')">京大が奪った</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <div class="form-label">背番号</div>
+          <div class="numpad-trigger" id="toNumber" onclick="openNumpad('toNumber', '背番号（原因の選手）')">—</div>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:10px;">
+        <div class="form-label">原因</div>
+        <div class="btn-group">
+          <button class="toggle-btn cause-btn" onclick="selectTOCause('PC')">PC</button>
+          <button class="toggle-btn cause-btn" onclick="selectTOCause('キープ')">キープ</button>
+          <button class="toggle-btn cause-btn" onclick="selectTOCause('ファール')">ファール</button>
+          <button class="toggle-btn cause-btn" onclick="selectTOCause('インター')">インター</button>
+          <button class="toggle-btn cause-btn" onclick="selectTOCause('ショット')">ショット</button>
+          <button class="toggle-btn cause-btn" onclick="selectTOCause('チェイス')">チェイス</button>
+          <button class="toggle-btn cause-btn" onclick="selectTOCause('その他')">その他</button>
+        </div>
+      </div>
+      <div class="form-group" style="margin-bottom:10px;">
+        <div class="form-label">メモ（任意）</div>
+        <input type="text" class="text-input" id="toNote" placeholder="補足があれば...">
+      </div>
+      <button class="btn btn-danger submit-btn" onclick="addTO()">✚ ターンオーバー記録</button>
+    </div>
+
+    <div class="section-title">TOログ</div>
+    <div id="toLog">
+      <div class="empty-state"><div class="empty-icon">🔄</div>まだ記録がありません</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 集計タブ ===== -->
+<div class="panel" id="panel-stats">
+  <div class="content">
+    <div class="section-title">スコア・ショット集計</div>
+    <div class="stats-grid" id="statsGrid"></div>
+
+    <div class="section-title">Q別ショット詳細</div>
+    <div class="table-wrap">
+      <table class="data-table" id="qShotTable">
+        <thead>
+          <tr>
+            <th>Q</th>
+            <th>チーム</th>
+            <th>ショット</th>
+            <th>得点</th>
+            <th>セーブ</th>
+            <th>枠外</th>
+            <th>シュート率</th>
+          </tr>
+        </thead>
+        <tbody id="qShotBody"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title">ターンオーバー集計</div>
+    <div class="stats-grid" id="toStatsGrid"></div>
+    <div class="table-wrap">
+      <table class="data-table" id="toCauseTable">
+        <thead>
+          <tr>
+            <th>原因</th>
+            <th>京大奪われ</th>
+            <th>京大奪った</th>
+          </tr>
+        </thead>
+        <tbody id="toCauseBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 出力タブ ===== -->
+<div class="panel" id="panel-export">
+  <div class="content">
+    <div class="section-title">データエクスポート</div>
+    <div class="export-section">
+      <div style="color:var(--text2);font-size:13px;margin-bottom:8px;">Streamlit連携用JSONや、スプレッドシート貼り付け用CSVを出力できます。</div>
+      <div class="export-btn-row">
+        <button class="btn btn-primary" onclick="exportJSON()">📦 JSON全データ</button>
+        <button class="btn btn-success" onclick="exportShotCSV()">📄 ショットCSV</button>
+        <button class="btn btn-yellow" onclick="exportTOCSV()">📄 ターンオーバーCSV</button>
+      </div>
+    </div>
+    <div class="section-title">JSONプレビュー</div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;overflow-x:auto;">
+      <pre style="font-size:11px;color:var(--text2);white-space:pre-wrap;word-break:break-all;" id="jsonPreview">データを記録すると表示されます</pre>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== STATE =====
+let state = {
+  match: { enemy: '相手', date: '', qCount: 4, qMinutes: 15 },
+  currentQ: 1,
+  timerSec: 0,
+  timerRunning: false,
+  timerInterval: null,
+  shots: [],
+  turnovers: [],
+  timeouts: [],
+  cl: { /* q: {ok:0, ng:0} */ },
+  shotForm: { team: 'kyoto', result: null, number: null, speed: null, attack: null, attackDetail: '', note: '' },
+  toForm: { side: 'kyoto', number: null, cause: null, note: '' },
+  numpadTarget: null,
+  numpadValue: '',
+};
+
+// ===== SETUP =====
+function startMatch() {
+  const enemy = document.getElementById('enemyName').value.trim() || '相手';
+  const date = document.getElementById('matchDate').value;
+  const qCount = parseInt(document.getElementById('qCount').value);
+  const qMinutes = parseInt(document.getElementById('qMinutes').value);
+  state.match = { enemy, date, qCount, qMinutes };
+  state.timerSec = qMinutes * 60;
+  document.getElementById('enemyLabel').textContent = enemy;
+  document.getElementById('teamEnemy').textContent = enemy;
+  document.getElementById('headerMeta').textContent = `${date} vs ${enemy}`;
+  document.getElementById('setupModal').classList.remove('open');
+  buildQButtons();
+  updateTimerDisplay();
+  renderCLSection();
+  updateStats();
+}
+
+function openSetup() {
+  document.getElementById('setupModal').classList.add('open');
+}
+
+function buildQButtons() {
+  const bar = document.getElementById('qButtons');
+  bar.innerHTML = '';
+  for (let i = 1; i <= state.match.qCount; i++) {
+    const b = document.createElement('button');
+    b.className = 'btn btn-q' + (i === state.currentQ ? ' active' : '');
+    b.textContent = `Q${i}`;
+    b.onclick = () => setQ(i);
+    bar.appendChild(b);
+  }
+}
+
+// ===== TIMER =====
+function toggleTimer() {
+  if (state.timerRunning) {
+    clearInterval(state.timerInterval);
+    state.timerRunning = false;
+    document.getElementById('timerBtn').textContent = '▶ 開始';
+    document.getElementById('timerBtn').className = 'btn btn-success btn-sm';
+  } else {
+    state.timerRunning = true;
+    document.getElementById('timerBtn').textContent = '⏸ 停止';
+    document.getElementById('timerBtn').className = 'btn btn-danger btn-sm';
+    state.timerInterval = setInterval(() => {
+      if (state.timerSec > 0) { state.timerSec--; updateTimerDisplay(); }
+      else { clearInterval(state.timerInterval); state.timerRunning = false; }
+    }, 1000);
+  }
+}
+
+function setQ(q) {
+  state.currentQ = q;
+  state.timerSec = state.match.qMinutes * 60;
+  if (state.timerRunning) { clearInterval(state.timerInterval); state.timerRunning = false; }
+  document.getElementById('timerBtn').textContent = '▶ 開始';
+  document.getElementById('timerBtn').className = 'btn btn-success btn-sm';
+  document.getElementById('qBadge').textContent = `Q${q}`;
+  buildQButtons();
+  updateTimerDisplay();
+}
+
+function updateTimerDisplay() {
+  const m = Math.floor(state.timerSec / 60).toString().padStart(2,'0');
+  const s = (state.timerSec % 60).toString().padStart(2,'0');
+  document.getElementById('timerDisplay').textContent = `${m}:${s}`;
+}
+
+function elapsedTime() {
+  const total = state.match.qMinutes * 60;
+  const elapsed = total - state.timerSec;
+  const m = Math.floor(elapsed / 60).toString().padStart(2,'0');
+  const s = (elapsed % 60).toString().padStart(2,'0');
+  return `${m}:${s}`;
+}
+
+// ===== TIMEOUT =====
+function recordTO() {
+  const which = prompt('タイムアウト：[1] 京大  [2] ' + state.match.enemy);
+  if (!which) return;
+  const team = which === '1' ? '京大' : state.match.enemy;
+  const record = { q: state.currentQ, time: elapsedTime(), team };
+  state.timeouts.push(record);
+  const popup = document.getElementById('toPopup');
+  popup.textContent = `⏱ ${team} タイムアウト (Q${state.currentQ} ${record.time})`;
+  popup.style.display = 'block';
+  setTimeout(() => { popup.style.display = 'none'; }, 2500);
+  updateExport();
+}
+
+// ===== TABS =====
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+  if (name === 'stats') updateStats();
+  if (name === 'export') updateExport();
+}
+
+// ===== NUMPAD =====
+function openNumpad(targetId, title) {
+  state.numpadTarget = targetId;
+  state.numpadValue = '';
+  document.getElementById('numpadTitle').textContent = title;
+  document.getElementById('numpadDisplay').innerHTML = '<span class="placeholder">—</span>';
+  document.getElementById('numpadModal').classList.add('open');
+}
+
+function numInput(v) {
+  if (state.numpadValue.length >= 3) return;
+  state.numpadValue += v;
+  document.getElementById('numpadDisplay').textContent = state.numpadValue;
+}
+
+function numDel() {
+  state.numpadValue = state.numpadValue.slice(0, -1);
+  document.getElementById('numpadDisplay').textContent = state.numpadValue || '';
+  if (!state.numpadValue) document.getElementById('numpadDisplay').innerHTML = '<span class="placeholder">—</span>';
+}
+
+function numOK() {
+  if (!state.numpadValue) { closeNumpad(); return; }
+  const el = document.getElementById(state.numpadTarget);
+  if (el) {
+    el.textContent = '#' + state.numpadValue;
+    el.classList.add('filled');
+  }
+  if (state.numpadTarget === 'shotNumber') state.shotForm.number = state.numpadValue;
+  if (state.numpadTarget === 'toNumber') state.toForm.number = state.numpadValue;
+  if (state.numpadTarget === 'feedAssist') state.shotForm.attackDetail = state.numpadValue;
+  closeNumpad();
+}
+
+function closeNumpad() {
+  document.getElementById('numpadModal').classList.remove('open');
+}
+
+// ===== SHOT FORM =====
+function selectTeam(t) {
+  state.shotForm.team = t;
+  document.getElementById('teamKyoto').classList.toggle('active', t === 'kyoto');
+  document.getElementById('teamEnemy').classList.toggle('active', t === 'enemy');
+}
+
+function selectResult(r) {
+  state.shotForm.result = r;
+  document.querySelectorAll('.result-goal, .result-save, .result-miss').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function selectSpeed(s) {
+  state.shotForm.speed = s;
+  document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function selectAttack(a) {
+  state.shotForm.attack = a;
+  state.shotForm.attackDetail = '';
+  document.querySelectorAll('#attackButtons .toggle-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  showAttackDetail(a);
+}
+
+function showAttackDetail(a) {
+  const wrap = document.getElementById('attackDetail');
+  const label = document.getElementById('attackDetailLabel');
+  const inner = document.getElementById('attackDetailInner');
+  inner.innerHTML = '';
+  if (a === 'フィード') {
+    label.textContent = 'アシスト背番号';
+    inner.innerHTML = `<div class="numpad-trigger" id="feedAssist" onclick="openNumpad('feedAssist','アシスト背番号')">—</div>`;
+    wrap.style.display = 'block';
+  } else if (a === 'フリシュー') {
+    label.textContent = 'ハッシュ番号';
+    inner.innerHTML = `<input type="text" class="text-input" id="freeshHash" placeholder="ハッシュ番号" style="max-width:140px;" oninput="state.shotForm.attackDetail=this.value">`;
+    wrap.style.display = 'block';
+  } else if (a === 'other') {
+    label.textContent = '攻め方（テキスト）';
+    inner.innerHTML = `<input type="text" class="text-input" id="attackOther" placeholder="詳細を入力" oninput="state.shotForm.attackDetail=this.value">`;
+    wrap.style.display = 'block';
+  } else {
+    wrap.style.display = 'none';
+  }
+}
+
+function addShot() {
+  const f = state.shotForm;
+  if (!f.result) { alert('結果を選択してください'); return; }
+  const shot = {
+    id: Date.now(),
+    q: state.currentQ,
+    time: elapsedTime(),
+    team: f.team,
+    result: f.result,
+    number: f.number || '?',
+    speed: f.speed || '',
+    attack: f.attack || '',
+    attackDetail: f.attackDetail || '',
+    note: document.getElementById('shotNote').value,
+  };
+  state.shots.push(shot);
+  updateScore();
+  renderShotLog();
+  // フォームリセット（結果・番号はクリア）
+  state.shotForm.result = null;
+  state.shotForm.number = null;
+  state.shotForm.note = '';
+  document.querySelectorAll('.result-goal, .result-save, .result-miss').forEach(b => b.classList.remove('active'));
+  document.getElementById('shotNumber').textContent = '—';
+  document.getElementById('shotNumber').classList.remove('filled');
+  document.getElementById('shotNote').value = '';
+}
+
+function updateScore() {
+  const kyotoGoals = state.shots.filter(s => s.team === 'kyoto' && s.result === 'goal').length;
+  const enemyGoals = state.shots.filter(s => s.team === 'enemy' && s.result === 'goal').length;
+  document.getElementById('scoreKyoto').textContent = kyotoGoals;
+  document.getElementById('scoreEnemy').textContent = enemyGoals;
+}
+
+function renderShotLog() {
+  const container = document.getElementById('shotLog');
+  if (state.shots.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">🥍</div>まだ記録がありません</div>';
+    return;
+  }
+  const reversed = [...state.shots].reverse();
+  container.innerHTML = reversed.map(s => {
+    const resultText = s.result === 'goal' ? '得点' : s.result === 'save' ? 'セーブ' : '枠外';
+    const teamText = s.team === 'kyoto' ? '京大' : state.match.enemy;
+    const badgeClass = s.result === 'goal' ? 'badge-goal' : s.result === 'save' ? 'badge-save' : 'badge-miss';
+    const itemClass = s.result;
+    const detail = [s.speed, s.attack + (s.attackDetail ? `(${s.attackDetail})` : ''), s.note].filter(Boolean).join(' / ');
+    return `<div class="log-item ${itemClass}">
+      <span class="log-badge badge-q">Q${s.q}</span>
+      <span class="log-badge ${badgeClass}">${resultText}</span>
+      <div class="log-main">
+        <div class="log-number">${teamText} #${s.number}</div>
+        <div class="log-detail">${detail || '—'}</div>
+      </div>
+      <span class="log-time">${s.time}</span>
+      <button class="log-delete" onclick="deleteShot(${s.id})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function deleteShot(id) {
+  state.shots = state.shots.filter(s => s.id !== id);
+  updateScore();
+  renderShotLog();
+}
+
+// ===== CL成功率 =====
+function renderCLSection() {
+  const el = document.getElementById('clSection');
+  let html = '';
+  for (let q = 1; q <= state.match.qCount; q++) {
+    if (!state.cl[q]) state.cl[q] = { ok: 0, ng: 0 };
+    const cl = state.cl[q];
+    const rate = (cl.ok + cl.ng) > 0 ? Math.round(cl.ok / (cl.ok + cl.ng) * 100) + '%' : '—';
+    html += `<div class="cl-row">
+      <div class="cl-label" style="color:var(--text3);font-weight:700;">Q${q}</div>
+      <div class="cl-btns">
+        <button class="btn btn-success btn-sm" onclick="clCount(${q},'ok')">○ 成功</button>
+        <button class="btn btn-danger btn-sm" onclick="clCount(${q},'ng')">✕ 失敗</button>
+      </div>
+      <div class="cl-count success" id="clOk${q}">${cl.ok}</div>
+      <div style="color:var(--text3)">/</div>
+      <div class="cl-count fail" id="clNg${q}">${cl.ng}</div>
+      <div style="color:var(--text3);font-size:12px;min-width:36px;">${rate}</div>
+      <button class="btn btn-secondary btn-sm" onclick="clReset(${q})">↩</button>
+    </div>`;
+  }
+  el.innerHTML = html;
+}
+
+function clCount(q, type) {
+  if (!state.cl[q]) state.cl[q] = { ok: 0, ng: 0 };
+  state.cl[q][type]++;
+  renderCLSection();
+}
+
+function clReset(q) {
+  state.cl[q] = { ok: 0, ng: 0 };
+  renderCLSection();
+}
+
+// ===== TURNOVER =====
+function selectTOSide(side) {
+  state.toForm.side = side;
+  document.getElementById('toSideKyoto').classList.toggle('active', side === 'kyoto');
+  document.getElementById('toSideEnemy').classList.toggle('active', side === 'enemy');
+}
+
+function selectTOCause(c) {
+  state.toForm.cause = c;
+  document.querySelectorAll('.cause-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function addTO() {
+  const f = state.toForm;
+  if (!f.cause) { alert('原因を選択してください'); return; }
+  const to = {
+    id: Date.now(),
+    q: state.currentQ,
+    time: elapsedTime(),
+    side: f.side,
+    number: f.number || '?',
+    cause: f.cause,
+    note: document.getElementById('toNote').value,
+  };
+  state.turnovers.push(to);
+  renderTOLog();
+  // リセット
+  state.toForm.cause = null;
+  state.toForm.number = null;
+  document.querySelectorAll('.cause-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('toNumber').textContent = '—';
+  document.getElementById('toNumber').classList.remove('filled');
+  document.getElementById('toNote').value = '';
+}
+
+function renderTOLog() {
+  const container = document.getElementById('toLog');
+  if (state.turnovers.length === 0) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">🔄</div>まだ記録がありません</div>';
+    return;
+  }
+  const reversed = [...state.turnovers].reverse();
+  container.innerHTML = reversed.map(t => {
+    const sideText = t.side === 'kyoto' ? '京大が奪われた' : '京大が奪った';
+    const itemClass = t.side === 'kyoto' ? 'kyoto-to' : 'enemy-to';
+    return `<div class="to-item ${itemClass}">
+      <span class="log-badge badge-q">Q${t.q}</span>
+      <div class="log-main">
+        <div style="font-size:13px;font-weight:700;color:${t.side==='kyoto'?'var(--kyoto)':'var(--enemy)'};">${sideText}</div>
+        <div class="log-detail">#${t.number} / ${t.cause}${t.note ? ' — ' + t.note : ''}</div>
+      </div>
+      <span class="log-time">${t.time}</span>
+      <button class="log-delete" onclick="deleteTO(${t.id})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function deleteTO(id) {
+  state.turnovers = state.turnovers.filter(t => t.id !== id);
+  renderTOLog();
+}
+
+// ===== STATS =====
+function updateStats() {
+  // スコア統計
+  const kyotoShots = state.shots.filter(s => s.team === 'kyoto');
+  const enemyShots = state.shots.filter(s => s.team === 'enemy');
+  const kGoals = kyotoShots.filter(s => s.result === 'goal').length;
+  const eGoals = enemyShots.filter(s => s.result === 'goal').length;
+  const kRate = kyotoShots.length > 0 ? Math.round(kGoals / kyotoShots.length * 100) : 0;
+  const eRate = enemyShots.length > 0 ? Math.round(eGoals / enemyShots.length * 100) : 0;
+
+  document.getElementById('statsGrid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-value" style="color:var(--kyoto)">${kGoals}</div>
+      <div class="stat-label">京大 得点</div>
+      <div class="stat-sub">${kyotoShots.length}本中 ${kRate}%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color:var(--enemy)">${eGoals}</div>
+      <div class="stat-label">${state.match.enemy} 得点</div>
+      <div class="stat-sub">${enemyShots.length}本中 ${eRate}%</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${kyotoShots.length}</div>
+      <div class="stat-label">京大 総ショット</div>
+      <div class="stat-sub">セーブ ${kyotoShots.filter(s=>s.result==='save').length} / 枠外 ${kyotoShots.filter(s=>s.result==='miss').length}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">${enemyShots.length}</div>
+      <div class="stat-label">${state.match.enemy} 総ショット</div>
+      <div class="stat-sub">セーブ ${enemyShots.filter(s=>s.result==='save').length} / 枠外 ${enemyShots.filter(s=>s.result==='miss').length}</div>
+    </div>
+  `;
+
+  // Q別テーブル
+  const tbody = document.getElementById('qShotBody');
+  let rows = '';
+  const totals = { kyoto: { s:0,g:0,sv:0,ms:0 }, enemy: { s:0,g:0,sv:0,ms:0 } };
+  for (let q = 1; q <= state.match.qCount; q++) {
+    for (const team of ['kyoto', 'enemy']) {
+      const shots = state.shots.filter(s => s.q === q && s.team === team);
+      const g = shots.filter(s => s.result === 'goal').length;
+      const sv = shots.filter(s => s.result === 'save').length;
+      const ms = shots.filter(s => s.result === 'miss').length;
+      const rate = shots.length > 0 ? Math.round(g / shots.length * 100) + '%' : '—';
+      const teamLabel = team === 'kyoto' ? '<span style="color:var(--kyoto);font-weight:700;">京大</span>' : `<span style="color:var(--enemy);font-weight:700;">${state.match.enemy}</span>`;
+      if (shots.length > 0 || q === state.currentQ) {
+        rows += `<tr><td>Q${q}</td><td>${teamLabel}</td><td>${shots.length}</td><td>${g}</td><td>${sv}</td><td>${ms}</td><td>${rate}</td></tr>`;
+      }
+      totals[team].s += shots.length; totals[team].g += g; totals[team].sv += sv; totals[team].ms += ms;
+    }
+  }
+  const kr = totals.kyoto.s > 0 ? Math.round(totals.kyoto.g / totals.kyoto.s * 100) + '%' : '—';
+  const er = totals.enemy.s > 0 ? Math.round(totals.enemy.g / totals.enemy.s * 100) + '%' : '—';
+  rows += `<tr class="total-row"><td>計</td><td><span style="color:var(--kyoto)">京大</span></td><td>${totals.kyoto.s}</td><td>${totals.kyoto.g}</td><td>${totals.kyoto.sv}</td><td>${totals.kyoto.ms}</td><td>${kr}</td></tr>`;
+  rows += `<tr class="total-row"><td>計</td><td><span style="color:var(--enemy)">${state.match.enemy}</span></td><td>${totals.enemy.s}</td><td>${totals.enemy.g}</td><td>${totals.enemy.sv}</td><td>${totals.enemy.ms}</td><td>${er}</td></tr>`;
+  tbody.innerHTML = rows;
+
+  // TO集計
+  const kyotoTO = state.turnovers.filter(t => t.side === 'kyoto').length;
+  const enemyTO = state.turnovers.filter(t => t.side === 'enemy').length;
+  document.getElementById('toStatsGrid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-value" style="color:var(--red)">${kyotoTO}</div>
+      <div class="stat-label">京大 奪われたTO</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color:var(--green)">${enemyTO}</div>
+      <div class="stat-label">京大 奪ったTO</div>
+    </div>
+  `;
+  const causes = ['PC','キープ','ファール','インター','ショット','チェイス','その他'];
+  document.getElementById('toCauseBody').innerHTML = causes.map(c => {
+    const k = state.turnovers.filter(t => t.side === 'kyoto' && t.cause === c).length;
+    const e = state.turnovers.filter(t => t.side === 'enemy' && t.cause === c).length;
+    return `<tr><td>${c}</td><td>${k > 0 ? `<span style="color:var(--red)">${k}</span>` : '—'}</td><td>${e > 0 ? `<span style="color:var(--green)">${e}</span>` : '—'}</td></tr>`;
+  }).join('');
+}
+
+// ===== EXPORT =====
+function buildJSON() {
+  return {
+    meta: {
+      ...state.match,
+      exportedAt: new Date().toISOString(),
+      tool: 'KyotoLacrosse GameDataTool v1.0',
+    },
+    shots: state.shots,
+    turnovers: state.turnovers,
+    timeouts: state.timeouts,
+    clearance: state.cl,
+    summary: {
+      score: {
+        kyoto: state.shots.filter(s => s.team === 'kyoto' && s.result === 'goal').length,
+        enemy: state.shots.filter(s => s.team === 'enemy' && s.result === 'goal').length,
+      },
+      kyotoTotalShots: state.shots.filter(s => s.team === 'kyoto').length,
+      enemyTotalShots: state.shots.filter(s => s.team === 'enemy').length,
+      kyotoTO: state.turnovers.filter(t => t.side === 'kyoto').length,
+      enemyTO: state.turnovers.filter(t => t.side === 'enemy').length,
+    }
+  };
+}
+
+function updateExport() {
+  document.getElementById('jsonPreview').textContent = JSON.stringify(buildJSON(), null, 2);
+}
+
+function exportJSON() {
+  const data = buildJSON();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `game_${state.match.date}_${state.match.enemy}.json`;
+  a.click();
+}
+
+function exportShotCSV() {
+  const header = 'Q,時間,チーム,結果,背番号,速遅,攻め方,詳細,メモ';
+  const rows = state.shots.map(s =>
+    `${s.q},${s.time},${s.team==='kyoto'?'京大':state.match.enemy},${s.result==='goal'?'得点':s.result==='save'?'セーブ':'枠外'},${s.number},${s.speed},${s.attack},${s.attackDetail},${s.note}`
+  );
+  downloadCSV([header, ...rows].join('\n'), `shots_${state.match.date}.csv`);
+}
+
+function exportTOCSV() {
+  const header = 'Q,時間,方向,背番号,原因,メモ';
+  const rows = state.turnovers.map(t =>
+    `${t.q},${t.time},${t.side==='kyoto'?'京大奪われ':'京大奪った'},${t.number},${t.cause},${t.note}`
+  );
+  downloadCSV([header, ...rows].join('\n'), `turnovers_${state.match.date}.csv`);
+}
+
+function downloadCSV(csv, filename) {
+  const bom = '\uFEFF';
+  const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
+// ===== INIT =====
+document.getElementById('matchDate').value = new Date().toISOString().slice(0,10);
+buildQButtons();
+updateTimerDisplay();
+renderCLSection();
+</script>
+</body>
+</html>
