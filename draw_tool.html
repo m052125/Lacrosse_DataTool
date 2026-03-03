@@ -542,16 +542,8 @@
       ⚑ ファール時は○（京大ゲット）か✕（相手ゲット）のみ記録。個人・全体ゲット率には反映されません。
     </div>
 
-    <!-- ドロワー背番号 -->
+    <!-- 1st～get カード -->
     <div class="card">
-      <div class="form-group">
-        <div class="form-label">ドロワー背番号（京大）</div>
-        <div style="display:flex;gap:8px;align-items:center;">
-          <div class="numpad-trigger" id="drawerNumber" onclick="openNumpad('drawerNumber','ドロワー背番号')">—</div>
-          <button class="btn btn-secondary btn-sm" onclick="clearNum('drawerNumber','drawer')">クリア</button>
-        </div>
-      </div>
-
       <!-- 1st（最初に触った人） -->
       <div class="form-group">
         <div class="form-label">1st — 最初に触った人の背番号</div>
@@ -583,10 +575,18 @@
         <!-- チーム選択 -->
         <div class="field-team-btns">
           <button class="field-team-btn active-kyoto" id="fieldTeamKyoto" onclick="setFieldTeam('kyoto')">
-            🔵 京大の選手を配置
+            🔵 京大 選手
           </button>
           <button class="field-team-btn" id="fieldTeamEnemy" onclick="setFieldTeam('enemy')">
-            🔴 相手の選手を配置
+            🔴 相手 選手
+          </button>
+        </div>
+        <div class="field-team-btns" style="margin-top:5px;">
+          <button class="field-team-btn" id="fieldTeamKyotoDrawer" onclick="setFieldTeam('kyotoDrawer')" style="border-style:dashed;">
+            ★ 京大ドロワー配置
+          </button>
+          <button class="field-team-btn" id="fieldTeamEnemyDrawer" onclick="setFieldTeam('enemyDrawer')" style="border-style:dashed;">
+            ★ 相手ドロワー配置
           </button>
           <button class="field-team-btn" style="flex:0.5;font-size:11px;" onclick="clearFieldPlayers()">
             🗑 全消去
@@ -601,7 +601,8 @@
         <!-- 操作説明 -->
         <div class="field-canvas-instructions">
           タップ → 背番号入力 → 配置<br>
-          配置済みの選手タップ → 削除
+          配置済みの選手タップ → 削除<br>
+          <span style="color:#f59e0b;">★ ドロワー配置モードでタップ → そのチームのドロワーとして配置（1人のみ）</span>
         </div>
 
         <!-- 配置済み選手リスト -->
@@ -729,7 +730,8 @@ const state = {
   draws: [],
   form: {
     result: null,        // 'ok' | 'ng' | 'foul'
-    drawer: null,        // 背番号string
+    kyotoDrawer: null,   // {num, nx, ny} or null
+    enemyDrawer: null,   // {num, nx, ny} or null
     firstNum: null,
     firstTeam: null,     // 'kyoto' | 'enemy'
     getNum: null,
@@ -831,7 +833,6 @@ function numOK() {
   if (!state.numpadValue) { closeNumpad(); return; }
   const el = document.getElementById(state.numpadTarget);
   if (el) { el.textContent = '#' + state.numpadValue; el.classList.add('filled'); }
-  if (state.numpadTarget === 'drawerNumber') { state.form.drawer = state.numpadValue; if (fieldCanvas) drawFieldCanvas(); }
   if (state.numpadTarget === 'firstNumber')  state.form.firstNum = state.numpadValue;
   if (state.numpadTarget === 'getNumber')    state.form.getNum   = state.numpadValue;
   closeNumpad();
@@ -958,6 +959,11 @@ function setFieldTeam(team) {
     'field-team-btn' + (team === 'kyoto' ? ' active-kyoto' : '');
   document.getElementById('fieldTeamEnemy').className =
     'field-team-btn' + (team === 'enemy' ? ' active-enemy' : '');
+  // ドロワーボタンのスタイル
+  const kdBtn = document.getElementById('fieldTeamKyotoDrawer');
+  const edBtn = document.getElementById('fieldTeamEnemyDrawer');
+  if (kdBtn) kdBtn.style.cssText = 'border-style:dashed;' + (team === 'kyotoDrawer' ? 'background:rgba(59,130,246,0.2);border-color:var(--kyoto);color:var(--kyoto);' : '');
+  if (edBtn) edBtn.style.cssText = 'border-style:dashed;' + (team === 'enemyDrawer' ? 'background:rgba(239,68,68,0.2);border-color:var(--enemy);color:var(--enemy);' : '');
 }
 
 function fieldNumInput(v) {
@@ -974,14 +980,20 @@ function fieldNumDel() {
 function fieldNumOK() {
   const num = fieldNumpadValue.trim();
   if (fieldPendingPos && num) {
-    const player = {
-      id: Date.now() + Math.random(),
-      team: fieldActiveTeam,
-      num: num,
-      nx: fieldPendingPos.nx,
-      ny: fieldPendingPos.ny,
-    };
-    state.form.players.push(player);
+    if (fieldActiveTeam === 'kyotoDrawer') {
+      state.form.kyotoDrawer = { num, nx: fieldPendingPos.nx, ny: fieldPendingPos.ny };
+    } else if (fieldActiveTeam === 'enemyDrawer') {
+      state.form.enemyDrawer = { num, nx: fieldPendingPos.nx, ny: fieldPendingPos.ny };
+    } else {
+      const player = {
+        id: Date.now() + Math.random(),
+        team: fieldActiveTeam,
+        num: num,
+        nx: fieldPendingPos.nx,
+        ny: fieldPendingPos.ny,
+      };
+      state.form.players.push(player);
+    }
     drawFieldCanvas();
     renderFieldPlayerList();
   }
@@ -997,6 +1009,8 @@ function cancelFieldNumpad() {
 
 function clearFieldPlayers() {
   state.form.players = [];
+  state.form.kyotoDrawer = null;
+  state.form.enemyDrawer = null;
   if (fieldCanvas) drawFieldCanvas();
   renderFieldPlayerList();
 }
@@ -1066,18 +1080,47 @@ function drawFieldCanvas() {
   ctx.textBaseline = 'bottom';
   ctx.fillText('↓ 守り', cx, H - 2);
 
-  // ドロワー（中心）表示
-  if (state.form.drawer) {
+  // ドロワーを★で描画（フィールド上の配置位置）
+  function drawDrawerStar(d, color, borderColor, teamLabel) {
+    const px = d.nx * W;
+    const py = d.ny * H;
+    const r = 16;
+    // 外縁（影）
     ctx.beginPath();
-    ctx.arc(cx, cy, innerR * 0.75, 0, Math.PI * 2);
-    ctx.fillStyle = 'rgba(59,130,246,0.85)';
+    ctx.arc(px+1, py+1, r+2, 0, Math.PI*2);
+    ctx.fillStyle = 'rgba(0,0,0,0.35)';
     ctx.fill();
-    ctx.fillStyle = '#fff';
-    ctx.font = `bold ${Math.round(innerR * 0.6)}px sans-serif`;
+    // 星形
+    ctx.beginPath();
+    for (let i = 0; i < 5; i++) {
+      const oa = (i * 2 * Math.PI / 5) - Math.PI / 2;
+      const ia = oa + Math.PI / 5;
+      const ox = px + r * Math.cos(oa), oy = py + r * Math.sin(oa);
+      const ix = px + r*0.45 * Math.cos(ia), iy = py + r*0.45 * Math.sin(ia);
+      if (i === 0) ctx.moveTo(ox, oy); else ctx.lineTo(ox, oy);
+      ctx.lineTo(ix, iy);
+    }
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+    ctx.strokeStyle = borderColor;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    // 背番号
+    const fontSize = d.num.length > 2 ? 8 : 10;
+    ctx.fillStyle = '#ffffff';
+    ctx.font = `bold ${fontSize}px sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillText('#' + state.form.drawer, cx, cy);
+    ctx.fillText('#' + d.num, px, py);
+    // チームラベル（上）
+    ctx.fillStyle = borderColor;
+    ctx.font = 'bold 8px sans-serif';
+    ctx.textBaseline = 'bottom';
+    ctx.fillText(teamLabel + 'DW', px, py - r - 1);
   }
+  if (state.form.kyotoDrawer) drawDrawerStar(state.form.kyotoDrawer, '#1d4ed8', '#93c5fd', '京大');
+  if (state.form.enemyDrawer) drawDrawerStar(state.form.enemyDrawer, '#991b1b', '#fca5a5', '相手');
 
   // 配置済み選手を描画
   state.form.players.forEach(p => {
@@ -1125,17 +1168,27 @@ function drawFieldCanvas() {
 function renderFieldPlayerList() {
   const el = document.getElementById('fieldPlayerList');
   if (!el) return;
-  if (!state.form.players.length) {
-    el.innerHTML = '<span style="font-size:11px;color:var(--text3);">選手未配置</span>';
-    return;
+  let chips = [];
+  // ドロワー表示
+  if (state.form.kyotoDrawer) {
+    chips.push(`<span class="field-player-chip kyoto">★ 京大DW #${state.form.kyotoDrawer.num}
+      <button onclick="state.form.kyotoDrawer=null;drawFieldCanvas();renderFieldPlayerList();" title="削除">✕</button>
+    </span>`);
   }
-  el.innerHTML = state.form.players.map((p, i) => {
+  if (state.form.enemyDrawer) {
+    chips.push(`<span class="field-player-chip enemy">★ 相手DW #${state.form.enemyDrawer.num}
+      <button onclick="state.form.enemyDrawer=null;drawFieldCanvas();renderFieldPlayerList();" title="削除">✕</button>
+    </span>`);
+  }
+  // 選手表示
+  state.form.players.forEach((p, i) => {
     const teamLabel = p.team === 'kyoto' ? '京大' : (state.match.enemy || '相手');
-    return `<span class="field-player-chip ${p.team}">
+    chips.push(`<span class="field-player-chip ${p.team}">
       ${teamLabel} #${p.num}
       <button onclick="removeFieldPlayer(${i})" title="削除">✕</button>
-    </span>`;
-  }).join('');
+    </span>`);
+  });
+  el.innerHTML = chips.length ? chips.join('') : '<span style="font-size:11px;color:var(--text3);">選手未配置</span>';
 }
 
 function removeFieldPlayer(idx) {
@@ -1326,7 +1379,8 @@ function addDraw() {
     id: Date.now(),
     q: state.currentQ,
     result: f.result,         // 'ok' | 'ng' | 'foul'
-    drawer: f.drawer || null,
+    kyotoDrawer: f.kyotoDrawer ? { ...f.kyotoDrawer } : null,
+    enemyDrawer: f.enemyDrawer ? { ...f.enemyDrawer } : null,
     firstNum: f.firstNum || null,
     firstTeam: f.firstTeam || null,
     getNum: f.getNum || null,
@@ -1343,12 +1397,12 @@ function addDraw() {
   renderLog();
 
   // フォームリセット
-  state.form = { result: null, drawer: null, firstNum: null, firstTeam: null, getNum: null, getTeam: null, getWay: null, players: [] };
+  state.form = { result: null, kyotoDrawer: null, enemyDrawer: null, firstNum: null, firstTeam: null, getNum: null, getTeam: null, getWay: null, players: [] };
   document.getElementById('resultOK').classList.remove('selected');
   document.getElementById('resultNG').classList.remove('selected');
   document.getElementById('resultFoul').classList.remove('active');
   document.getElementById('foulNote').style.display = 'none';
-  ['drawerNumber','firstNumber','getNumber'].forEach(id => {
+  ['firstNumber','getNumber'].forEach(id => {
     const el = document.getElementById(id);
     if (el) { el.textContent = '—'; el.classList.remove('filled'); }
   });
@@ -1387,7 +1441,9 @@ function renderLog() {
   const itemCls     = { ok: 'got', ng: 'lost', foul: 'foul' };
   const badgeCls    = { ok: 'badge-got', ng: 'badge-lost', foul: 'badge-foul' };
   container.innerHTML = [...qDraws].reverse().map(d => {
-    const drawerText  = d.drawer   ? `#${d.drawer}` : '番号なし';
+    const kdText = d.kyotoDrawer ? `#${d.kyotoDrawer.num}(京大)` : '';
+    const edText = d.enemyDrawer ? `#${d.enemyDrawer.num}(${state.match.enemy})` : '';
+    const drawerText = [kdText, edText].filter(Boolean).join(' / ') || '番号なし';
     const firstText   = d.firstNum ? `1st: #${d.firstNum}(${d.firstTeam === 'kyoto' ? '京大' : state.match.enemy})` : '';
     const getTextParts = [];
     if (d.getNum)  getTextParts.push(`get: #${d.getNum}(${d.getTeam === 'kyoto' ? '京大' : state.match.enemy})`);
@@ -1466,10 +1522,10 @@ function updateStats() {
   rows += `<tr class="total-row"><td>計</td><td>${totT + totF}</td><td style="color:var(--green)">${totG}</td><td style="color:var(--red)">${totL}</td><td style="color:var(--yellow)">${totF}</td><td>${totT > 0 ? Math.round(totG/totT*100)+'%' : '—'}</td></tr>`;
   qBody.innerHTML = rows;
 
-  // ドロワー別
+  // ドロワー別（京大）
   const drawers = {};
   state.draws.forEach(d => {
-    const key = d.drawer || '不明';
+    const key = d.kyotoDrawer ? d.kyotoDrawer.num : '不明';
     if (!drawers[key]) drawers[key] = { ok: 0, ng: 0, foul: 0 };
     drawers[key][d.result]++;
   });
@@ -1511,7 +1567,8 @@ function buildJSON() {
     draws: state.draws.map(d => ({
       id: d.id, q: d.q, index: d.index,
       result: d.result,
-      drawer: d.drawer, firstNum: d.firstNum, firstTeam: d.firstTeam,
+      kyotoDrawer: d.kyotoDrawer, enemyDrawer: d.enemyDrawer,
+      firstNum: d.firstNum, firstTeam: d.firstTeam,
       getNum: d.getNum, getTeam: d.getTeam, getWay: d.getWay,
       players: d.players || [],
       note: d.note,
@@ -1542,11 +1599,13 @@ function exportJSON() {
 
 function exportCSV() {
   const bom = '\uFEFF';
-  const header = 'Q,#,結果,ドロワー,1st番号,1stチーム,get番号,getチーム,取り方,メモ';
+  const header = 'Q,#,結果,京大ドロワー,相手ドロワー,1st番号,1stチーム,get番号,getチーム,取り方,メモ';
   const rows = state.draws.map(d =>
     [d.q, d.index,
      d.result === 'ok' ? '○' : d.result === 'ng' ? '✕' : 'ファール',
-     d.drawer || '', d.firstNum || '', d.firstTeam === 'kyoto' ? '京大' : d.firstTeam === 'enemy' ? state.match.enemy : '',
+     d.kyotoDrawer ? d.kyotoDrawer.num : '',
+     d.enemyDrawer ? d.enemyDrawer.num : '',
+     d.firstNum || '', d.firstTeam === 'kyoto' ? '京大' : d.firstTeam === 'enemy' ? state.match.enemy : '',
      d.getNum || '', d.getTeam === 'kyoto' ? '京大' : d.getTeam === 'enemy' ? state.match.enemy : '',
      d.getWay || '', d.note || ''
     ].join(',')
