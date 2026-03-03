@@ -471,14 +471,16 @@
       <div class="form-group">
         <div class="form-label">ファール名（よく使うもの）</div>
         <div class="foul-chips" id="foulChips">
-          <button class="foul-chip" onclick="selectFoulChip('スラッシング')">スラッシング</button>
-          <button class="foul-chip" onclick="selectFoulChip('クロスチェック')">クロスチェック</button>
-          <button class="foul-chip" onclick="selectFoulChip('ホールディング')">ホールディング</button>
-          <button class="foul-chip" onclick="selectFoulChip('イリーガルボディチェック')">イリーガルボディチェック</button>
+          <button class="foul-chip" onclick="selectFoulChip('ニアヘッド')">ニアヘッド</button>
+          <button class="foul-chip" onclick="selectFoulChip('エンプティ')">エンプティ</button>
+          <button class="foul-chip" onclick="selectFoulChip('イリコン')">イリコン</button>
+          <button class="foul-chip" onclick="selectFoulChip('カバーリング')">カバーリング</button>
           <button class="foul-chip" onclick="selectFoulChip('プッシング')">プッシング</button>
-          <button class="foul-chip" onclick="selectFoulChip('オフサイド')">オフサイド</button>
-          <button class="foul-chip" onclick="selectFoulChip('クリーシング')">クリーシング</button>
-          <button class="foul-chip" onclick="selectFoulChip('スタッフィング')">スタッフィング</button>
+          <button class="foul-chip" onclick="selectFoulChip('フリスぺ')">フリスぺ</button>
+          <button class="foul-chip" onclick="selectFoulChip('ブロッキング')">ブロッキング</button>
+          <button class="foul-chip" onclick="selectFoulChip('3秒')">3秒</button>
+          <button class="foul-chip" onclick="selectFoulChip('チャージング')">チャージング</button>
+          <button class="foul-chip" onclick="selectFoulChip('インクリ')">インクリ</button>
           <button class="foul-chip" onclick="selectFoulChip('その他')">その他</button>
         </div>
       </div>
@@ -512,6 +514,21 @@
 
     <div class="section-title">GB総合</div>
     <div class="stats-grid" id="gbStatsGrid"></div>
+
+    <div class="section-title">Q別 自陣GBゲット率</div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Q</th>
+            <th>京大</th>
+            <th>相手</th>
+            <th>京大ゲット率</th>
+          </tr>
+        </thead>
+        <tbody id="selfGBQBody"></tbody>
+      </table>
+    </div>
 
     <div class="section-title">Q別GBゲット数</div>
     <div class="table-wrap">

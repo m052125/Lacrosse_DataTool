@@ -379,10 +379,10 @@
     <div class="confirm-title" id="confirmTitle">このセットの終了理由は？</div>
     <div class="confirm-time" id="confirmTime">00:00</div>
     <div class="confirm-btns">
-      <button class="btn btn-danger" onclick="endSet('to')">🔄 ターンオーバー</button>
-      <button class="btn btn-primary" onclick="endSet('goal')">⚽ 得点（ショット）</button>
+      <button class="btn btn-danger" onclick="endSetDispatch('to')">🔄 ターンオーバー</button>
+      <button class="btn btn-primary" onclick="endSetDispatch('goal')" id="confirmGoalBtn">⚽ 得点（ショット）</button>
     </div>
-    <button class="btn btn-yellow" style="width:100%;margin-top:8px;padding:13px;" onclick="endSet('qend')">⏱ Q終了（途中カット）</button>
+    <button class="btn btn-yellow" style="width:100%;margin-top:8px;padding:13px;" onclick="endSetDispatch('qend')">⏱ Q終了（途中カット）</button>
     <button class="btn btn-secondary" style="width:100%;margin-top:8px;padding:11px;font-size:13px;" onclick="closeConfirm()">キャンセル（計測に戻る）</button>
   </div>
 </div>
@@ -398,7 +398,8 @@
 
 <!-- タブ -->
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('of')">OFポゼッション</div>
+  <div class="tab active" onclick="switchTab('of')">京大OFポゼ</div>
+  <div class="tab" onclick="switchTab('of_enemy')">相手OFポゼ</div>
   <div class="tab" onclick="switchTab('clrd')">CLRDポゼッション</div>
   <div class="tab" onclick="switchTab('summary')">集計・出力</div>
 </div>
@@ -412,7 +413,7 @@
 
     <!-- メインストップウォッチ -->
     <div class="of-watch-card">
-      <div class="of-set-label">OFセット</div>
+      <div class="of-set-label" style="color:var(--kyoto)">🔵 京大 OFセット</div>
       <div class="of-set-num" id="ofSetNum">— / —</div>
       <div class="of-timer" id="ofTimer">00:00</div>
       <div class="of-status" id="ofStatus">待機中 — 開始ボタンでセット計測スタート</div>
@@ -449,6 +450,46 @@
       <div class="empty-state"><div class="empty-icon">⏱</div>セットを開始してください</div>
     </div>
 
+  </div>
+</div>
+
+
+<!-- ===== 相手OFポゼッションタブ ===== -->
+<div class="panel" id="panel-of_enemy">
+  <div class="of-content">
+    <div class="of-watch-card" style="border-color:var(--enemy);">
+      <div class="of-set-label" style="color:var(--enemy)">🔴 <span id="enemyOfLabel">相手</span> OFセット</div>
+      <div class="of-set-num" id="ofEnemySetNum">— / —</div>
+      <div class="of-timer" id="ofEnemyTimer" style="color:var(--enemy)">00:00</div>
+      <div class="of-status" id="ofEnemyStatus">待機中 — 開始ボタンでセット計測スタート</div>
+      <div class="of-actions">
+        <button class="big-btn" id="ofEnemyStartBtn" onclick="ofEnemyStart()" style="background:var(--enemy);color:#fff;">▶ 開始 / 再開</button>
+        <button class="big-btn big-btn-pause" id="ofEnemyPauseBtn" onclick="ofEnemyPause()" disabled>⏸ 一時停止</button>
+      </div>
+      <div class="of-actions-bottom">
+        <button class="btn btn-danger" id="ofEnemyEndBtn" onclick="ofEnemyEnd()" disabled>■ セット終了</button>
+        <button class="btn btn-secondary btn-sm" onclick="ofEnemyUndo()">↩ 直前取消</button>
+      </div>
+    </div>
+    <div class="of-totals" id="ofEnemyTotals">
+      <div class="total-item">
+        <div class="val" id="ofEnemyTotalSets">0</div>
+        <div class="lbl">セット数</div>
+      </div>
+      <div class="total-item">
+        <div class="val" id="ofEnemyTotalTime">00:00</div>
+        <div class="lbl">OFポゼ合計</div>
+      </div>
+      <div class="total-item">
+        <div class="val" id="ofEnemyAvgGoal">—</div>
+        <div class="lbl">失点平均時間</div>
+        <div class="sub" id="ofEnemyGoalCount" style="font-size:10px;color:var(--text3)"></div>
+      </div>
+    </div>
+    <div class="section-title">セットログ（Q<span id="ofEnemyLogQLabel">1</span>）</div>
+    <div class="set-log" id="ofEnemySetLog">
+      <div class="empty-state"><div class="empty-icon">⏱</div>セットを開始してください</div>
+    </div>
   </div>
 </div>
 
@@ -510,6 +551,13 @@
       </table>
     </div>
 
+    <div class="section-title">相手 OFポゼッション Q別集計</div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Q</th><th>セット数</th><th>OF合計</th><th>失点数</th><th>失点平均</th><th>TO数</th></tr></thead>
+        <tbody id="summaryOfEnemyBody"></tbody>
+      </table>
+    </div>
     <div class="section-title">CLRDポゼッション Q別集計</div>
     <div class="table-wrap">
       <table class="data-table">
@@ -543,14 +591,15 @@ const state = {
   match: { enemy: '相手', date: '', qCount: 4 },
   currentQ: 1,
 
-  // OFポゼッション
+  // OFポゼッション（京大）
   of: {
-    running: false,
-    paused: false,
-    centisec: 0,       // 現在セットの経過(cs)
-    interval: null,
-    sets: [],          // { q, endType, duration_cs, index }
-    pendingEnd: false, // 終了確認中
+    running: false, paused: false, centisec: 0,
+    interval: null, sets: [], pendingEnd: false,
+  },
+  // OFポゼッション（相手）
+  ofEnemy: {
+    running: false, paused: false, centisec: 0,
+    interval: null, sets: [], pendingEnd: false,
   },
 
   // CLRDポゼッション
@@ -569,6 +618,7 @@ function startMatch() {
   state.match = { enemy, date, qCount };
   document.getElementById('headerMeta').textContent = `${date} vs ${enemy}`;
   document.getElementById('clrdEnemyName').textContent = enemy;
+  document.getElementById('enemyOfLabel').textContent = enemy;
   document.getElementById('setupModal').classList.remove('open');
   buildQBar();
   updateOfDisplay();
@@ -602,6 +652,9 @@ function setQ(q) {
   document.getElementById('ofLogQLabel').textContent = q;
   renderOfLog();
   updateOfTotals();
+  document.getElementById('ofEnemyLogQLabel').textContent = q;
+  renderOfEnemyLog();
+  updateOfEnemyTotals();
 }
 
 // ======== UTILS ========
@@ -670,7 +723,22 @@ function ofEnd() {
   }
   // 確認モーダルを出す
   document.getElementById('confirmTime').textContent = csToMMSS(state.of.centisec);
+  document.getElementById('confirmModal').dataset.mode = 'kyoto';
+  document.getElementById('confirmGoalBtn').textContent = '⚽ 得点（ショット）';
+  document.getElementById('confirmTitle').textContent = 'このセットの終了理由は？';
   document.getElementById('confirmModal').classList.add('open');
+}
+
+
+function endSetDispatch(type) {
+  const mode = document.getElementById('confirmModal').dataset.mode || 'kyoto';
+  if (mode === 'enemy') {
+    // ゴールボタンのラベルを戻す
+    document.getElementById('confirmGoalBtn').textContent = '⚽ 得点（ショット）';
+    endSetEnemy(type);
+  } else {
+    endSet(type);
+  }
 }
 
 function endSet(type) {
@@ -912,6 +980,28 @@ function updateSummaryTables() {
   }
   ofBody.innerHTML = ofRows || '<tr><td colspan="6" style="color:var(--text3);padding:16px;">データなし</td></tr>';
 
+  // 相手OFポゼ
+  const ofEnemyBody = document.getElementById('summaryOfEnemyBody');
+  let ofEnemyRows = '';
+  let ofEnemyTotals = { sets:0, cs:0, goals:0, goalCs:0, tos:0 };
+  for (let q = 1; q <= state.match.qCount; q++) {
+    const qSets = state.ofEnemy.sets.filter(s => s.q === q);
+    if (qSets.length === 0) continue;
+    const totalCs = qSets.reduce((a,s) => a + s.duration_cs, 0);
+    const goals   = qSets.filter(s => s.endType === 'goal');
+    const goalCs  = goals.reduce((a,s) => a + s.duration_cs, 0);
+    const tos     = qSets.filter(s => s.endType === 'to').length;
+    const avg     = goals.length > 0 ? csToMMSS(Math.round(goalCs / goals.length)) : '—';
+    ofEnemyRows += `<tr><td>Q${q}</td><td>${qSets.length}</td><td>${csToMMSS(totalCs)}</td><td>${goals.length}</td><td>${avg}</td><td>${tos}</td></tr>`;
+    ofEnemyTotals.sets += qSets.length; ofEnemyTotals.cs += totalCs;
+    ofEnemyTotals.goals += goals.length; ofEnemyTotals.goalCs += goalCs; ofEnemyTotals.tos += tos;
+  }
+  if (ofEnemyTotals.sets > 0) {
+    const avgGoal = ofEnemyTotals.goals > 0 ? csToMMSS(Math.round(ofEnemyTotals.goalCs / ofEnemyTotals.goals)) : '—';
+    ofEnemyRows += `<tr class="total-row"><td>計</td><td>${ofEnemyTotals.sets}</td><td>${csToMMSS(ofEnemyTotals.cs)}</td><td>${ofEnemyTotals.goals}</td><td>${avgGoal}</td><td>${ofEnemyTotals.tos}</td></tr>`;
+  }
+  if (ofEnemyBody) ofEnemyBody.innerHTML = ofEnemyRows || '<tr><td colspan="6" style="color:var(--text3);padding:16px;">データなし</td></tr>';
+
   // CLRD
   const clBody = document.getElementById('summaryCLBody');
   let clRows = '';
@@ -940,6 +1030,107 @@ function updateSummaryTables() {
   clBody.innerHTML = clRows || '<tr><td colspan="4" style="color:var(--text3);padding:16px;">データなし</td></tr>';
 }
 
+
+// ======== 相手OFポゼッション ========
+function ofEnemyStart() {
+  const s = state.ofEnemy;
+  if (s.running) return;
+  s.running = true; s.paused = false;
+  document.getElementById('ofEnemyStartBtn').disabled = true;
+  document.getElementById('ofEnemyPauseBtn').disabled = false;
+  document.getElementById('ofEnemyEndBtn').disabled   = false;
+  document.getElementById('ofEnemyStatus').textContent = '計測中…';
+  s.interval = setInterval(() => {
+    s.centisec++;
+    document.getElementById('ofEnemyTimer').textContent = csToMMSS(s.centisec);
+  }, 10);
+}
+
+function ofEnemyPause() {
+  const s = state.ofEnemy;
+  if (!s.running || s.paused) { // resume
+    if (!s.running) return;
+    s.paused = false; s.running = true;
+    s.interval = setInterval(() => { s.centisec++; document.getElementById('ofEnemyTimer').textContent = csToMMSS(s.centisec); }, 10);
+    document.getElementById('ofEnemyPauseBtn').textContent = '⏸ 一時停止';
+    document.getElementById('ofEnemyStatus').textContent = '計測中…';
+  } else {
+    clearInterval(s.interval); s.interval = null; s.paused = true; s.running = false;
+    document.getElementById('ofEnemyPauseBtn').textContent = '▶ 再開';
+    document.getElementById('ofEnemyStatus').textContent = '一時停止中';
+  }
+}
+
+function ofEnemyEnd() {
+  const s = state.ofEnemy;
+  if (!s.running && !s.paused) return;
+  clearInterval(s.interval); s.interval = null;
+  const duration = s.centisec;
+  // 確認モーダル再利用（enemy用）
+  document.getElementById('confirmTitle').textContent = 'セット終了理由は？（相手OF）';
+  document.getElementById('confirmTime').textContent = csToMMSS(duration);
+  // ボタンを相手用に差し替え
+  document.getElementById('confirmModal').dataset.mode = 'enemy';
+  document.getElementById('confirmModal').dataset.mode = 'kyoto';
+  document.getElementById('confirmGoalBtn').textContent = '⚽ 得点（ショット）';
+  document.getElementById('confirmTitle').textContent = 'このセットの終了理由は？';
+  document.getElementById('confirmModal').classList.add('open');
+  s.running = false; s.paused = false;
+}
+
+function ofEnemyUndo() {
+  const qSets = state.ofEnemy.sets.filter(s2 => s2.q === state.currentQ);
+  if (!qSets.length) return;
+  state.ofEnemy.sets.pop();
+  renderOfEnemyLog();
+  updateOfEnemyTotals();
+}
+
+function endSetEnemy(type) {
+  const s = state.ofEnemy;
+  const duration = s.centisec;
+  const qSets = state.ofEnemy.sets.filter(s2 => s2.q === state.currentQ);
+  state.ofEnemy.sets.push({ q: state.currentQ, endType: type, duration_cs: duration, index: qSets.length + 1 });
+  s.centisec = 0;
+  document.getElementById('ofEnemyTimer').textContent = '00:00';
+  document.getElementById('ofEnemyStartBtn').disabled = false;
+  document.getElementById('ofEnemyPauseBtn').disabled = true;
+  document.getElementById('ofEnemyEndBtn').disabled   = true;
+  document.getElementById('ofEnemyStatus').textContent = '待機中';
+  closeConfirm();
+  renderOfEnemyLog();
+  updateOfEnemyTotals();
+}
+
+function renderOfEnemyLog() {
+  const container = document.getElementById('ofEnemySetLog');
+  const qSets = state.ofEnemy.sets.filter(s => s.q === state.currentQ).slice().reverse();
+  if (!qSets.length) { container.innerHTML = '<div class="empty-state"><div class="empty-icon">⏱</div>セットを開始してください</div>'; return; }
+  const labels = { to: 'ターンオーバー', goal: '失点', qend: 'Q終了' };
+  const badgeCls = { to: 'badge-to', goal: 'badge-goal', qend: 'badge-qend' };
+  const itemCls  = { to: 'ended-to',  goal: 'ended-goal', qend: 'ended-qend' };
+  container.innerHTML = qSets.map(s =>
+    `<div class="set-item ${itemCls[s.endType]}">
+      <span class="set-idx">#${s.index}</span>
+      <span class="set-badge ${badgeCls[s.endType]}">${labels[s.endType]}</span>
+      <span class="set-time">${csToMMSS(s.duration_cs)}</span>
+    </div>`
+  ).join('');
+}
+
+function updateOfEnemyTotals() {
+  const qSets  = state.ofEnemy.sets.filter(s => s.q === state.currentQ);
+  const totalCs = qSets.reduce((a,s) => a + s.duration_cs, 0);
+  const goalSets = qSets.filter(s => s.endType === 'goal');
+  const goalCs   = goalSets.reduce((a,s) => a + s.duration_cs, 0);
+  const avgGoal  = goalSets.length > 0 ? csToMMSS(Math.round(goalCs / goalSets.length)) : '—';
+  document.getElementById('ofEnemyTotalSets').textContent = qSets.length;
+  document.getElementById('ofEnemyTotalTime').textContent = csToMMSS(totalCs);
+  document.getElementById('ofEnemyAvgGoal').textContent   = avgGoal;
+  document.getElementById('ofEnemyGoalCount').textContent = goalSets.length > 0 ? `${goalSets.length}失点` : '';
+  document.getElementById('ofEnemySetNum').textContent = `${qSets.length + 1} / Q${state.currentQ}`;
+}
+
 // ======== エクスポート ========
 function buildJSON() {
   return {
@@ -949,25 +1140,25 @@ function buildJSON() {
       tool: 'KyotoLacrosse PossessionTool v1.0',
     },
     of_possession: {
-      sets: state.of.sets.map(s => ({
-        ...s,
-        duration_mmss: csToMMSS(s.duration_cs),
-        duration_sec: Math.floor(s.duration_cs / 100),
-      })),
+      sets: state.of.sets.map(s => ({ ...s, duration_mmss: csToMMSS(s.duration_cs), duration_sec: Math.floor(s.duration_cs / 100) })),
       by_q: Array.from({ length: state.match.qCount }, (_, i) => {
         const q = i + 1;
         const qSets = state.of.sets.filter(s => s.q === q);
         const goalSets = qSets.filter(s => s.endType === 'goal');
         const totalCs = qSets.reduce((a, s) => a + s.duration_cs, 0);
         const goalCs  = goalSets.reduce((a, s) => a + s.duration_cs, 0);
-        return {
-          q,
-          set_count: qSets.length,
-          total_sec: Math.floor(totalCs / 100),
-          goal_count: goalSets.length,
-          to_count: qSets.filter(s => s.endType === 'to').length,
-          avg_goal_sec: goalSets.length > 0 ? Math.floor(goalCs / goalSets.length / 100) : null,
-        };
+        return { q, set_count: qSets.length, total_sec: Math.floor(totalCs / 100), goal_count: goalSets.length, to_count: qSets.filter(s => s.endType === 'to').length, avg_goal_sec: goalSets.length > 0 ? Math.floor(goalCs / goalSets.length / 100) : null };
+      }),
+    },
+    of_possession_enemy: {
+      sets: state.ofEnemy.sets.map(s => ({ ...s, duration_mmss: csToMMSS(s.duration_cs), duration_sec: Math.floor(s.duration_cs / 100) })),
+      by_q: Array.from({ length: state.match.qCount }, (_, i) => {
+        const q = i + 1;
+        const qSets = state.ofEnemy.sets.filter(s => s.q === q);
+        const goalSets = qSets.filter(s => s.endType === 'goal');
+        const totalCs = qSets.reduce((a, s) => a + s.duration_cs, 0);
+        const goalCs  = goalSets.reduce((a, s) => a + s.duration_cs, 0);
+        return { q, set_count: qSets.length, total_sec: Math.floor(totalCs / 100), goal_count: goalSets.length, to_count: qSets.filter(s => s.endType === 'to').length, avg_goal_sec: goalSets.length > 0 ? Math.floor(goalCs / goalSets.length / 100) : null };
       }),
     },
     clrd_possession: {

@@ -188,8 +188,7 @@
     font-weight: 600; letter-spacing: 0.05em;
   }
   .goal-frame {
-    display: grid; grid-template-columns: repeat(3, 1fr);
-    border: 2px solid var(--text3); border-radius: 6px; overflow: hidden;
+    border: 2px solid rgba(148,163,184,0.3); border-radius: 6px; overflow: hidden;
     aspect-ratio: 3/2; width: 100%;
   }
   .goal-cell {
@@ -765,27 +764,144 @@ function closeNumpad() {
 
 // ======== ゴール枠 ========
 function buildGoalFrames() {
-  buildFrame('kyoto');
-  buildFrame('enemy');
+  ['kyoto','enemy'].forEach(side => {
+    const wrap = document.getElementById(`frame${side === 'kyoto' ? 'Kyoto' : 'Enemy'}`);
+    if (!wrap) return;
+    wrap.innerHTML = '';
+
+    const canvas = document.createElement('canvas');
+    canvas.id = `goalCanvas-${side}`;
+    // 高解像度Canvas（3:2比率）
+    canvas.width  = 360;
+    canvas.height = 240;
+    canvas.style.cssText = 'width:100%;display:block;touch-action:none;cursor:crosshair;border-radius:4px;';
+    wrap.appendChild(canvas);
+
+    // タップ/クリックイベント
+    function getTapPos(e) {
+      const r = canvas.getBoundingClientRect();
+      const cx = e.touches ? e.touches[0].clientX : (e.changedTouches ? e.changedTouches[0].clientX : e.clientX);
+      const cy = e.touches ? e.touches[0].clientY : (e.changedTouches ? e.changedTouches[0].clientY : e.clientY);
+      return {
+        x: (cx - r.left) / r.width,   // 0-1正規化
+        y: (cy - r.top)  / r.height,
+      };
+    }
+    canvas.addEventListener('click', e => {
+      const p = getTapPos(e);
+      const col = Math.min(2, Math.floor(p.x * 3));
+      const row = Math.min(1, Math.floor(p.y * 2));
+      onCellTap(side, row * 3 + col, p.x, p.y);
+    });
+    canvas.addEventListener('touchend', e => {
+      e.preventDefault();
+      const p = getTapPos(e);
+      const col = Math.min(2, Math.floor(p.x * 3));
+      const row = Math.min(1, Math.floor(p.y * 2));
+      onCellTap(side, row * 3 + col, p.x, p.y);
+    }, { passive: false });
+  });
+  // 全Canvas初期描画
+  ['kyoto','enemy'].forEach(side => drawGoalCanvas(side));
 }
 
-function buildFrame(side) {
-  const frame = document.getElementById(`frame${side === 'kyoto' ? 'Kyoto' : 'Enemy'}`);
-  frame.innerHTML = '';
-  for (let i = 0; i < 9; i++) {
-    const cell = document.createElement('div');
-    cell.className = 'goal-cell';
-    cell.id = `cell-${side}-${i}`;
-    cell.onclick = () => onCellTap(side, i);
-    const markers = document.createElement('div');
-    markers.className = 'cell-markers';
-    markers.id = `markers-${side}-${i}`;
-    cell.appendChild(markers);
-    frame.appendChild(cell);
+// ======== ゴールCanvasを描画 ========
+// 見本：9マス内に シンボルをタップ位置の正確な座標に配置
+// セーブ=「セ」(黄)、失点=「○」(緑)、枠外=「✓」(赤)
+function drawGoalCanvas(side) {
+  const canvas = document.getElementById(`goalCanvas-${side}`);
+  if (!canvas) return;
+  const ctx  = canvas.getContext('2d');
+  const W = canvas.width, H = canvas.height;
+  const CW = W / 3, CH = H / 2; // セルサイズ
+
+  // 背景
+  ctx.fillStyle = '#0d1f35';
+  ctx.fillRect(0, 0, W, H);
+
+  // セル塗り分け（ショット有無）
+  const qShots = state.shots.filter(s => s.q === state.currentQ && s.side === side);
+  for (let row = 0; row < 2; row++) {
+    for (let col = 0; col < 3; col++) {
+      const idx = row * 3 + col;
+      const x = col * CW, y = row * CH;
+      const cellShots = qShots.filter(s => s.course === idx);
+      ctx.fillStyle = cellShots.length > 0 ? 'rgba(59,130,246,0.07)' : 'rgba(26,45,74,0.5)';
+      ctx.fillRect(x + 1, y + 1, CW - 2, CH - 2);
+    }
   }
+
+  // グリッド線
+  ctx.strokeStyle = 'rgba(148,163,184,0.5)';
+  ctx.lineWidth = 1.5;
+  // 縦線
+  for (let i = 1; i < 3; i++) {
+    ctx.beginPath();
+    ctx.moveTo(i * CW, 0);
+    ctx.lineTo(i * CW, H);
+    ctx.stroke();
+  }
+  // 横線（中央のみ）
+  ctx.beginPath();
+  ctx.moveTo(0, CH);
+  ctx.lineTo(W, CH);
+  ctx.stroke();
+  // 外枠
+  ctx.strokeStyle = 'rgba(200,220,255,0.7)';
+  ctx.lineWidth = 2.5;
+  ctx.strokeRect(1, 1, W - 2, H - 2);
+
+  // ゾーン名ラベル（薄く）
+  ctx.font = '11px sans-serif';
+  ctx.fillStyle = 'rgba(100,120,150,0.4)';
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'bottom';
+  for (let row = 0; row < 2; row++) {
+    for (let col = 0; col < 3; col++) {
+      const idx = row * 3 + col;
+      ctx.fillText(COURSE_NAMES[idx], col * CW + CW / 2, (row + 1) * CH - 3);
+    }
+  }
+
+  // ショットシンボルをタップ座標に描画
+  const SYMS = { goal: '○', save: 'セ', miss: '✓' };
+  const COLS = { goal: '#22c55e', save: '#f59e0b', miss: '#ef4444' };
+  const R = Math.floor(Math.min(CW, CH) * 0.18); // ドット半径
+
+  qShots.forEach(s => {
+    // normX/normYがある場合は正確座標、なければゾーン中央
+    let px, py;
+    if (s.normX != null && s.normY != null) {
+      px = s.normX * W;
+      py = s.normY * H;
+    } else {
+      const col = s.course % 3;
+      const row = Math.floor(s.course / 3);
+      px = col * CW + CW / 2;
+      py = row * CH + CH / 2;
+    }
+
+    // 白縁+色丸
+    ctx.beginPath();
+    ctx.arc(px, py, R + 1.5, 0, Math.PI * 2);
+    ctx.fillStyle = 'rgba(0,0,0,0.4)';
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.arc(px, py, R, 0, Math.PI * 2);
+    ctx.fillStyle = COLS[s.result];
+    ctx.fill();
+
+    // シンボル文字
+    ctx.fillStyle = s.result === 'save' ? '#000' : '#fff';
+    ctx.font = `bold ${Math.floor(R * 1.1)}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(SYMS[s.result], px, py);
+  });
 }
 
-function onCellTap(side, courseIdx) {
+function onCellTap(side, courseIdx, normX, normY) {
   const result = state.pendingResult[side];
   if (!result) {
     toast('先に結果（得点/セーブ/枠外）を選択してください', 'var(--red)');
@@ -799,13 +915,15 @@ function onCellTap(side, courseIdx) {
     result,
     course: courseIdx,
     courseName: COURSE_NAMES[courseIdx],
+    normX: normX !== undefined ? Math.round(normX * 1000) / 1000 : null,
+    normY: normY !== undefined ? Math.round(normY * 1000) / 1000 : null,
     goalieNum:  goalie?.num  || '?',
     goalieHand: goalie?.hand || '?',
   };
   state.shots.push(shot);
 
-  // マーカーを追加
-  addMarkerToCell(side, courseIdx, result);
+  // Canvas再描画
+  drawGoalCanvas(side);
   updateMiniStats();
   updateSaveBar();
   renderLog();
@@ -831,10 +949,8 @@ function addMarkerToCell(side, courseIdx, result) {
 }
 
 function refreshFrames() {
-  // Q切り替え時にフレームを再描画
   buildGoalFrames();
-  const qShots = state.shots.filter(s => s.q === state.currentQ);
-  qShots.forEach(s => addMarkerToCell(s.side, s.course, s.result));
+  // buildGoalFrames → drawGoalCanvas で現在Qのshotsも再描画
 }
 
 function selectResult(side, result) {
@@ -898,7 +1014,7 @@ function renderLog() {
       <span class="log-badge ${sideBadge}">${sideLabel}</span>
       <span class="log-badge ${badgeCls[s.result]}">${resultLabel[s.result]}</span>
       <div class="log-main">
-        <div class="log-num">${s.courseName}</div>
+        <div class="log-num">${s.courseName}${s.normX != null ? ` <span style="font-size:10px;color:var(--text3)">(${Math.round(s.normX*100)}%, ${Math.round(s.normY*100)}%)</span>` : ''}</div>
         <div class="log-detail">G#${s.goalieNum} ${s.goalieHand}利き</div>
       </div>
       <button class="log-delete" onclick="deleteShot(${s.id})">✕</button>
@@ -907,7 +1023,9 @@ function renderLog() {
 }
 
 function deleteShot(id) {
+  const shot = state.shots.find(s => s.id === id);
   state.shots = state.shots.filter(s => s.id !== id);
+  if (shot) drawGoalCanvas(shot.side);
   refreshFrames();
   updateMiniStats();
   updateSaveBar();

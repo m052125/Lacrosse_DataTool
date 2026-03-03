@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>TO・クリア記録ツール</title>
+<style>
+  :root {
+    --bg: #0a0f1e; --surface: #111827; --surface2: #1a2332;
+    --border: #243048; --accent: #3b82f6; --accent2: #60a5fa;
+    --red: #ef4444; --green: #22c55e; --yellow: #f59e0b;
+    --purple: #a855f7;
+    --text: #f1f5f9; --text2: #94a3b8; --text3: #64748b;
+    --kyoto: #3b82f6; --enemy: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  body { background: var(--bg); color: var(--text); font-family: 'Hiragino Kaku Gothic ProN','Noto Sans JP',sans-serif; min-height: 100vh; font-size: 14px; }
+
+  .header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 10px 14px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 100; }
+  .header-title { font-size: 15px; font-weight: 700; color: var(--accent2); letter-spacing: 0.05em; }
+  .header-meta { font-size: 11px; color: var(--text3); text-align: right; }
+
+  /* スコアバー */
+  .score-bar { background: var(--surface); border-bottom: 2px solid var(--border); padding: 8px 14px; display: flex; align-items: center; justify-content: space-between; }
+  .score-team { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+  .score-label { font-size: 11px; color: var(--text3); font-weight: 600; letter-spacing: 0.1em; }
+  .score-num { font-size: 32px; font-weight: 800; line-height: 1; }
+  .score-num.kyoto { color: var(--kyoto); }
+  .score-num.enemy { color: var(--enemy); }
+  .score-center { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+  .q-badge { background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 20px; }
+
+  .controls { background: var(--surface2); border-bottom: 1px solid var(--border); padding: 8px 14px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+
+  .tabs { display: flex; background: var(--surface); border-bottom: 1px solid var(--border); overflow-x: auto; }
+  .tab { flex-shrink: 0; padding: 10px 16px; font-size: 13px; font-weight: 600; color: var(--text3); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+  .tab.active { color: var(--accent2); border-bottom-color: var(--accent); }
+  .panel { display: none; } .panel.active { display: block; }
+
+  .content { padding: 12px 14px 100px; }
+  .section-title { font-size: 13px; font-weight: 700; color: var(--text2); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 10px; margin-top: 18px; padding-bottom: 5px; border-bottom: 1px solid var(--border); }
+  .section-title:first-child { margin-top: 0; }
+
+  .form-group { margin-bottom: 10px; }
+  .form-label { font-size: 11px; font-weight: 700; color: var(--text3); letter-spacing: 0.1em; margin-bottom: 5px; }
+  .form-row { display: flex; gap: 10px; }
+  .form-row .form-group { flex: 1; }
+  .btn-group { display: flex; gap: 5px; flex-wrap: wrap; }
+  .toggle-btn { background: var(--surface2); border: 1px solid var(--border); color: var(--text2); padding: 8px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.15s; }
+  .toggle-btn:active { transform: scale(0.95); }
+  .toggle-btn.active { background: var(--accent); border-color: var(--accent); color: #fff; }
+  .toggle-btn.active.side-kyoto { background: var(--kyoto); border-color: var(--kyoto); }
+  .toggle-btn.active.side-enemy { background: var(--enemy); border-color: var(--enemy); }
+
+  .btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 9px 14px; border-radius: 8px; font-size: 13px; font-weight: 700; cursor: pointer; border: none; transition: all 0.15s; }
+  .btn:active { transform: scale(0.95); }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-danger  { background: var(--red); color: #fff; }
+  .btn-success { background: var(--green); color: #fff; }
+  .btn-yellow  { background: var(--yellow); color: #000; }
+  .btn-purple  { background: var(--purple); color: #fff; }
+  .btn-secondary { background: var(--surface2); color: var(--text2); border: 1px solid var(--border); }
+  .btn-sm { padding: 6px 10px; font-size: 12px; }
+  .submit-btn { width: 100%; padding: 13px; font-size: 15px; border-radius: 10px; }
+
+  /* 数字パッド */
+  .numpad-trigger { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 10px 14px; font-size: 16px; font-weight: 700; color: var(--text3); cursor: pointer; min-width: 72px; text-align: center; transition: border-color 0.2s; }
+  .numpad-trigger.filled { color: var(--text); border-color: var(--accent2); }
+  .numpad-trigger:active { border-color: var(--accent); }
+
+  .numpad-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 500; align-items: flex-end; justify-content: center; }
+  .numpad-modal.open { display: flex; }
+  .numpad-box { background: var(--surface); border-top: 1px solid var(--border); border-radius: 16px 16px 0 0; padding: 16px; width: 100%; max-width: 400px; }
+  .numpad-title { font-size: 13px; font-weight: 700; color: var(--text3); text-align: center; margin-bottom: 8px; }
+  .numpad-display { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 10px; font-size: 24px; font-weight: 800; text-align: center; margin-bottom: 10px; min-height: 48px; color: var(--text); }
+  .numpad-display .placeholder { color: var(--text3); font-size: 18px; }
+  .numpad-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 6px; margin-bottom: 8px; }
+  .numpad-key { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 14px; font-size: 18px; font-weight: 700; cursor: pointer; text-align: center; }
+  .numpad-key:active { background: var(--accent); color: #fff; transform: scale(0.95); }
+
+  /* ログアイテム */
+  .log-list { display: flex; flex-direction: column; gap: 6px; }
+  .log-item { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; display: flex; align-items: flex-start; gap: 8px; }
+  .log-item.kyoto-to { border-left: 3px solid var(--kyoto); }
+  .log-item.enemy-to { border-left: 3px solid var(--enemy); }
+  .log-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; background: var(--surface2); color: var(--text3); flex-shrink: 0; }
+  .log-main { flex: 1; }
+  .log-detail { font-size: 12px; color: var(--text3); margin-top: 2px; }
+  .log-time { font-size: 11px; color: var(--text3); flex-shrink: 0; }
+  .log-delete { background: none; border: none; color: var(--text3); cursor: pointer; padding: 2px 4px; font-size: 14px; }
+  .log-delete:active { color: var(--red); }
+
+  /* クリアセクション */
+  .cl-section { display: flex; flex-direction: column; gap: 8px; }
+  .cl-team-block { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; }
+  .cl-team-label { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; margin-bottom: 8px; }
+  .cl-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .cl-qlabel { font-size: 13px; font-weight: 700; min-width: 28px; }
+  .cl-count { font-size: 18px; font-weight: 800; font-variant-numeric: tabular-nums; min-width: 28px; text-align: center; }
+  .cl-count.success { color: var(--green); }
+  .cl-count.fail { color: var(--red); }
+  .cl-rate { font-size: 12px; color: var(--text3); min-width: 40px; }
+
+  /* 集計 */
+  .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 12px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 12px; text-align: center; }
+  .stat-value { font-size: 28px; font-weight: 800; line-height: 1; margin-bottom: 4px; }
+  .stat-label { font-size: 11px; color: var(--text3); font-weight: 600; }
+  .stat-sub { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 12px; }
+  .data-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .data-table th { background: var(--surface2); padding: 8px 8px; text-align: center; color: var(--text3); font-weight: 700; font-size: 11px; letter-spacing: 0.08em; border-bottom: 1px solid var(--border); }
+  .data-table td { padding: 8px 6px; text-align: center; border-bottom: 1px solid var(--border); color: var(--text2); }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr.total-row td { color: var(--text); font-weight: 700; background: var(--surface2); }
+
+  .empty-state { text-align: center; padding: 30px 16px; color: var(--text3); font-size: 13px; }
+  .empty-icon { font-size: 28px; margin-bottom: 6px; }
+
+  .export-section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 14px; margin-bottom: 12px; }
+  .export-btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+
+  /* セットアップ */
+  .setup-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.8); z-index: 400; align-items: center; justify-content: center; padding: 16px; }
+  .setup-modal.open { display: flex; }
+  .setup-box { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 20px; width: 100%; max-width: 380px; }
+  .setup-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; color: var(--accent2); }
+  .text-input { background: var(--surface2); border: 1px solid var(--border); border-radius: 8px; padding: 9px 12px; font-size: 14px; color: var(--text); width: 100%; }
+  select.text-input { cursor: pointer; }
+
+  /* パスミス2人 */
+  .passmisl-note { font-size: 11px; color: var(--text3); margin-top: 4px; }
+  .number-pair { display: flex; gap: 8px; align-items: center; }
+  .number-pair .numpad-trigger { flex: 1; }
+  .pair-sep { color: var(--text3); font-size: 12px; }
+</style>
+</head>
+<body>
+
+<!-- セットアップモーダル -->
+<div class="setup-modal open" id="setupModal">
+  <div class="setup-box">
+    <div class="setup-title">🔄 TO・クリア記録</div>
+    <div class="form-group">
+      <div class="form-label">相手チーム名</div>
+      <input type="text" class="text-input" id="enemyName" placeholder="例: ○○大学">
+    </div>
+    <div class="form-group">
+      <div class="form-label">試合日</div>
+      <input type="date" class="text-input" id="matchDate">
+    </div>
+    <div class="form-group">
+      <div class="form-label">クォーター数</div>
+      <select class="text-input" id="qCount">
+        <option value="4" selected>4Q</option>
+        <option value="2">2Q（前後半）</option>
+      </select>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:8px;" onclick="startMatch()">開始</button>
+  </div>
+</div>
+
+<!-- 数字パッドモーダル -->
+<div class="numpad-modal" id="numpadModal">
+  <div class="numpad-box">
+    <div class="numpad-title" id="numpadTitle">背番号</div>
+    <div class="numpad-display" id="numpadDisplay"><span class="placeholder">—</span></div>
+    <div class="numpad-grid">
+      <div class="numpad-key" onclick="numInput('1')">1</div>
+      <div class="numpad-key" onclick="numInput('2')">2</div>
+      <div class="numpad-key" onclick="numInput('3')">3</div>
+      <div class="numpad-key" onclick="numInput('4')">4</div>
+      <div class="numpad-key" onclick="numInput('5')">5</div>
+      <div class="numpad-key" onclick="numInput('6')">6</div>
+      <div class="numpad-key" onclick="numInput('7')">7</div>
+      <div class="numpad-key" onclick="numInput('8')">8</div>
+      <div class="numpad-key" onclick="numInput('9')">9</div>
+      <div class="numpad-key btn-secondary" onclick="numDel()">⌫</div>
+      <div class="numpad-key" onclick="numInput('0')">0</div>
+      <div class="numpad-key btn-primary" onclick="numOK()" style="background:var(--accent);color:#fff;">OK</div>
+    </div>
+    <button class="btn btn-secondary" style="width:100%;" onclick="closeNumpad()">キャンセル</button>
+  </div>
+</div>
+
+<!-- ヘッダー -->
+<div class="header">
+  <div class="header-title">🔄 TO・クリア</div>
+  <div class="header-meta" id="headerMeta">—</div>
+</div>
+
+<!-- スコアバー（Q表示のみ） -->
+<div class="score-bar">
+  <div style="font-size:13px;color:var(--text3);">現在</div>
+  <div class="score-center">
+    <div class="q-badge" id="qBadge">Q1</div>
+  </div>
+  <div style="font-size:12px;color:var(--text3);" id="toBalance">TO: —</div>
+</div>
+
+<!-- Q操作 -->
+<div class="controls" id="controlsBar">
+  <div style="display:flex;gap:5px;" id="qButtons"></div>
+  <button class="btn btn-secondary btn-sm" onclick="openSetup()">⚙</button>
+</div>
+
+<!-- タブ -->
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('to')">ターンオーバー</div>
+  <div class="tab" onclick="switchTab('cl')">クリア成功率</div>
+  <div class="tab" onclick="switchTab('stats')">集計</div>
+  <div class="tab" onclick="switchTab('export')">出力</div>
+</div>
+
+<!-- ===== TOタブ ===== -->
+<div class="panel active" id="panel-to">
+  <div class="content">
+    <div class="section-title">ターンオーバー記録</div>
+
+    <!-- 方向 -->
+    <div class="form-group">
+      <div class="form-label">方向</div>
+      <div class="btn-group">
+        <button class="toggle-btn active side-kyoto" id="toSideKyoto" onclick="selectTOSide('kyoto')">京大が奪われた</button>
+        <button class="toggle-btn side-enemy" id="toSideEnemy" onclick="selectTOSide('enemy')">京大が奪った</button>
+      </div>
+    </div>
+
+    <!-- 原因 -->
+    <div class="form-group">
+      <div class="form-label">原因</div>
+      <div class="btn-group" id="causeBtns">
+        <button class="toggle-btn cause-btn" onclick="selectTOCause('PC')">PC</button>
+        <button class="toggle-btn cause-btn" onclick="selectTOCause('パスミス')">パスミス</button>
+        <button class="toggle-btn cause-btn" onclick="selectTOCause('キープ')">キープ</button>
+        <button class="toggle-btn cause-btn" onclick="selectTOCause('ファール')">ファール</button>
+        <button class="toggle-btn cause-btn" onclick="selectTOCause('インター')">インター</button>
+        <button class="toggle-btn cause-btn" onclick="selectTOCause('ショット')">ショット</button>
+        <button class="toggle-btn cause-btn" onclick="selectTOCause('チェイス')">チェイス</button>
+        <button class="toggle-btn cause-btn" onclick="selectTOCause('その他')">その他</button>
+      </div>
+    </div>
+
+    <!-- 背番号（通常） -->
+    <div class="form-group" id="normalNumberGroup">
+      <div class="form-label">背番号</div>
+      <div class="numpad-trigger" id="toNumber" onclick="openNumpad('toNumber', '背番号')">—</div>
+    </div>
+
+    <!-- パスミス専用：2人入力 -->
+    <div class="form-group" id="passMissGroup" style="display:none;">
+      <div class="form-label">背番号（パスした人 → 受けた人）</div>
+      <div class="number-pair">
+        <div class="numpad-trigger" id="toNumPass" onclick="openNumpad('toNumPass', 'パスした人の背番号')">—</div>
+        <div class="pair-sep">→</div>
+        <div class="numpad-trigger" id="toNumRecv" onclick="openNumpad('toNumRecv', '受けた人の背番号')">—</div>
+      </div>
+      <div class="passmisl-note">※ 一方のみでもOK</div>
+    </div>
+
+    <!-- メモ -->
+    <div class="form-group">
+      <div class="form-label">メモ（任意）</div>
+      <input type="text" class="text-input" id="toNote" placeholder="補足があれば...">
+    </div>
+
+    <button class="btn btn-danger submit-btn" onclick="addTO()">✚ ターンオーバー記録</button>
+
+    <div class="section-title">TOログ</div>
+    <div class="log-list" id="toLog">
+      <div class="empty-state"><div class="empty-icon">🔄</div>まだ記録がありません</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== クリアタブ ===== -->
+<div class="panel" id="panel-cl">
+  <div class="content">
+    <div class="section-title">クリア成功率</div>
+    <div class="cl-section">
+      <!-- 京大クリア -->
+      <div class="cl-team-block">
+        <div class="cl-team-label" style="color:var(--kyoto);">🔵 京大のクリア</div>
+        <div id="clKyotoRows"></div>
+      </div>
+      <!-- 相手クリア -->
+      <div class="cl-team-block">
+        <div class="cl-team-label" style="color:var(--enemy);">🔴 <span id="enemyClLabel">相手</span>のクリア</div>
+        <div id="clEnemyRows"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 集計タブ ===== -->
+<div class="panel" id="panel-stats">
+  <div class="content">
+    <div class="section-title">TOバランス</div>
+    <div class="stats-grid" id="toStatsGrid"></div>
+
+    <div class="section-title">原因別集計</div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>原因</th><th>京大奪われ</th><th>京大奪った</th></tr></thead>
+        <tbody id="toCauseBody"></tbody>
+      </table>
+    </div>
+
+    <div class="section-title">クリア成功率</div>
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead><tr><th>Q</th><th>京大 成功/失敗/率</th><th id="enemyClCol">相手 成功/失敗/率</th></tr></thead>
+        <tbody id="clStatsBody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===== 出力タブ ===== -->
+<div class="panel" id="panel-export">
+  <div class="content">
+    <div class="section-title">データエクスポート</div>
+    <div class="export-section">
+      <div style="color:var(--text2);font-size:13px;margin-bottom:8px;">Streamlit連携用JSON、CSV出力</div>
+      <div class="export-btn-row">
+        <button class="btn btn-primary" onclick="exportJSON()">📦 JSON全データ</button>
+        <button class="btn btn-success" onclick="exportTOCSV()">📄 TO CSV</button>
+        <button class="btn btn-yellow" onclick="exportCLCSV()">📄 クリアCSV</button>
+      </div>
+    </div>
+    <div class="section-title">JSONプレビュー</div>
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;overflow-x:auto;">
+      <pre style="font-size:11px;color:var(--text2);white-space:pre-wrap;word-break:break-all;" id="jsonPreview">データを記録すると表示されます</pre>
+    </div>
+  </div>
+</div>
+
+<script>
+// ===== STATE =====
+let state = {
+  match: { enemy: '相手', date: '', qCount: 4 },
+  currentQ: 1,
+  turnovers: [],
+  // cl[team][q] = {ok:0, ng:0}  team: 'kyoto'|'enemy'
+  cl: { kyoto: {}, enemy: {} },
+  toForm: { side: 'kyoto', cause: null, number: null, passNum: null, recvNum: null },
+  numpadTarget: null,
+  numpadValue: '',
+};
+
+// ===== SETUP =====
+function startMatch() {
+  const enemy = document.getElementById('enemyName').value.trim() || '相手';
+  const date  = document.getElementById('matchDate').value;
+  const qCount = parseInt(document.getElementById('qCount').value);
+  state.match = { enemy, date, qCount };
+  document.getElementById('headerMeta').textContent = `${date} vs ${enemy}`;
+  document.getElementById('enemyClLabel').textContent = enemy;
+  document.getElementById('enemyClCol').textContent   = enemy + ' 成功/失敗/率';
+  document.getElementById('setupModal').classList.remove('open');
+  buildQButtons();
+  renderCL();
+  updateStats();
+}
+function openSetup() { document.getElementById('setupModal').classList.add('open'); }
+
+// ===== Q =====
+function buildQButtons() {
+  const bar = document.getElementById('qButtons');
+  bar.innerHTML = '';
+  for (let i = 1; i <= state.match.qCount; i++) {
+    const b = document.createElement('button');
+    b.className = 'btn btn-sm btn-secondary' + (i === state.currentQ ? ' btn-primary' : '');
+    b.textContent = `Q${i}`;
+    b.onclick = () => setQ(i);
+    bar.appendChild(b);
+  }
+}
+function setQ(q) {
+  state.currentQ = q;
+  document.getElementById('qBadge').textContent = `Q${q}`;
+  buildQButtons();
+  renderCL();
+}
+
+// ===== TABS =====
+function switchTab(name) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  event.target.classList.add('active');
+  document.getElementById('panel-' + name).classList.add('active');
+  if (name === 'stats') updateStats();
+  if (name === 'export') updateExport();
+}
+
+// ===== NUMPAD =====
+function openNumpad(targetId, title) {
+  state.numpadTarget = targetId;
+  state.numpadValue  = '';
+  document.getElementById('numpadTitle').textContent = title;
+  document.getElementById('numpadDisplay').innerHTML = '<span class="placeholder">—</span>';
+  document.getElementById('numpadModal').classList.add('open');
+}
+function numInput(v) {
+  if (state.numpadValue.length >= 3) return;
+  state.numpadValue += v;
+  document.getElementById('numpadDisplay').textContent = state.numpadValue;
+}
+function numDel() {
+  state.numpadValue = state.numpadValue.slice(0,-1);
+  document.getElementById('numpadDisplay').textContent = state.numpadValue || '';
+  if (!state.numpadValue) document.getElementById('numpadDisplay').innerHTML = '<span class="placeholder">—</span>';
+}
+function numOK() {
+  if (!state.numpadValue) { closeNumpad(); return; }
+  const el = document.getElementById(state.numpadTarget);
+  if (el) { el.textContent = '#' + state.numpadValue; el.classList.add('filled'); }
+  if (state.numpadTarget === 'toNumber')  state.toForm.number  = state.numpadValue;
+  if (state.numpadTarget === 'toNumPass') state.toForm.passNum = state.numpadValue;
+  if (state.numpadTarget === 'toNumRecv') state.toForm.recvNum = state.numpadValue;
+  closeNumpad();
+}
+function closeNumpad() {
+  state.numpadValue = '';
+  document.getElementById('numpadModal').classList.remove('open');
+}
+
+// ===== TO記録 =====
+function selectTOSide(side) {
+  state.toForm.side = side;
+  document.getElementById('toSideKyoto').classList.toggle('active', side === 'kyoto');
+  document.getElementById('toSideEnemy').classList.toggle('active', side === 'enemy');
+}
+
+function selectTOCause(c) {
+  state.toForm.cause = c;
+  document.querySelectorAll('.cause-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  // パスミス時は2人入力表示
+  const isPass = c === 'パスミス';
+  document.getElementById('normalNumberGroup').style.display = isPass ? 'none' : '';
+  document.getElementById('passMissGroup').style.display     = isPass ? '' : 'none';
+}
+
+function addTO() {
+  const f = state.toForm;
+  if (!f.cause) { alert('原因を選択してください'); return; }
+
+  let numberStr;
+  if (f.cause === 'パスミス') {
+    const p = f.passNum || '?';
+    const r = f.recvNum || '?';
+    numberStr = `#${p} → #${r}`;
+  } else {
+    numberStr = f.number ? '#' + f.number : '?';
+  }
+
+  const to = {
+    id: Date.now(),
+    q: state.currentQ,
+    side: f.side,
+    cause: f.cause,
+    number: numberStr,
+    passNum: f.passNum || null,
+    recvNum: f.recvNum || null,
+    note: document.getElementById('toNote').value,
+  };
+  state.turnovers.push(to);
+  renderTOLog();
+
+  // リセット
+  state.toForm.cause   = null;
+  state.toForm.number  = null;
+  state.toForm.passNum = null;
+  state.toForm.recvNum = null;
+  document.querySelectorAll('.cause-btn').forEach(b => b.classList.remove('active'));
+  ['toNumber','toNumPass','toNumRecv'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) { el.textContent = '—'; el.classList.remove('filled'); }
+  });
+  document.getElementById('toNote').value = '';
+  document.getElementById('normalNumberGroup').style.display = '';
+  document.getElementById('passMissGroup').style.display = 'none';
+  updateTOBalance();
+}
+
+function renderTOLog() {
+  const container = document.getElementById('toLog');
+  if (!state.turnovers.length) {
+    container.innerHTML = '<div class="empty-state"><div class="empty-icon">🔄</div>まだ記録がありません</div>';
+    return;
+  }
+  const reversed = [...state.turnovers].reverse();
+  container.innerHTML = reversed.map(t => {
+    const sideText  = t.side === 'kyoto' ? '京大が奪われた' : '京大が奪った';
+    const itemClass = t.side === 'kyoto' ? 'kyoto-to' : 'enemy-to';
+    const sideColor = t.side === 'kyoto' ? 'var(--kyoto)' : 'var(--enemy)';
+    return `<div class="log-item ${itemClass}">
+      <span class="log-badge">Q${t.q}</span>
+      <div class="log-main">
+        <div style="font-size:13px;font-weight:700;color:${sideColor};">${sideText}</div>
+        <div class="log-detail">${t.number} / ${t.cause}${t.note ? ' — ' + t.note : ''}</div>
+      </div>
+      <button class="log-delete" onclick="deleteTO(${t.id})">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function deleteTO(id) {
+  state.turnovers = state.turnovers.filter(t => t.id !== id);
+  renderTOLog();
+  updateTOBalance();
+}
+
+function updateTOBalance() {
+  const k = state.turnovers.filter(t => t.side === 'kyoto').length;
+  const e = state.turnovers.filter(t => t.side === 'enemy').length;
+  document.getElementById('toBalance').textContent = `奪われ ${k} / 奪得 ${e}`;
+}
+
+// ===== クリア =====
+function renderCL() {
+  const q = state.currentQ;
+  ['kyoto','enemy'].forEach(team => {
+    if (!state.cl[team][q]) state.cl[team][q] = { ok: 0, ng: 0 };
+  });
+  const renderRows = (team, containerId) => {
+    const rows = [];
+    for (let qi = 1; qi <= state.match.qCount; qi++) {
+      if (!state.cl[team][qi]) state.cl[team][qi] = { ok: 0, ng: 0 };
+      const cl = state.cl[team][qi];
+      const rate = (cl.ok + cl.ng) > 0 ? Math.round(cl.ok / (cl.ok + cl.ng) * 100) + '%' : '—';
+      rows.push(`<div class="cl-row">
+        <div class="cl-qlabel">Q${qi}</div>
+        <button class="btn btn-success btn-sm" onclick="clCount('${team}',${qi},'ok')">○ 成功</button>
+        <button class="btn btn-danger btn-sm"  onclick="clCount('${team}',${qi},'ng')">✕ 失敗</button>
+        <div class="cl-count success" id="cl_${team}_ok_${qi}">${cl.ok}</div>
+        <div style="color:var(--text3)">/</div>
+        <div class="cl-count fail" id="cl_${team}_ng_${qi}">${cl.ng}</div>
+        <div class="cl-rate" id="cl_${team}_rate_${qi}">${rate}</div>
+        <button class="btn btn-secondary btn-sm" onclick="clReset('${team}',${qi})">↩</button>
+      </div>`);
+    }
+    document.getElementById(containerId).innerHTML = rows.join('');
+  };
+  renderRows('kyoto', 'clKyotoRows');
+  renderRows('enemy', 'clEnemyRows');
+}
+
+function clCount(team, q, type) {
+  if (!state.cl[team][q]) state.cl[team][q] = { ok: 0, ng: 0 };
+  state.cl[team][q][type]++;
+  const cl = state.cl[team][q];
+  document.getElementById(`cl_${team}_ok_${q}`).textContent   = cl.ok;
+  document.getElementById(`cl_${team}_ng_${q}`).textContent   = cl.ng;
+  const rate = (cl.ok + cl.ng) > 0 ? Math.round(cl.ok / (cl.ok + cl.ng) * 100) + '%' : '—';
+  document.getElementById(`cl_${team}_rate_${q}`).textContent = rate;
+}
+
+function clReset(team, q) {
+  state.cl[team][q] = { ok: 0, ng: 0 };
+  clCount(team, q, 'ok'); // rerender
+  state.cl[team][q] = { ok: 0, ng: 0 };
+  renderCL();
+}
+
+// ===== 集計 =====
+function updateStats() {
+  const kTO = state.turnovers.filter(t => t.side === 'kyoto').length;
+  const eTO = state.turnovers.filter(t => t.side === 'enemy').length;
+  document.getElementById('toStatsGrid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-value" style="color:var(--red)">${kTO}</div>
+      <div class="stat-label">京大 奪われたTO</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" style="color:var(--green)">${eTO}</div>
+      <div class="stat-label">京大 奪ったTO</div>
+    </div>`;
+
+  const causes = ['PC','パスミス','キープ','ファール','インター','ショット','チェイス','その他'];
+  document.getElementById('toCauseBody').innerHTML = causes.map(c => {
+    const k = state.turnovers.filter(t => t.side === 'kyoto' && t.cause === c).length;
+    const e = state.turnovers.filter(t => t.side === 'enemy' && t.cause === c).length;
+    if (!k && !e) return '';
+    return `<tr><td>${c}</td>
+      <td>${k ? `<span style="color:var(--red)">${k}</span>` : '—'}</td>
+      <td>${e ? `<span style="color:var(--green)">${e}</span>` : '—'}</td></tr>`;
+  }).join('');
+
+  // クリア成功率テーブル
+  let clRows = '';
+  let kyotoOkTotal=0, kyotoNgTotal=0, enemyOkTotal=0, enemyNgTotal=0;
+  for (let q = 1; q <= state.match.qCount; q++) {
+    const kc = state.cl.kyoto[q] || { ok:0, ng:0 };
+    const ec = state.cl.enemy[q] || { ok:0, ng:0 };
+    const kr = (kc.ok + kc.ng) > 0 ? Math.round(kc.ok / (kc.ok + kc.ng) * 100) + '%' : '—';
+    const er = (ec.ok + ec.ng) > 0 ? Math.round(ec.ok / (ec.ok + ec.ng) * 100) + '%' : '—';
+    if (kc.ok + kc.ng + ec.ok + ec.ng === 0) continue;
+    clRows += `<tr>
+      <td>Q${q}</td>
+      <td>${kc.ok}成功 / ${kc.ng}失敗 / <b>${kr}</b></td>
+      <td>${ec.ok}成功 / ${ec.ng}失敗 / <b>${er}</b></td>
+    </tr>`;
+    kyotoOkTotal += kc.ok; kyotoNgTotal += kc.ng;
+    enemyOkTotal += ec.ok; enemyNgTotal += ec.ng;
+  }
+  if (clRows) {
+    const ktot = (kyotoOkTotal+kyotoNgTotal) > 0 ? Math.round(kyotoOkTotal/(kyotoOkTotal+kyotoNgTotal)*100)+'%' : '—';
+    const etot = (enemyOkTotal+enemyNgTotal) > 0 ? Math.round(enemyOkTotal/(enemyOkTotal+enemyNgTotal)*100)+'%' : '—';
+    clRows += `<tr class="total-row">
+      <td>合計</td>
+      <td>${kyotoOkTotal}成功 / ${kyotoNgTotal}失敗 / <b>${ktot}</b></td>
+      <td>${enemyOkTotal}成功 / ${enemyNgTotal}失敗 / <b>${etot}</b></td>
+    </tr>`;
+  }
+  document.getElementById('clStatsBody').innerHTML = clRows || '<tr><td colspan="3" style="color:var(--text3)">データなし</td></tr>';
+}
+
+// ===== EXPORT =====
+function buildJSON() {
+  const clSummary = {};
+  for (let q = 1; q <= state.match.qCount; q++) {
+    const kc = state.cl.kyoto[q] || { ok:0, ng:0 };
+    const ec = state.cl.enemy[q] || { ok:0, ng:0 };
+    clSummary[q] = {
+      kyoto: { ...kc, rate: (kc.ok+kc.ng)>0 ? Math.round(kc.ok/(kc.ok+kc.ng)*100) : null },
+      enemy: { ...ec, rate: (ec.ok+ec.ng)>0 ? Math.round(ec.ok/(ec.ok+ec.ng)*100) : null },
+    };
+  }
+  return {
+    meta: {
+      ...state.match,
+      exportedAt: new Date().toISOString(),
+      tool: 'KyotoLacrosse TOTool v1.0',
+    },
+    turnovers: state.turnovers,
+    clearance:  clSummary,
+    summary: {
+      kyotoTO:  state.turnovers.filter(t => t.side === 'kyoto').length,
+      enemyTO:  state.turnovers.filter(t => t.side === 'enemy').length,
+    }
+  };
+}
+
+function updateExport() {
+  document.getElementById('jsonPreview').textContent = JSON.stringify(buildJSON(), null, 2);
+}
+
+function exportJSON() {
+  const data = buildJSON();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `to_clearance_${state.match.date}_${state.match.enemy}.json`;
+  a.click();
+}
+
+function exportTOCSV() {
+  const header = 'Q,方向,背番号,原因,メモ';
+  const rows = state.turnovers.map(t =>
+    `${t.q},${t.side==='kyoto'?'京大奪われ':'京大奪った'},${t.number},${t.cause},${t.note||''}`
+  );
+  downloadCSV([header,...rows].join('\n'), `to_${state.match.date}.csv`);
+}
+
+function exportCLCSV() {
+  const header = 'Q,チーム,成功,失敗,成功率';
+  const rows = [];
+  for (let q = 1; q <= state.match.qCount; q++) {
+    for (const [team, label] of [['kyoto','京大'],['enemy', state.match.enemy]]) {
+      const cl = state.cl[team][q] || { ok:0, ng:0 };
+      const rate = (cl.ok+cl.ng)>0 ? Math.round(cl.ok/(cl.ok+cl.ng)*100)+'%' : '—';
+      rows.push(`${q},${label},${cl.ok},${cl.ng},${rate}`);
+    }
+  }
+  downloadCSV([header,...rows].join('\n'), `clearance_${state.match.date}.csv`);
+}
+
+function downloadCSV(csv, filename) {
+  const bom = '\uFEFF';
+  const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+}
+
+// ===== INIT =====
+document.getElementById('matchDate').value = new Date().toISOString().slice(0,10);
+buildQButtons();
+</script>
+</body>
+</html>
