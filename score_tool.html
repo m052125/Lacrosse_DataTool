@@ -364,8 +364,6 @@
     margin-bottom: 12px;
   }
 
-  /* TOログ */
-  .to-item {
     background: var(--surface);
     border: 1px solid var(--border);
     border-radius: 10px;
@@ -654,9 +652,9 @@
 
 <!-- タブ -->
 <div class="tabs">
-  <div class="tab active" onclick="switchTab('scoresheet')">スコアシート</div>
-  <div class="tab" onclick="switchTab('stats')">集計</div>
-  <div class="tab" onclick="switchTab('export')">出力</div>
+  <div class="tab active" onclick="switchTab('scoresheet', this)">スコアシート</div>
+  <div class="tab" onclick="switchTab('stats', this)">集計</div>
+  <div class="tab" onclick="switchTab('export', this)">出力</div>
 </div>
 
 <!-- ===== スコアシートタブ ===== -->
@@ -676,9 +674,9 @@
       <div class="form-group" style="margin-bottom:10px;">
         <div class="form-label">結果</div>
         <div class="btn-group">
-          <button class="toggle-btn result-goal" onclick="selectResult('goal')">⚽ 得点</button>
-          <button class="toggle-btn result-save" onclick="selectResult('save')">🥅 セーブ</button>
-          <button class="toggle-btn result-miss" onclick="selectResult('miss')">✗ 枠外</button>
+          <button class="toggle-btn result-goal" onclick="selectResult('goal', this)">⚽ 得点</button>
+          <button class="toggle-btn result-save" onclick="selectResult('save', this)">🥅 セーブ</button>
+          <button class="toggle-btn result-miss" onclick="selectResult('miss', this)">✗ 枠外</button>
         </div>
       </div>
       <!-- 背番号 -->
@@ -691,9 +689,9 @@
         <div class="form-group">
           <div class="form-label">速/遅</div>
           <div class="btn-group">
-            <button class="toggle-btn speed-btn" onclick="selectSpeed('fast')">速</button>
-            <button class="toggle-btn speed-btn" onclick="selectSpeed('slow')">遅(ち)</button>
-            <button class="toggle-btn speed-btn" onclick="selectSpeed('freesh')">フリシュー</button>
+            <button class="toggle-btn speed-btn" onclick="selectSpeed('fast', this)">速</button>
+            <button class="toggle-btn speed-btn" onclick="selectSpeed('slow', this)">遅(ち)</button>
+            <button class="toggle-btn speed-btn" onclick="selectSpeed('freesh', this)">フリシュー</button>
           </div>
         </div>
       </div>
@@ -701,19 +699,19 @@
       <div class="form-group" style="margin-bottom:10px;">
         <div class="form-label">攻め方</div>
         <div class="btn-group" id="attackButtons">
-          <button class="toggle-btn" onclick="selectAttack('右上ワン')">右上1on1</button>
-          <button class="toggle-btn" onclick="selectAttack('右よこワン')">右よこ1on1</button>
-          <button class="toggle-btn" onclick="selectAttack('右うらワン')">右うら1on1</button>
-          <button class="toggle-btn" onclick="selectAttack('左上ワン')">左上1on1</button>
-          <button class="toggle-btn" onclick="selectAttack('左よこワン')">左よこ1on1</button>
-          <button class="toggle-btn" onclick="selectAttack('左うらワン')">左うら1on1</button>
-          <button class="toggle-btn" onclick="selectAttack('センターワン')">センター1on1</button>
-          <button class="toggle-btn" onclick="selectAttack('フィード')">フィード</button>
-          <button class="toggle-btn" onclick="selectAttack('GB')">GB</button>
-          <button class="toggle-btn" onclick="selectAttack('ミドル')">ミドル</button>
-          <button class="toggle-btn" onclick="selectAttack('ブレイク')">ブレイク</button>
-          <button class="toggle-btn" onclick="selectAttack('フリシュー')">フリシュー</button>
-          <button class="toggle-btn" onclick="selectAttack('other')">その他</button>
+          <button class="toggle-btn" onclick="selectAttack('右上ワン', this)">右上1on1</button>
+          <button class="toggle-btn" onclick="selectAttack('右よこワン', this)">右よこ1on1</button>
+          <button class="toggle-btn" onclick="selectAttack('右うらワン', this)">右うら1on1</button>
+          <button class="toggle-btn" onclick="selectAttack('左上ワン', this)">左上1on1</button>
+          <button class="toggle-btn" onclick="selectAttack('左よこワン', this)">左よこ1on1</button>
+          <button class="toggle-btn" onclick="selectAttack('左うらワン', this)">左うら1on1</button>
+          <button class="toggle-btn" onclick="selectAttack('センターワン', this)">センター1on1</button>
+          <button class="toggle-btn" onclick="selectAttack('フィード', this)">フィード</button>
+          <button class="toggle-btn" onclick="selectAttack('GB', this)">GB</button>
+          <button class="toggle-btn" onclick="selectAttack('ミドル', this)">ミドル</button>
+          <button class="toggle-btn" onclick="selectAttack('ブレイク', this)">ブレイク</button>
+          <button class="toggle-btn" onclick="selectAttack('フリシュー', this)">フリシュー</button>
+          <button class="toggle-btn" onclick="selectAttack('other', this)">その他</button>
         </div>
       </div>
       <!-- フィードアシスト番号 / フリシュー番号 / その他テキスト -->
@@ -737,10 +735,6 @@
   </div>
 </div>
 
-    <div class="section-title">TOログ</div>
-    <div id="toLog">
-      <div class="empty-state"><div class="empty-icon">🔄</div>まだ記録がありません</div>
-    </div>
   </div>
 </div>
 
@@ -769,9 +763,17 @@
     </div>
 
     </div>
-    <div class="export-btn-row">
-      <button class="btn btn-primary" onclick="exportJSON()">📦 JSON出力</button>
-      <button class="btn btn-secondary" onclick="exportShotCSV()">📄 ショットCSV</button>
+  </div>
+</div>
+
+<div class="panel" id="panel-export">
+  <div class="content">
+    <div class="section-title">JSON / CSV 出力</div>
+    <div class="export-section">
+      <div class="export-btn-row">
+        <button class="btn btn-primary" onclick="exportJSON()">📦 JSON出力</button>
+        <button class="btn btn-secondary" onclick="exportShotCSV()">📄 ショットCSV</button>
+      </div>
     </div>
     <div class="section-title">JSONプレビュー</div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;overflow-x:auto;">
@@ -917,11 +919,12 @@ function exportJSON() {
 }
 
 // ===== TABS =====
-function switchTab(name) {
+function switchTab(name, el) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  event.target.classList.add('active');
-  document.getElementById('panel-' + name).classList.add('active');
+  if(el) el.classList.add('active');
+  const panel = document.getElementById('panel-' + name);
+  if(panel) panel.classList.add('active');
   if (name === 'stats') updateStats();
   if (name === 'export') updateExport();
 }
@@ -971,23 +974,23 @@ function selectTeam(t) {
   document.getElementById('teamEnemy').classList.toggle('active', t === 'enemy');
 }
 
-function selectResult(r) {
+function selectResult(r, el) {
   state.shotForm.result = r;
   document.querySelectorAll('.result-goal, .result-save, .result-miss').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  if(el) el.classList.add('active');
 }
 
-function selectSpeed(s) {
+function selectSpeed(s, el) {
   state.shotForm.speed = s;
   document.querySelectorAll('.speed-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  if(el) el.classList.add('active');
 }
 
-function selectAttack(a) {
+function selectAttack(a, el) {
   state.shotForm.attack = a;
   state.shotForm.attackDetail = '';
   document.querySelectorAll('#attackButtons .toggle-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  if(el) el.classList.add('active');
   showAttackDetail(a);
 }
 
@@ -1121,10 +1124,10 @@ function selectTOSide(side) {
   document.getElementById('toSideEnemy').classList.toggle('active', side === 'enemy');
 }
 
-function selectTOCause(c) {
+function selectTOCause(c, el) {
   state.toForm.cause = c;
   document.querySelectorAll('.cause-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  if(el) el.classList.add('active');
 }
 
 function addTO() {
@@ -1152,6 +1155,7 @@ function addTO() {
 
 function renderTOLog() {
   const container = document.getElementById('toLog');
+  if (!container) return;
   if (state.turnovers.length === 0) {
     container.innerHTML = '<div class="empty-state"><div class="empty-icon">🔄</div>まだ記録がありません</div>';
     return;
@@ -1233,10 +1237,6 @@ function updateStats() {
   rows += `<tr class="total-row"><td>計</td><td><span style="color:var(--kyoto)">京大</span></td><td>${totals.kyoto.s}</td><td>${totals.kyoto.g}</td><td>${totals.kyoto.sv}</td><td>${totals.kyoto.ms}</td><td>${kr}</td></tr>`;
   rows += `<tr class="total-row"><td>計</td><td><span style="color:var(--enemy)">${state.match.enemy}</span></td><td>${totals.enemy.s}</td><td>${totals.enemy.g}</td><td>${totals.enemy.sv}</td><td>${totals.enemy.ms}</td><td>${er}</td></tr>`;
   tbody.innerHTML = rows;
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = `game_${state.match.date}_${state.match.enemy}.json`;
-  a.click();
 }
 
 function exportShotCSV() {
