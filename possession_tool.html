@@ -619,11 +619,9 @@ function startMatch() {
   document.getElementById('headerMeta').textContent = `${date} vs ${enemy}`;
   document.getElementById('clrdEnemyName').textContent = enemy;
   document.getElementById('enemyOfLabel').textContent = enemy;
+  localStorage.removeItem(_LS_KEY);
   document.getElementById('setupModal').classList.remove('open');
-  buildQBar();
-  updateOfDisplay();
-  renderClrdSummary();
-  updateSummaryTables();
+  buildQBar(); updateOfDisplay(); renderClrdSummary(); updateSummaryTables();
 }
 
 function buildQBar() {
@@ -750,6 +748,7 @@ function endSet(type) {
     index: state.of.sets.filter(s => s.q === state.currentQ).length + 1,
   };
   state.of.sets.push(set);
+  _saveState();
   closeConfirm();
 
   // リセット
@@ -916,6 +915,7 @@ function clrdSaveQ() {
   const record = { q: state.currentQ, kyoto_cs: kyotoCs, enemy_cs: enemyCs };
   if (existing >= 0) state.clrd.saved[existing] = record;
   else state.clrd.saved.push(record);
+  _saveState();
 
   renderClrdSummary();
   updateSummaryTables();
@@ -1082,6 +1082,7 @@ function ofEnemyUndo() {
   const qSets = state.ofEnemy.sets.filter(s2 => s2.q === state.currentQ);
   if (!qSets.length) return;
   state.ofEnemy.sets.pop();
+  _saveState();
   renderOfEnemyLog();
   updateOfEnemyTotals();
 }
@@ -1091,6 +1092,7 @@ function endSetEnemy(type) {
   const duration = s.centisec;
   const qSets = state.ofEnemy.sets.filter(s2 => s2.q === state.currentQ);
   state.ofEnemy.sets.push({ q: state.currentQ, endType: type, duration_cs: duration, index: qSets.length + 1 });
+  _saveState();
   s.centisec = 0;
   document.getElementById('ofEnemyTimer').textContent = '00:00';
   document.getElementById('ofEnemyStartBtn').disabled = false;
@@ -1206,8 +1208,52 @@ function exportCSV() {
 }
 
 // ======== INIT ========
+_loadAndRestore();
 document.getElementById('matchDate').value = new Date().toISOString().slice(0, 10);
 buildQBar();
+
+// ========== AUTO SAVE ==========
+const _LS_KEY = 'kul_possession';
+function _saveState() {
+  try {
+    localStorage.setItem(_LS_KEY, JSON.stringify({
+      match: state.match, currentQ: state.currentQ,
+      ofSets: state.of.sets, ofEnemySets: state.ofEnemy.sets,
+      clrdSaved: state.clrd.saved
+    }));
+  } catch(e) {}
+}
+function _loadAndRestore() {
+  try {
+    const raw = localStorage.getItem(_LS_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (!s?.match?.date) return;
+    state.match = s.match; state.currentQ = s.currentQ || 1;
+    state.of.sets = s.ofSets || [];
+    state.ofEnemy.sets = s.ofEnemySets || [];
+    state.clrd.saved = s.clrdSaved || [];
+    document.getElementById('setupModal').classList.remove('open');
+    document.getElementById('headerMeta').textContent = state.match.date + ' vs ' + state.match.enemy;
+    document.getElementById('clrdEnemyName').textContent = state.match.enemy;
+    document.getElementById('enemyOfLabel').textContent = state.match.enemy;
+    buildQBar(); updateOfDisplay(); renderClrdSummary(); updateSummaryTables();
+    if(typeof renderOfLog==='function') renderOfLog();
+    if(typeof renderOfEnemyLog==='function') renderOfEnemyLog();
+    _toast('💾 前回のデータを復元しました');
+  } catch(e) {}
+}
+function _toast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);background:#0f2918;border:1px solid #22c55e;color:#22c55e;padding:8px 18px;border-radius:20px;font-size:12px;font-weight:700;z-index:9999;pointer-events:none';
+  t.textContent = msg; document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+window.addEventListener('beforeunload', e => {
+  if (localStorage.getItem(_LS_KEY)) { e.preventDefault(); e.returnValue = ''; }
+});
+// ========== END AUTO SAVE ==========
+
 </script>
 </body>
 </html>

@@ -791,6 +791,8 @@ let state = {
   timerRunning: false,
   timerInterval: null,
   shots: [],
+  turnovers: [],
+  cl: {},
   timeouts: [],
   shotForm: { team: 'kyoto', result: null, number: null, speed: null, attack: null, attackDetail: '', note: '' },
   numpadTarget: null,
@@ -808,10 +810,11 @@ function startMatch() {
   document.getElementById('enemyLabel').textContent = enemy;
   document.getElementById('teamEnemy').textContent = enemy;
   document.getElementById('headerMeta').textContent = `${date} vs ${enemy}`;
+  localStorage.removeItem(_LS_KEY);
   document.getElementById('setupModal').classList.remove('open');
   buildQButtons();
   updateTimerDisplay();
-    updateStats();
+  updateStats();
 }
 
 function openSetup() {
@@ -880,6 +883,7 @@ function recordTO() {
   const team = which === '1' ? '京大' : state.match.enemy;
   const record = { q: state.currentQ, time: elapsedTime(), team };
   state.timeouts.push(record);
+  _saveState();
   const popup = document.getElementById('toPopup');
   popup.textContent = `⏱ ${team} タイムアウト (Q${state.currentQ} ${record.time})`;
   popup.style.display = 'block';
@@ -1032,6 +1036,7 @@ function addShot() {
     note: document.getElementById('shotNote').value,
   };
   state.shots.push(shot);
+  _saveState();
   updateScore();
   renderShotLog();
   // フォームリセット（結果・番号はクリア）
@@ -1079,6 +1084,7 @@ function renderShotLog() {
 
 function deleteShot(id) {
   state.shots = state.shots.filter(s => s.id !== id);
+  _saveState();
   updateScore();
   renderShotLog();
 }
@@ -1111,6 +1117,7 @@ function renderCLSection() {
 function clCount(q, type) {
   if (!state.cl[q]) state.cl[q] = { ok: 0, ng: 0 };
   state.cl[q][type]++;
+  _saveState();
   }
 
 function clReset(q) {
@@ -1143,6 +1150,7 @@ function addTO() {
     note: document.getElementById('toNote').value,
   };
   state.turnovers.push(to);
+  _saveState();
   renderTOLog();
   // リセット
   state.toForm.cause = null;
@@ -1178,6 +1186,7 @@ function renderTOLog() {
 
 function deleteTO(id) {
   state.turnovers = state.turnovers.filter(t => t.id !== id);
+  _saveState();
   renderTOLog();
 }
 
@@ -1265,9 +1274,53 @@ function downloadCSV(csv, filename) {
 }
 
 // ===== INIT =====
+_loadAndRestore();
 document.getElementById('matchDate').value = new Date().toISOString().slice(0,10);
 buildQButtons();
 updateTimerDisplay();
+
+// ========== AUTO SAVE ==========
+const _LS_KEY = 'kul_score';
+function _saveState() {
+  try {
+    localStorage.setItem(_LS_KEY, JSON.stringify({
+      match: state.match, currentQ: state.currentQ,
+      shots: state.shots, turnovers: state.turnovers,
+      cl: state.cl, timeouts: state.timeouts
+    }));
+  } catch(e) {}
+}
+function _loadAndRestore() {
+  try {
+    const raw = localStorage.getItem(_LS_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (!s?.match?.date) return;
+    state.match = s.match; state.currentQ = s.currentQ || 1;
+    state.shots = s.shots || []; state.turnovers = s.turnovers || [];
+    state.cl = s.cl || {}; state.timeouts = s.timeouts || [];
+    state.timerSec = (state.match.qMinutes||15)*60;
+    document.getElementById('setupModal').classList.remove('open');
+    document.getElementById('enemyLabel').textContent = state.match.enemy;
+    const te = document.getElementById('teamEnemy');
+    if(te) te.textContent = state.match.enemy;
+    document.getElementById('headerMeta').textContent = state.match.date + ' vs ' + state.match.enemy;
+    buildQButtons(); updateTimerDisplay(); updateScore(); renderShotLog();
+    if(typeof renderTOLog==='function') renderTOLog();
+    _toast('💾 前回のデータを復元しました');
+  } catch(e) {}
+}
+function _toast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);background:#0f2918;border:1px solid #22c55e;color:#22c55e;padding:8px 18px;border-radius:20px;font-size:12px;font-weight:700;z-index:9999;pointer-events:none';
+  t.textContent = msg; document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+window.addEventListener('beforeunload', e => {
+  if (localStorage.getItem(_LS_KEY)) { e.preventDefault(); e.returnValue = ''; }
+});
+// ========== END AUTO SAVE ==========
+
 </script>
 </body>
 </html>

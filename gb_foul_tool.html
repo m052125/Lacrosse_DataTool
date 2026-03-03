@@ -625,9 +625,9 @@ function startMatch() {
   document.getElementById('headerMeta').textContent   = `${date} vs ${enemy}`;
   document.getElementById('barEnemyLbl').textContent  = `${enemy} GB`;
   document.getElementById('gbEnemyBtnLabel').textContent = enemy + ' ゲット';
+  localStorage.removeItem(_LS_KEY);
   document.getElementById('setupModal').classList.remove('open');
-  buildQBar();
-  updateStatBar();
+  buildQBar(); updateStatBar();
 }
 
 function buildQBar() {
@@ -738,6 +738,7 @@ function addGB() {
     note: document.getElementById('gbNote').value.trim(),
   };
   state.gbs.push(gb);
+  _saveState();
   updateStatBar();
   renderGBLog();
 
@@ -784,6 +785,7 @@ function renderGBLog() {
 
 function deleteGB(id) {
   state.gbs = state.gbs.filter(g => g.id !== id);
+  _saveState();
   updateStatBar();
   renderGBLog();
 }
@@ -813,6 +815,7 @@ function addFoul() {
     note: document.getElementById('foulNote').value.trim(),
   };
   state.fouls.push(foul);
+  _saveState();
   renderFoulLog();
 
   // リセット
@@ -850,6 +853,7 @@ function renderFoulLog() {
 
 function deleteFoul(id) {
   state.fouls = state.fouls.filter(f => f.id !== id);
+  _saveState();
   renderFoulLog();
 }
 
@@ -1025,8 +1029,50 @@ function dl(csv, filename) {
 }
 
 // ======== INIT ========
+_loadAndRestore();
 document.getElementById('matchDate').value = new Date().toISOString().slice(0,10);
 buildQBar();
+
+// ========== AUTO SAVE ==========
+const _LS_KEY = 'kul_gb_foul';
+function _saveState() {
+  try {
+    localStorage.setItem(_LS_KEY, JSON.stringify({
+      match: state.match, currentQ: state.currentQ,
+      gbs: state.gbs, fouls: state.fouls
+    }));
+  } catch(e) {}
+}
+function _loadAndRestore() {
+  try {
+    const raw = localStorage.getItem(_LS_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (!s?.match?.date) return;
+    state.match = s.match; state.currentQ = s.currentQ || 1;
+    state.gbs = s.gbs || []; state.fouls = s.fouls || [];
+    document.getElementById('setupModal').classList.remove('open');
+    document.getElementById('headerMeta').textContent = state.match.date + ' vs ' + state.match.enemy;
+    document.getElementById('barEnemyLbl').textContent = state.match.enemy + ' GB';
+    const el = document.getElementById('gbEnemyBtnLabel');
+    if(el) el.textContent = state.match.enemy + ' ゲット';
+    buildQBar(); updateStatBar();
+    if(typeof renderGBLog==='function') renderGBLog();
+    if(typeof renderFoulLog==='function') renderFoulLog();
+    _toast('💾 前回のデータを復元しました');
+  } catch(e) {}
+}
+function _toast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);background:#0f2918;border:1px solid #22c55e;color:#22c55e;padding:8px 18px;border-radius:20px;font-size:12px;font-weight:700;z-index:9999;pointer-events:none';
+  t.textContent = msg; document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+window.addEventListener('beforeunload', e => {
+  if (localStorage.getItem(_LS_KEY)) { e.preventDefault(); e.returnValue = ''; }
+});
+// ========== END AUTO SAVE ==========
+
 </script>
 </body>
 </html>

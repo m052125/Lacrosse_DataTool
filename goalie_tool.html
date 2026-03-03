@@ -188,8 +188,8 @@
     font-weight: 600; letter-spacing: 0.05em;
   }
   .goal-frame {
-    border-radius: 6px; overflow: hidden;
-    width: 100%;
+    border: 2px solid rgba(148,163,184,0.3); border-radius: 6px; overflow: hidden;
+    aspect-ratio: 3/2; width: 100%;
   }
   .goal-cell {
     border: 1px solid rgba(100,116,139,0.3);
@@ -600,7 +600,7 @@
 // ======== STATE ========
 // コースの位置名（3×3、上段が高め）
 // インデックス: 0=左上, 1=中上, 2=右上, 3=左中, 4=中, 5=右中, 6=左下, 7=中下, 8=右下
-const COURSE_NAMES = ['左上','中上','右上','左中','中央','右中','左下','中下','右下','枠外'];
+const COURSE_NAMES = ['左上','中上','右上','左中','中央','右中','左下','中下','右下'];
 
 const state = {
   match: { enemy: '相手', date: '', qCount: 4 },
@@ -633,13 +633,9 @@ function startMatch() {
   document.getElementById('headerMeta').textContent   = `${date} vs ${enemy}`;
   document.getElementById('barEnemyLbl').textContent  = `${enemy} セーブ率`;
   document.getElementById('enemyPanelName').textContent = `🔴 ${enemy} G`;
+  localStorage.removeItem(_LS_KEY);
   document.getElementById('setupModal').classList.remove('open');
-
-  buildQBar();
-  buildGoalFrames();
-  updateGInfo();
-  updateBanner();
-  updateSaveBar();
+  buildQBar(); buildGoalFrames(); updateGInfo(); updateBanner(); updateSaveBar();
 }
 
 function buildQBar() {
@@ -721,6 +717,7 @@ function finishChangeGoalie(num) {
   const side  = state.changeTarget;
   const hand  = prompt(`利き腕を入力 (右 or 左)`) || '右';
   state.goalies[side].push({ num, hand, fromQ: state.currentQ });
+  _saveState();
   updateGInfo();
   updateBanner();
   toast(`✔ G交代: ${side === 'kyoto' ? '京大' : state.match.enemy} → #${num}(${hand})`, 'var(--yellow)');
@@ -771,16 +768,11 @@ function buildGoalFrames() {
 
     const canvas = document.createElement('canvas');
     canvas.id = `goalCanvas-${side}`;
-    // Canvas: ゴール枠 + 枠外余白を含む
+    // 高解像度Canvas（3:2比率）
     canvas.width  = 360;
-    canvas.height = 320;
+    canvas.height = 240;
     canvas.style.cssText = 'width:100%;display:block;touch-action:none;cursor:crosshair;border-radius:4px;';
     wrap.appendChild(canvas);
-
-    // ゴール枠の描画領域（padding内）
-    const PAD_X = 48, PAD_Y = 40;
-    const GW = canvas.width  - 2 * PAD_X; // 264
-    const GH = canvas.height - 2 * PAD_Y; // 240
 
     // タップ/クリックイベント
     function getTapPos(e) {
@@ -788,29 +780,22 @@ function buildGoalFrames() {
       const cx = e.touches ? e.touches[0].clientX : (e.changedTouches ? e.changedTouches[0].clientX : e.clientX);
       const cy = e.touches ? e.touches[0].clientY : (e.changedTouches ? e.changedTouches[0].clientY : e.clientY);
       return {
-        x: (cx - r.left) / r.width,   // 0-1正規化 (キャンバス全体に対して)
+        x: (cx - r.left) / r.width,   // 0-1正規化
         y: (cy - r.top)  / r.height,
       };
     }
-    function computeCourse(p) {
-      const absX = p.x * canvas.width;
-      const absY = p.y * canvas.height;
-      // ゴール枠内かどうか
-      if (absX >= PAD_X && absX <= PAD_X + GW && absY >= PAD_Y && absY <= PAD_Y + GH) {
-        const col = Math.min(2, Math.floor((absX - PAD_X) / (GW / 3)));
-        const row = Math.min(2, Math.floor((absY - PAD_Y) / (GH / 3)));
-        return row * 3 + col; // 0-8
-      }
-      return 9; // 枠外
-    }
     canvas.addEventListener('click', e => {
       const p = getTapPos(e);
-      onCellTap(side, computeCourse(p), p.x, p.y);
+      const col = Math.min(2, Math.floor(p.x * 3));
+      const row = Math.min(1, Math.floor(p.y * 2));
+      onCellTap(side, row * 3 + col, p.x, p.y);
     });
     canvas.addEventListener('touchend', e => {
       e.preventDefault();
       const p = getTapPos(e);
-      onCellTap(side, computeCourse(p), p.x, p.y);
+      const col = Math.min(2, Math.floor(p.x * 3));
+      const row = Math.min(1, Math.floor(p.y * 2));
+      onCellTap(side, row * 3 + col, p.x, p.y);
     }, { passive: false });
   });
   // 全Canvas初期描画
@@ -818,110 +803,82 @@ function buildGoalFrames() {
 }
 
 // ======== ゴールCanvasを描画 ========
-// 9マス（3×3）+ 枠外余白エリア
+// 見本：9マス内に シンボルをタップ位置の正確な座標に配置
+// セーブ=「セ」(黄)、失点=「○」(緑)、枠外=「✓」(赤)
 function drawGoalCanvas(side) {
   const canvas = document.getElementById(`goalCanvas-${side}`);
   if (!canvas) return;
   const ctx  = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
+  const CW = W / 3, CH = H / 2; // セルサイズ
 
-  // ゴール枠の位置・サイズ
-  const PAD_X = 48, PAD_Y = 40;
-  const GW = W - 2 * PAD_X; // 264
-  const GH = H - 2 * PAD_Y; // 240
-  const CW = GW / 3;        // 88
-  const CH = GH / 3;        // 80
-
-  // キャンバス全体背景（枠外エリア）
-  ctx.fillStyle = '#060e1a';
+  // 背景
+  ctx.fillStyle = '#0d1f35';
   ctx.fillRect(0, 0, W, H);
 
-  // 枠外エリア（グリッド感）
-  ctx.strokeStyle = 'rgba(255,255,255,0.04)';
-  ctx.lineWidth = 1;
-  for (let x = 0; x <= W; x += 24) {
-    ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke();
-  }
-  for (let y = 0; y <= H; y += 24) {
-    ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke();
-  }
-
-  // ゴール枠内セル塗り分け
+  // セル塗り分け（ショット有無）
   const qShots = state.shots.filter(s => s.q === state.currentQ && s.side === side);
-  for (let row = 0; row < 3; row++) {
+  for (let row = 0; row < 2; row++) {
     for (let col = 0; col < 3; col++) {
       const idx = row * 3 + col;
-      const x = PAD_X + col * CW, y = PAD_Y + row * CH;
+      const x = col * CW, y = row * CH;
       const cellShots = qShots.filter(s => s.course === idx);
-      ctx.fillStyle = cellShots.length > 0 ? 'rgba(59,130,246,0.08)' : 'rgba(13,31,53,0.9)';
+      ctx.fillStyle = cellShots.length > 0 ? 'rgba(59,130,246,0.07)' : 'rgba(26,45,74,0.5)';
       ctx.fillRect(x + 1, y + 1, CW - 2, CH - 2);
     }
   }
 
-  // ゴール枠グリッド線
-  ctx.strokeStyle = 'rgba(148,163,184,0.45)';
+  // グリッド線
+  ctx.strokeStyle = 'rgba(148,163,184,0.5)';
   ctx.lineWidth = 1.5;
+  // 縦線
   for (let i = 1; i < 3; i++) {
-    ctx.beginPath(); ctx.moveTo(PAD_X + i * CW, PAD_Y); ctx.lineTo(PAD_X + i * CW, PAD_Y + GH); ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(i * CW, 0);
+    ctx.lineTo(i * CW, H);
+    ctx.stroke();
   }
-  for (let i = 1; i < 3; i++) {
-    ctx.beginPath(); ctx.moveTo(PAD_X, PAD_Y + i * CH); ctx.lineTo(PAD_X + GW, PAD_Y + i * CH); ctx.stroke();
-  }
-  // ゴール枠外枠
-  ctx.strokeStyle = 'rgba(200,220,255,0.75)';
+  // 横線（中央のみ）
+  ctx.beginPath();
+  ctx.moveTo(0, CH);
+  ctx.lineTo(W, CH);
+  ctx.stroke();
+  // 外枠
+  ctx.strokeStyle = 'rgba(200,220,255,0.7)';
   ctx.lineWidth = 2.5;
-  ctx.strokeRect(PAD_X + 0.5, PAD_Y + 0.5, GW - 1, GH - 1);
+  ctx.strokeRect(1, 1, W - 2, H - 2);
 
   // ゾーン名ラベル（薄く）
-  ctx.font = '10px sans-serif';
+  ctx.font = '11px sans-serif';
   ctx.fillStyle = 'rgba(100,120,150,0.4)';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'bottom';
-  for (let row = 0; row < 3; row++) {
+  for (let row = 0; row < 2; row++) {
     for (let col = 0; col < 3; col++) {
       const idx = row * 3 + col;
-      ctx.fillText(COURSE_NAMES[idx], PAD_X + col * CW + CW / 2, PAD_Y + (row + 1) * CH - 3);
+      ctx.fillText(COURSE_NAMES[idx], col * CW + CW / 2, (row + 1) * CH - 3);
     }
   }
 
-  // 枠外ラベル
-  ctx.fillStyle = 'rgba(239,68,68,0.25)';
-  ctx.font = 'bold 9px sans-serif';
-  ctx.textBaseline = 'middle';
-  ctx.textAlign = 'center';
-  ctx.fillText('↑枠外（高）', W/2, PAD_Y/2);
-  ctx.fillText('↓枠外（低）', W/2, PAD_Y + GH + PAD_Y/2);
-  ctx.save();
-  ctx.translate(PAD_X/2, H/2);
-  ctx.rotate(-Math.PI/2);
-  ctx.fillText('←枠外(左)', 0, 0);
-  ctx.restore();
-  ctx.save();
-  ctx.translate(W - PAD_X/2, H/2);
-  ctx.rotate(Math.PI/2);
-  ctx.fillText('←枠外(右)', 0, 0);
-  ctx.restore();
-
   // ショットシンボルをタップ座標に描画
-  const SYMS = { goal: '○', save: 'セ', miss: '✕' };
+  const SYMS = { goal: '○', save: 'セ', miss: '✓' };
   const COLS = { goal: '#22c55e', save: '#f59e0b', miss: '#ef4444' };
-  const R = Math.floor(Math.min(CW, CH) * 0.18);
+  const R = Math.floor(Math.min(CW, CH) * 0.18); // ドット半径
 
   qShots.forEach(s => {
+    // normX/normYがある場合は正確座標、なければゾーン中央
     let px, py;
     if (s.normX != null && s.normY != null) {
       px = s.normX * W;
       py = s.normY * H;
-    } else if (s.course < 9) {
+    } else {
       const col = s.course % 3;
       const row = Math.floor(s.course / 3);
-      px = PAD_X + col * CW + CW / 2;
-      py = PAD_Y + row * CH + CH / 2;
-    } else {
-      px = W / 2; py = PAD_Y / 2;
+      px = col * CW + CW / 2;
+      py = row * CH + CH / 2;
     }
 
-    // 影
+    // 白縁+色丸
     ctx.beginPath();
     ctx.arc(px, py, R + 1.5, 0, Math.PI * 2);
     ctx.fillStyle = 'rgba(0,0,0,0.4)';
@@ -932,6 +889,7 @@ function drawGoalCanvas(side) {
     ctx.fillStyle = COLS[s.result];
     ctx.fill();
 
+    // シンボル文字
     ctx.fillStyle = s.result === 'save' ? '#000' : '#fff';
     ctx.font = `bold ${Math.floor(R * 1.1)}px sans-serif`;
     ctx.textAlign = 'center';
@@ -953,13 +911,14 @@ function onCellTap(side, courseIdx, normX, normY) {
     side,
     result,
     course: courseIdx,
-    courseName: COURSE_NAMES[courseIdx] || '枠外',
+    courseName: COURSE_NAMES[courseIdx],
     normX: normX !== undefined ? Math.round(normX * 1000) / 1000 : null,
     normY: normY !== undefined ? Math.round(normY * 1000) / 1000 : null,
     goalieNum:  goalie?.num  || '?',
     goalieHand: goalie?.hand || '?',
   };
   state.shots.push(shot);
+  _saveState();
 
   // Canvas再描画
   drawGoalCanvas(side);
@@ -1064,6 +1023,7 @@ function renderLog() {
 function deleteShot(id) {
   const shot = state.shots.find(s => s.id === id);
   state.shots = state.shots.filter(s => s.id !== id);
+  _saveState();
   if (shot) drawGoalCanvas(shot.side);
   refreshFrames();
   updateMiniStats();
@@ -1112,7 +1072,7 @@ function updateStats() {
     panel.innerHTML = `<div class="heatmap-label" style="color:${color}">${name}</div>`;
     const grid = document.createElement('div');
     grid.className = 'heatmap-grid';
-    for (let i = 0; i < 9; i++) {  // 0-8 のみ（枠外=9 は別扱い）
+    for (let i = 0; i < 9; i++) {
       const cellShots = shots.filter(s => s.course === i);
       const total = cellShots.length;
       const goals = cellShots.filter(s => s.result === 'goal').length;
@@ -1126,16 +1086,6 @@ function updateStats() {
       cell.style.background = bg;
       cell.innerHTML = `<div class="heat-count">${total > 0 ? total : '—'}</div>${total > 0 ? `<div class="heat-sub">${goals}点/${saves}セ</div>` : ''}`;
       grid.appendChild(cell);
-    }
-    // 枠外集計
-    const outsideShots = shots.filter(s => s.course === 9);
-    if (outsideShots.length > 0) {
-      const outsideDiv = document.createElement('div');
-      outsideDiv.style.cssText = 'margin-top:4px;font-size:10px;color:var(--red);text-align:center;';
-      const og = outsideShots.filter(s => s.result === 'goal').length;
-      const os = outsideShots.filter(s => s.result === 'save').length;
-      outsideDiv.textContent = `枠外: ${outsideShots.length}本 (${og}点/${os}セ)`;
-      panel.appendChild(outsideDiv);
     }
     panel.appendChild(grid);
     hmWrap.appendChild(panel);
@@ -1265,8 +1215,52 @@ function exportCSV() {
 }
 
 // ======== INIT ========
+_loadAndRestore();
 document.getElementById('matchDate').value = new Date().toISOString().slice(0, 10);
 buildQBar();
+
+// ========== AUTO SAVE ==========
+const _LS_KEY = 'kul_goalie';
+function _saveState() {
+  try {
+    localStorage.setItem(_LS_KEY, JSON.stringify({
+      match: state.match, currentQ: state.currentQ,
+      shots: state.shots, goalies: state.goalies
+    }));
+  } catch(e) {}
+}
+function _loadAndRestore() {
+  try {
+    const raw = localStorage.getItem(_LS_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (!s?.match?.date) return;
+    state.match = s.match; state.currentQ = s.currentQ || 1;
+    state.shots = s.shots || [];
+    state.goalies = s.goalies || {kyoto:[], enemy:[]};
+    document.getElementById('setupModal').classList.remove('open');
+    document.getElementById('headerMeta').textContent = state.match.date + ' vs ' + state.match.enemy;
+    document.getElementById('barEnemyLbl').textContent = state.match.enemy + ' セーブ率';
+    const ep = document.getElementById('enemyPanelName');
+    if(ep) ep.textContent = '🔴 ' + state.match.enemy + ' G';
+    buildQBar();
+    if(typeof buildGoalFrames==='function') buildGoalFrames();
+    updateGInfo(); updateBanner(); updateSaveBar();
+    if(typeof renderLog==='function') renderLog();
+    _toast('💾 前回のデータを復元しました');
+  } catch(e) {}
+}
+function _toast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);background:#0f2918;border:1px solid #22c55e;color:#22c55e;padding:8px 18px;border-radius:20px;font-size:12px;font-weight:700;z-index:9999;pointer-events:none';
+  t.textContent = msg; document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+window.addEventListener('beforeunload', e => {
+  if (localStorage.getItem(_LS_KEY)) { e.preventDefault(); e.returnValue = ''; }
+});
+// ========== END AUTO SAVE ==========
+
 </script>
 </body>
 </html>

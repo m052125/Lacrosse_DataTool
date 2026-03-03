@@ -358,10 +358,9 @@ function startMatch() {
   document.getElementById('headerMeta').textContent = `${date} vs ${enemy}`;
   document.getElementById('enemyClLabel').textContent = enemy;
   document.getElementById('enemyClCol').textContent   = enemy + ' 成功/失敗/率';
+  localStorage.removeItem(_LS_KEY);
   document.getElementById('setupModal').classList.remove('open');
-  buildQButtons();
-  renderCL();
-  updateStats();
+  buildQButtons(); renderCL(); updateStats();
 }
 function openSetup() { document.getElementById('setupModal').classList.add('open'); }
 
@@ -467,6 +466,7 @@ function addTO() {
     note: document.getElementById('toNote').value,
   };
   state.turnovers.push(to);
+  _saveState();
   renderTOLog();
 
   // リセット
@@ -509,6 +509,7 @@ function renderTOLog() {
 
 function deleteTO(id) {
   state.turnovers = state.turnovers.filter(t => t.id !== id);
+  _saveState();
   renderTOLog();
   updateTOBalance();
 }
@@ -551,6 +552,7 @@ function renderCL() {
 function clCount(team, q, type) {
   if (!state.cl[team][q]) state.cl[team][q] = { ok: 0, ng: 0 };
   state.cl[team][q][type]++;
+  _saveState();
   const cl = state.cl[team][q];
   document.getElementById(`cl_${team}_ok_${q}`).textContent   = cl.ok;
   document.getElementById(`cl_${team}_ng_${q}`).textContent   = cl.ng;
@@ -688,8 +690,48 @@ function downloadCSV(csv, filename) {
 }
 
 // ===== INIT =====
+_loadAndRestore();
 document.getElementById('matchDate').value = new Date().toISOString().slice(0,10);
 buildQButtons();
+
+// ========== AUTO SAVE ==========
+const _LS_KEY = 'kul_to';
+function _saveState() {
+  try {
+    localStorage.setItem(_LS_KEY, JSON.stringify({
+      match: state.match, currentQ: state.currentQ,
+      turnovers: state.turnovers, cl: state.cl
+    }));
+  } catch(e) {}
+}
+function _loadAndRestore() {
+  try {
+    const raw = localStorage.getItem(_LS_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (!s?.match?.date) return;
+    state.match = s.match; state.currentQ = s.currentQ || 1;
+    state.turnovers = s.turnovers || []; state.cl = s.cl || {kyoto:{},enemy:{}};
+    document.getElementById('setupModal').classList.remove('open');
+    document.getElementById('headerMeta').textContent = state.match.date + ' vs ' + state.match.enemy;
+    document.getElementById('enemyClLabel').textContent = state.match.enemy;
+    document.getElementById('enemyClCol').textContent = state.match.enemy + ' 成功/失敗/率';
+    buildQButtons(); renderCL(); updateStats();
+    if(typeof renderTOLog==='function') renderTOLog();
+    _toast('💾 前回のデータを復元しました');
+  } catch(e) {}
+}
+function _toast(msg) {
+  const t = document.createElement('div');
+  t.style.cssText = 'position:fixed;top:10px;left:50%;transform:translateX(-50%);background:#0f2918;border:1px solid #22c55e;color:#22c55e;padding:8px 18px;border-radius:20px;font-size:12px;font-weight:700;z-index:9999;pointer-events:none';
+  t.textContent = msg; document.body.appendChild(t);
+  setTimeout(() => t.remove(), 3000);
+}
+window.addEventListener('beforeunload', e => {
+  if (localStorage.getItem(_LS_KEY)) { e.preventDefault(); e.returnValue = ''; }
+});
+// ========== END AUTO SAVE ==========
+
 </script>
 </body>
 </html>
