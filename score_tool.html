@@ -769,6 +769,10 @@
     </div>
 
     </div>
+    <div class="export-btn-row">
+      <button class="btn btn-primary" onclick="exportJSON()">📦 JSON出力</button>
+      <button class="btn btn-secondary" onclick="exportShotCSV()">📄 ショットCSV</button>
+    </div>
     <div class="section-title">JSONプレビュー</div>
     <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;overflow-x:auto;">
       <pre style="font-size:11px;color:var(--text2);white-space:pre-wrap;word-break:break-all;" id="jsonPreview">データを記録すると表示されます</pre>
@@ -879,6 +883,37 @@ function recordTO() {
   popup.style.display = 'block';
   setTimeout(() => { popup.style.display = 'none'; }, 2500);
   updateExport();
+}
+
+// ===== BUILD JSON / EXPORT =====
+function buildJSON() {
+  return {
+    meta: {
+      enemy: state.match.enemy,
+      date: state.match.date,
+      qCount: state.match.qCount,
+      qMinutes: state.match.qMinutes,
+      exportedAt: new Date().toISOString(),
+      tool: 'KyotoLacrosse ScoreTool v1.0',
+    },
+    shots: state.shots,
+    timeouts: state.timeouts,
+  };
+}
+
+function updateExport() {
+  const el = document.getElementById('jsonPreview');
+  if (el) el.textContent = JSON.stringify(buildJSON(), null, 2);
+}
+
+function exportJSON() {
+  const data = buildJSON();
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `score_${state.match.date}_${state.match.enemy}.json`;
+  a.click();
+  updateStats();
 }
 
 // ===== TABS =====
@@ -1048,6 +1083,7 @@ function deleteShot(id) {
 // ===== CL成功率 =====
 function renderCLSection() {
   const el = document.getElementById('clSection');
+  if (!el) return;
   let html = '';
   for (let q = 1; q <= state.match.qCount; q++) {
     if (!state.cl[q]) state.cl[q] = { ok: 0, ng: 0 };
