@@ -226,7 +226,8 @@
   </h1>
   <p class="hero-subtitle">
     試合中のデータをリアルタイムで収集し、<br>
-    Streamlitで可視化・分析するための統合ツール群。
+    Streamlitで可視化・分析するための統合ツール群。<br>
+    <span style="color:var(--accent3);font-size:13px">練習データ収集・分析ツールも追加。</span>
   </p>
   <div class="hero-cta-row">
     <a href="#tools" class="btn-hero btn-hero-primary">▶ ツールを使う</a>
@@ -385,6 +386,79 @@
       </div>
     </div>
 
+
+    <!-- === 練習ツール === -->
+    <div class="tool-category">
+      <div class="category-label">練習データ収集</div>
+      <div class="tools-grid">
+
+        <a href="index_FreeShot.html" class="tool-card" style="border-color:rgba(249,115,22,0.25);">
+          <div class="tool-card-header">
+            <div class="tool-icon" style="background:rgba(249,115,22,0.15);">🥍</div>
+            <span class="tool-badge badge-new">PRACTICE</span>
+          </div>
+          <div>
+            <div class="tool-name">フリーシュー記録</div>
+            <div class="tool-desc">シューター・ゴーリー・エリア・コースを選択してワンタップで記録。CSV出力対応</div>
+          </div>
+          <div class="tool-tags">
+            <span class="tag">エリア別</span><span class="tag">コース別</span>
+            <span class="tag">シューター</span><span class="tag">CSV出力</span>
+          </div>
+          <div class="tool-arrow">↗</div>
+        </a>
+
+        <a href="index_1on1.html" class="tool-card" style="border-color:rgba(249,115,22,0.25);">
+          <div class="tool-card-header">
+            <div class="tool-icon" style="background:rgba(249,115,22,0.15);">⚔️</div>
+            <span class="tool-badge badge-new">PRACTICE</span>
+          </div>
+          <div>
+            <div class="tool-name">1on1 記録</div>
+            <div class="tool-desc">AT・DF・ゴーリー・起点・抜き方・コースを記録。ショット/GB/ダウンボール対応。CSV出力対応</div>
+          </div>
+          <div class="tool-tags">
+            <span class="tag">AT vs DF</span><span class="tag">起点別</span>
+            <span class="tag">抜き方</span><span class="tag">CSV出力</span>
+          </div>
+          <div class="tool-arrow">↗</div>
+        </a>
+
+        <a href="index_6on6.html" class="tool-card" style="border-color:rgba(249,115,22,0.25);">
+          <div class="tool-card-header">
+            <div class="tool-icon" style="background:rgba(249,115,22,0.15);">🏟️</div>
+            <span class="tool-badge badge-new">PRACTICE</span>
+          </div>
+          <div>
+            <div class="tool-name">6on6 記録</div>
+            <div class="tool-desc">ショット・TO・GB・個人ミスの4種を1画面で記録。セット管理付き。CSV出力対応（最大4ファイル）</div>
+          </div>
+          <div class="tool-tags">
+            <span class="tag">ショット</span><span class="tag">TO</span>
+            <span class="tag">GB</span><span class="tag">個人ミス</span>
+          </div>
+          <div class="tool-arrow">↗</div>
+        </a>
+
+        <a href="practice_index.html" class="tool-card" style="border-color:rgba(249,115,22,0.25);">
+          <div class="tool-card-header">
+            <div class="tool-icon" style="background:rgba(249,115,22,0.15);">📊</div>
+            <span class="tool-badge badge-new">ANALYSIS</span>
+          </div>
+          <div>
+            <div class="tool-name">練習分析ダッシュボード</div>
+            <div class="tool-desc">上記3ツールのCSVを読み込んで可視化。フリシュー・1on1・6on6を選手別・日別に分析</div>
+          </div>
+          <div class="tool-tags">
+            <span class="tag">CSV読み込み</span><span class="tag">選手別</span>
+            <span class="tag">日別推移</span><span class="tag">ヒートマップ</span>
+          </div>
+          <div class="tool-arrow">↗</div>
+        </a>
+
+      </div>
+    </div>
+
     <!-- === 分析ダッシュボード === -->
     <div class="tool-category">
       <div class="category-label">分析</div>
@@ -515,7 +589,7 @@
 <footer class="footer">
   <div class="footer-logo">KYOTO LACROSSE</div>
   <div>試合データ収集システム — 全7ツール</div>
-  <div style="margin-top:6px;color:var(--text3);">score · to · possession · gb_foul · draw · goalie · streamlit</div>
+  <div style="margin-top:6px;color:var(--text3);">score · to · possession · gb_foul · draw · goalie · streamlit<br><span style="color:var(--accent2)">freeshot · 1on1 · 6on6 · practice dashboard</span></div>
 </footer>
 
 <script>
