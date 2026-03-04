@@ -248,7 +248,7 @@
             <div class="btn-row">
                 <button data-category="dodge" onclick="selectItem('dodge', 'アウト抜き', this)">アウト抜き</button>
                 <button data-category="dodge" onclick="selectItem('dodge', 'イン抜き', this)">イン抜き</button>
-                <button data-category="dodge" onclick="selectItem('dodge', 'なし', this)">×</button>
+                <button data-category="dodge" onclick="selectItem('dodge', '✕', this)">×</button>
             </div>
             <div class="btn-row">
                 <button data-category="hand" onclick="selectItem('hand', '左手', this)">左手</button>
@@ -375,7 +375,7 @@
             const gbArea = document.getElementById('gbWinnerArea');
             if (type === 'ショット') { shotArea.style.display = 'flex'; gbArea.style.display = 'none'; }
             else if (type === 'GB') { shotArea.style.display = 'none'; gbArea.style.display = 'flex'; }
-            else { shotArea.style.display = 'none'; gbArea.style.display = 'none'; currentData.result = "なし"; }
+            else { shotArea.style.display = 'none'; gbArea.style.display = 'none'; currentData.result = "✕"; }
             updateStatusText();
         }
 
