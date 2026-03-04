@@ -5,72 +5,54 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>🐬 1on1 記録ダッシュボード</title>
     <style>
-        /* === チームカラー設定 === */
         :root {
-            --navy: #0F2027; /* 深い紺色 */
+            --navy: #0F2027;
             --navy-light: #203A43;
-            --orange: #FF7000; /* 鮮やかなオレンジ */
+            --orange: #FF7000;
             --orange-light: #FF9E40;
-            --marine: #4FC3F7; /* イルカっぽい水色 */
+            --marine: #4FC3F7;
             --panel-bg: rgba(255, 255, 255, 0.95);
         }
-
         body {
             font-family: 'Helvetica Neue', Arial, sans-serif;
             background: linear-gradient(to bottom right, var(--navy), var(--navy-light));
             margin: 0; padding: 10px; color: #333;
             display: flex; height: 100vh; box-sizing: border-box; overflow: hidden; gap: 15px;
         }
-
         button { user-select: none; transition: 0.15s ease-in-out; }
-
-        /* パネル共通設定 */
         .panel {
             background: var(--panel-bg); border-radius: 16px;
             box-shadow: 0 8px 16px rgba(0,0,0,0.4);
             border-top: 5px solid var(--orange);
         }
-
-        /* === ① 左パネル：選手一覧 === */
         .left-panel { flex: 0 0 250px; display: flex; flex-direction: column; gap: 10px; }
-        
         .add-member-form { display: flex; gap: 5px; background: var(--panel-bg); padding: 10px; border-radius: 12px; }
         .add-member-form input { flex-grow: 1; padding: 8px; border-radius: 6px; border: 1px solid #aaa; font-size: 14px; }
         .add-member-form button { padding: 8px 12px; background-color: var(--navy-light); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
-
         .player-section {
             padding: 10px; display: flex; flex-direction: column; flex: 1; overflow: hidden;
         }
         .player-section h4 { margin: 0 0 8px 0; text-align: center; font-size: 15px; font-weight: 800; letter-spacing: 1px; }
         .player-grid-container { flex-grow: 1; overflow-y: auto; padding-right: 5px; }
         .shooter-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; }
-        
         button.player-btn {
-            border-radius: 8px; padding: 8px 0; font-size: 14px; font-weight: bold; 
+            border-radius: 8px; padding: 8px 0; font-size: 14px; font-weight: bold;
             cursor: pointer; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
         }
         button.player-btn:active { transform: translateY(2px); box-shadow: none; }
-
-        /* AT (オレンジ系) */
         .at-section { border-top-color: var(--orange); }
         .at-section h4 { color: var(--orange); }
         button.at-btn { border: 2px solid #ffcc80; color: #d84315; }
         button.at-btn.selected { background-color: var(--orange); border-color: var(--orange-light); color: white; }
-
-        /* DF (ブルー系) */
         .df-section { border-top-color: var(--marine); }
         .df-section h4 { color: #0277bd; }
         button.df-btn { border: 2px solid #81d4fa; color: #0277bd; }
         button.df-btn.selected { background-color: var(--marine); border-color: #29b6f6; color: white; }
-
-        /* === ② 中央パネル === */
         .center-panel {
             flex: 2; display: flex; flex-direction: column; align-items: center; justify-content: center;
             position: relative;
         }
         .court-container { position: relative; width: 100%; max-width: 500px; display: flex; flex-direction: column; align-items: center; }
-
-        /* 起点ボタン */
         .origin-btn {
             background-color: #fff; border: 2px solid #ccc; border-radius: 8px;
             padding: 8px 15px; font-size: 14px; font-weight: bold; color: #555;
@@ -82,42 +64,33 @@
         .origin-right-top { bottom: 20px; left: 5%; }
         .origin-center { bottom: -60px; left: 50%; transform: translateX(-50%); }
         .origin-left-top { bottom: 20px; right: 5%; }
-
-        /* コースグリッド */
         .course-grid { display: grid; grid-template-columns: repeat(3, 60px); gap: 5px; margin-top: 40px; position: relative; z-index: 10; }
         .course-grid button {
             height: 60px; font-size: 24px; background-color: rgba(255,255,255,0.8); color: var(--navy);
             border: 2px solid var(--navy-light); border-radius: 8px; font-weight: 900; cursor: pointer;
         }
         .course-grid button.selected { background-color: var(--orange); border-color: #fff; color: white; }
-
-        /* SVG */
         .svg-container { width: 100%; max-width: 450px; position: relative; z-index: 1; }
         .area-path { stroke: var(--navy); stroke-width: 2; cursor: pointer; }
-        .area-path.orange-slice { fill: #FFE0B2; } /* 薄いオレンジ */
-        .area-path.marine-slice { fill: #B3E5FC; } /* 薄い水色 */
+        .area-path.orange-slice { fill: #FFE0B2; }
+        .area-path.marine-slice { fill: #B3E5FC; }
         .area-path:hover { opacity: 0.8; }
         .area-path.selected { fill: var(--orange); stroke: #fff; stroke-width: 3; }
         .area-text { fill: var(--navy); font-size: 22px; font-weight: 900; pointer-events: none; text-anchor: middle; dominant-baseline: middle; }
         .area-path.selected + .area-text { fill: white; }
-
-        /* === ③ 右パネル === */
         .right-panel { flex: 0 0 320px; display: flex; flex-direction: column; gap: 10px; }
-        
         #statusBox {
             background: var(--navy); color: white; padding: 15px; border-radius: 12px;
             font-size: 14px; line-height: 1.6; font-weight: bold; box-shadow: 0 4px 8px rgba(0,0,0,0.3);
             border: 2px solid var(--navy-light);
         }
         #statusBox span { color: var(--marine); }
-        
         .action-section { padding: 15px; display: flex; flex-direction: column; gap: 10px; flex-grow: 1; overflow-y: auto; }
         .goalie-group { display: flex; flex-direction: column; gap: 5px; }
         select { width: 100%; font-size: 16px; padding: 10px; border-radius: 8px; border: 2px solid #ccc; font-weight: bold; background: #fff;}
         .add-goalie-form { display: flex; gap: 5px; }
         .add-goalie-form input { flex-grow: 1; padding: 6px; border-radius: 6px; border: 1px solid #aaa; font-size: 13px; }
         .add-goalie-form button { padding: 6px 10px; background-color: var(--navy-light); color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; }
-        
         .btn-row { display: flex; gap: 5px; justify-content: center; }
         .btn-row button {
             flex: 1; background-color: #fff; border: 2px solid #ddd; border-radius: 8px;
@@ -125,18 +98,54 @@
         }
         .btn-row button.selected { background-color: var(--navy-light); border-color: var(--navy); color: white; }
         .end-type-btn.selected { background-color: var(--orange); border-color: var(--orange-light); color: white; }
-        
         .hidden-area { display: none; flex-direction: column; gap: 5px; background: #f0f8ff; padding: 10px; border-radius: 8px; border: 1px solid #b3e5fc;}
         .hidden-area p { margin: 0 0 5px 0; font-size: 13px; text-align: center; color: var(--navy); font-weight: bold;}
         .shot-result-btn.selected { background-color: var(--orange); color: white; border-color: var(--orange-light);}
         .gb-btn.selected { background-color: var(--marine); color: white; border-color: #0288d1;}
-
         .submit-btn {
             background-color: var(--orange); border: none; border-radius: 8px;
             padding: 15px; font-size: 18px; font-weight: 900; color: white; letter-spacing: 2px;
             cursor: pointer; box-shadow: 0 4px 0px #c65300; margin-top: 10px;
         }
         .submit-btn:active { transform: translateY(4px); box-shadow: none; }
+        /* CSV ボタン */
+        .csv-btn {
+            background-color: #2e7d32; border: none; border-radius: 8px;
+            padding: 10px; font-size: 14px; font-weight: 900; color: white; letter-spacing: 1px;
+            cursor: pointer; box-shadow: 0 4px 0px #1b5e20;
+        }
+        .csv-btn:active { transform: translateY(4px); box-shadow: none; }
+        #recordCount { font-size: 12px; color: #666; text-align: center; font-weight: bold; }
+
+        @media (max-width: 680px) {
+            body {
+                flex-direction: column; height: auto; min-height: 100svh;
+                overflow-y: auto; overflow-x: hidden; gap: 10px;
+                padding: 8px 8px calc(8px + env(safe-area-inset-bottom)) 8px;
+            }
+            .left-panel { flex: none; width: 100%; gap: 8px; }
+            .player-section { flex: none; overflow: visible; }
+            .player-grid-container { overflow-y: visible; max-height: none; }
+            .shooter-grid { grid-template-columns: repeat(6, 1fr); gap: 4px; }
+            button.player-btn { padding: 6px 0; font-size: 12px; }
+            .center-panel { flex: none; width: 100%; padding: 10px; min-height: auto; justify-content: flex-start; }
+            .court-container { max-width: 100%; }
+            .course-grid { grid-template-columns: repeat(3, 1fr); gap: 5px; width: 100%; margin-top: 80px; }
+            .course-grid button { height: 56px; font-size: 22px; }
+            .svg-container { max-width: 100%; }
+            .origin-btn { font-size: 12px; padding: 6px 10px; }
+            .origin-right-ura { top: -4px; left: 6%; }
+            .origin-left-ura  { top: -4px; right: 6%; }
+            .origin-right-top { bottom: 14px; left: 2%; }
+            .origin-center    { bottom: -50px; }
+            .origin-left-top  { bottom: 14px; right: 2%; }
+            .right-panel { flex: none; width: 100%; gap: 8px; }
+            .action-section { padding: 12px; overflow-y: visible; }
+            #statusBox { font-size: 13px; line-height: 1.8; padding: 12px; }
+            select { font-size: 15px; }
+            .btn-row button { padding: 10px 0; font-size: 13px; }
+            .submit-btn { padding: 14px; font-size: 16px; }
+        }
     </style>
 </head>
 <body>
@@ -276,6 +285,10 @@
             </div>
 
             <button class="submit-btn" onclick="submitData()">SEND RECORD</button>
+
+            <hr style="border: 0; border-top: 1px solid #eee; width: 100%; margin: 2px 0;">
+            <div id="recordCount">記録件数: 0 件</div>
+            <button class="csv-btn" onclick="exportCSV()">📥 CSV 出力</button>
         </div>
     </div>
 
@@ -286,11 +299,32 @@
             '#08', '#21', '#77', '#09', '#28', '#98'
         ];
 
-        // ★フォームIDはご自身のものに置き換えてください
         const formURL = "https://docs.google.com/forms/d/e/1FAIpQLSee0kypAg7KwGE3grI4myaY14jWmhLErMQiGKtzA34swWSkPg/formResponse";
         const entries = { goalie: "entry.1155631017", at: "entry.1135836608", df: "entry.1558532586", origin: "entry.598171884", dodge: "entry.459944103", hand: "entry.721648620", shotPos: "entry.294019151", course: "entry.1363069560", endType: "entry.628539893", result: "entry.1200127512" };
 
         let currentData = { at: "", df: "", origin: "", dodge: "", hand: "", endType: "", result: "", shotPos: "", course: "" };
+
+        // ---- CSV 用レコード蓄積 ----
+        let records = [];
+
+        function updateRecordCount() {
+            document.getElementById('recordCount').textContent = `記録件数: ${records.length} 件`;
+        }
+
+        function exportCSV() {
+            if (records.length === 0) { alert('まだ記録がありません。'); return; }
+            const headers = ['日時', 'ゴーリー', 'AT', 'DF', '起点', '抜き方', '利き手', 'ショット位置', 'コース', '終了種別', '結果'];
+            const rows = records.map(r => headers.map(h => `"${(r[h] || '').toString().replace(/"/g, '""')}"`).join(','));
+            const csv = '\uFEFF' + headers.join(',') + '\n' + rows.join('\n');
+            const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `1on1_${new Date().toISOString().slice(0,10)}.csv`;
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+        // ---- ここまで ----
 
         function renderMembers() {
             const atGrid = document.getElementById('atGrid');
@@ -337,12 +371,10 @@
             element.classList.add('selected');
             currentData.result = "";
             document.querySelectorAll('.shot-result-btn, .gb-btn').forEach(el => el.classList.remove('selected'));
-
             const shotArea = document.getElementById('shotResultArea');
             const gbArea = document.getElementById('gbWinnerArea');
-
-            if (type === 'ショット') { shotArea.style.display = 'flex'; gbArea.style.display = 'none'; } 
-            else if (type === 'GB') { shotArea.style.display = 'none'; gbArea.style.display = 'flex'; } 
+            if (type === 'ショット') { shotArea.style.display = 'flex'; gbArea.style.display = 'none'; }
+            else if (type === 'GB') { shotArea.style.display = 'none'; gbArea.style.display = 'flex'; }
             else { shotArea.style.display = 'none'; gbArea.style.display = 'none'; currentData.result = "なし"; }
             updateStatusText();
         }
@@ -363,8 +395,9 @@
             if (currentData.endType === 'ショット' && (!currentData.result || !currentData.shotPos || !currentData.course)) { alert("ショット詳細を全て入力してください。"); return; }
             if (currentData.endType === 'GB' && !currentData.result) { alert("誰がGBを取ったか選択してください。"); return; }
 
+            const goalieVal = document.getElementById("goalieSelect").value;
             const formData = new URLSearchParams();
-            formData.append(entries.goalie, document.getElementById("goalieSelect").value);
+            formData.append(entries.goalie, goalieVal);
             formData.append(entries.at, currentData.at); formData.append(entries.df, currentData.df);
             formData.append(entries.origin, currentData.origin); formData.append(entries.dodge, currentData.dodge || "NULL");
             formData.append(entries.hand, currentData.hand || "NULL"); formData.append(entries.shotPos, currentData.shotPos || "NULL");
@@ -373,65 +406,31 @@
 
             fetch(formURL, { method: "POST", mode: "no-cors", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: formData })
             .then(() => {
-                currentData.dodge = ""; currentData.hand = ""; currentData.endType = ""; 
+                // CSV用にレコード保存
+                records.push({
+                    '日時': new Date().toLocaleString('ja-JP'),
+                    'ゴーリー': goalieVal,
+                    'AT': currentData.at,
+                    'DF': currentData.df,
+                    '起点': currentData.origin,
+                    '抜き方': currentData.dodge || '',
+                    '利き手': currentData.hand || '',
+                    'ショット位置': currentData.shotPos || '',
+                    'コース': currentData.course || '',
+                    '終了種別': currentData.endType,
+                    '結果': currentData.result
+                });
+                updateRecordCount();
+
+                currentData.dodge = ""; currentData.hand = ""; currentData.endType = "";
                 currentData.result = ""; currentData.shotPos = ""; currentData.course = "";
                 document.querySelectorAll(".end-type-btn, .shot-result-btn, .gb-btn, [data-category='dodge'], [data-category='hand'], [data-category='shotPos'], [data-category='course']").forEach(el => el.classList.remove('selected'));
                 document.getElementById('shotResultArea').style.display = 'none'; document.getElementById('gbWinnerArea').style.display = 'none';
-                updateStatusText(); _on1SaveLocal(); alert("🐬 記録完了！");
+                updateStatusText(); alert("🐬 記録完了！");
             }).catch(() => { alert("エラー: 通信失敗"); });
-        }
-
-
-        // ===== ローカル記録 & CSV出力 =====
-        const _on1Records = [];
-
-        function _on1SaveLocal() {
-            _on1Records.push({
-                timestamp: new Date().toISOString(),
-                goalie:    document.getElementById('goalieSelect').value,
-                at:        currentData.at,
-                df:        currentData.df,
-                origin:    currentData.origin,
-                dodge:     currentData.dodge  || 'NULL',
-                hand:      currentData.hand   || 'NULL',
-                shotPos:   currentData.shotPos || 'NULL',
-                course:    currentData.course  || 'NULL',
-                endType:   currentData.endType,
-                result:    currentData.result  || 'NULL',
-            });
-            document.getElementById('_on1Count').textContent = _on1Records.length + '件';
-        }
-
-        function _on1ExportCSV() {
-            if (!_on1Records.length) { alert('まだ記録がありません'); return; }
-            const bom = '\uFEFF';
-            const header = 'timestamp,goalie,at,df,origin,dodge,hand,shotPos,course,endType,result';
-            const rows = _on1Records.map(r =>
-                [r.timestamp, r.goalie, r.at, r.df, r.origin, r.dodge,
-                 r.hand, r.shotPos, r.course, r.endType, r.result].join(',')
-            );
-            const blob = new Blob([bom + [header, ...rows].join('\n')], { type: 'text/csv;charset=utf-8;' });
-            const a = document.createElement('a');
-            a.href = URL.createObjectURL(blob);
-            a.download = `1on1_${new Date().toISOString().slice(0,10)}.csv`;
-            a.click();
         }
 
         renderMembers();
     </script>
-
-<div style="position:fixed;bottom:12px;right:12px;z-index:999;display:flex;flex-direction:column;align-items:flex-end;gap:6px">
-  <div style="background:rgba(0,0,0,.7);border:1px solid #444;color:#aaa;font-size:11px;padding:3px 10px;border-radius:10px" id="_on1Count">0件</div>
-  <button onclick="_on1ExportCSV()" style="background:#f97316;border:none;color:#fff;font-weight:700;font-size:13px;padding:10px 18px;border-radius:12px;cursor:pointer;box-shadow:0 4px 0 #c2580e;letter-spacing:.05em">📥 CSV出力</button>
-</div>
-
-<script>
-window.addEventListener('beforeunload', function(e) {
-  if (_on1Records.length > 0) {
-    e.preventDefault();
-    e.returnValue = '1on1の記録がCSV未出力です。このページを離れますか？';
-  }
-});
-</script>
 </body>
 </html>

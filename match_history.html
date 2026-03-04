@@ -31,8 +31,6 @@ body::before{
   content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
   background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
 }
-
-/* ── HEADER ── */
 #hdr{position:fixed;top:0;left:0;right:0;z-index:200;background:rgba(7,14,28,.94);backdrop-filter:blur(24px);border-bottom:1px solid var(--s3);padding-top:env(safe-area-inset-top);}
 .hdr-in{display:flex;align-items:center;gap:10px;padding:0 14px;height:54px;max-width:960px;margin:0 auto;}
 .hdr-brand{display:flex;flex-direction:column}
@@ -45,27 +43,19 @@ body::before{
 .clear-btn{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:var(--red);font-family:var(--font-b);font-size:.58rem;font-weight:700;letter-spacing:.08em;padding:4px 9px;border-radius:10px;cursor:pointer;transition:all .2s;}
 .clear-btn:active{background:rgba(239,68,68,.2);}
 .home-btn{background:rgba(91,141,184,.1);border:1px solid rgba(91,141,184,.25);color:var(--steel);font-family:var(--font-b);font-size:.58rem;font-weight:700;letter-spacing:.08em;padding:4px 9px;border-radius:10px;cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:4px;}
-
-/* ── NAV ── */
 #bnav{position:fixed;bottom:0;left:0;right:0;z-index:200;background:rgba(7,14,28,.97);border-top:1px solid var(--s3);padding-bottom:env(safe-area-inset-bottom);padding-left:env(safe-area-inset-left);padding-right:env(safe-area-inset-right);display:flex;overflow-x:auto;scrollbar-width:none;}
 #bnav::-webkit-scrollbar{display:none}
 .nb{flex:1;min-width:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px;border:none;background:none;cursor:pointer;color:var(--tx3);font-size:.5rem;letter-spacing:.05em;font-family:var(--font-b);font-weight:700;gap:3px;transition:color .2s;min-height:52px;}
 .nb .ni{font-size:1.15rem;line-height:1}
 .nb.on{color:var(--orange)}
 .nb.on .ni{filter:drop-shadow(0 0 5px rgba(249,115,22,.7))}
-
-/* ── MAIN ── */
 #main{padding-top:calc(54px + env(safe-area-inset-top));padding-bottom:calc(60px + env(safe-area-inset-bottom));max-width:960px;margin:0 auto;position:relative;z-index:1;}
 .pg{display:none;padding:14px}
 .pg.on{display:block}
-
-/* ── SECTION HDR ── */
 .sec{display:flex;align-items:center;gap:10px;margin-bottom:14px}
 .sec-tag{font-family:var(--font-b);font-size:.6rem;font-weight:800;letter-spacing:.2em;color:var(--orange);background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.22);padding:3px 10px;border-radius:20px;white-space:nowrap;}
 .sec-ttl{font-family:var(--font-b);font-size:1.1rem;font-weight:700;letter-spacing:.06em}
 .sec-line{flex:1;height:1px;background:var(--s3)}
-
-/* ── SETUP ── */
 .setup{background:var(--s2);border:1px solid var(--s3);border-radius:var(--rl);padding:20px;margin-bottom:14px}
 .setup-ttl{font-family:var(--font-b);font-size:1rem;font-weight:700;letter-spacing:.1em;color:var(--orange);margin-bottom:6px}
 .setup-desc{font-size:.76rem;color:var(--tx2);line-height:1.7;margin-bottom:14px}
@@ -74,8 +64,6 @@ body::before{
 .dz-icon{font-size:1.6rem;margin-bottom:5px}
 .dz-ttl{font-family:var(--font-b);font-size:.88rem;font-weight:700;letter-spacing:.06em}
 .dz-sub{font-size:.68rem;color:var(--tx3);margin-top:3px}
-
-/* ── CARD ── */
 .card{background:var(--s2);border:1px solid var(--s3);border-radius:var(--r);padding:14px;margin-bottom:12px}
 .card-ttl{font-family:var(--font-b);font-size:.78rem;font-weight:700;letter-spacing:.1em;color:var(--tx2);text-transform:uppercase;margin-bottom:12px;display:flex;align-items:center;gap:6px;}
 .card-ttl::before{content:'';display:block;width:3px;height:13px;background:var(--orange);border-radius:2px;flex-shrink:0}
@@ -83,8 +71,6 @@ body::before{
 @media(min-width:600px){.grid2{grid-template-columns:1fr 1fr}}
 .grid3{display:grid;grid-template-columns:1fr;gap:10px}
 @media(min-width:600px){.grid3{grid-template-columns:repeat(3,1fr)}}
-
-/* ── METRICS ── */
 .metrics{display:grid;gap:9px;margin-bottom:12px}
 .m2{grid-template-columns:1fr 1fr}.m3{grid-template-columns:repeat(3,1fr)}.m4{grid-template-columns:repeat(2,1fr)}
 @media(min-width:600px){.m4{grid-template-columns:repeat(4,1fr)}}
@@ -105,8 +91,6 @@ body::before{
 .pfill{height:100%;border-radius:2px;transition:width .6s}
 .pf-ko{background:linear-gradient(90deg,var(--odim),var(--orange))}
 .pf-gr{background:var(--green)}.pf-rd{background:var(--red)}.pf-st{background:var(--steel)}
-
-/* ── TABLE ── */
 .tbl-w{overflow-x:auto;-webkit-overflow-scrolling:touch}
 table.dt{width:100%;border-collapse:collapse;font-size:.78rem;white-space:nowrap}
 table.dt th{font-family:var(--font-b);font-size:.58rem;font-weight:700;letter-spacing:.12em;color:var(--tx3);padding:7px 9px;border-bottom:1px solid var(--s3);text-align:left}
@@ -115,32 +99,18 @@ table.dt tr:last-child td{border-bottom:none}
 table.dt tr:hover td{background:rgba(249,115,22,.03)}
 .nc{font-family:var(--font-b);font-size:.95rem;font-weight:700}
 .good{color:var(--green)}.warn{color:var(--yellow)}.bad{color:var(--red)}
-
-/* ── CHART ── */
 .ch-box{position:relative;height:200px}
 @media(min-width:600px){.ch-box{height:240px}}
 .ch-box-sm{position:relative;height:160px}
-
-/* ── RATE BAR ── */
 .rb-w{display:flex;align-items:center;gap:6px}
 .rb{flex:1;height:5px;background:var(--s3);border-radius:3px;overflow:hidden}
 .rb-f{height:100%;border-radius:3px;transition:width .5s}
 .rb-lbl{font-family:var(--font-b);font-weight:700;font-size:.8rem;min-width:38px;text-align:right}
-
-/* ── NODATA ── */
 .nodata{background:var(--s2);border:1px dashed var(--s3);border-radius:var(--r);padding:36px 16px;text-align:center;color:var(--tx3);font-size:.8rem}
 .nodata .nd-i{font-size:1.7rem;margin-bottom:7px}
-
-/* ── TOAST ── */
 .toast{position:fixed;bottom:calc(64px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:var(--s3);border:1px solid var(--s4);padding:8px 16px;border-radius:20px;font-size:.76rem;color:var(--tx);opacity:0;transition:all .3s;z-index:999;white-space:nowrap;pointer-events:none;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
-
-/* ── MATCH CARD ── */
-.match-card{
-  background:var(--s2);border:1px solid var(--s3);border-radius:var(--r);
-  padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;
-  position:relative;overflow:hidden;cursor:pointer;transition:border-color .2s;
-}
+.match-card{background:var(--s2);border:1px solid var(--s3);border-radius:var(--r);padding:12px 14px;margin-bottom:8px;display:flex;align-items:center;gap:12px;position:relative;overflow:hidden;cursor:pointer;transition:border-color .2s;}
 .match-card:hover{border-color:rgba(249,115,22,.4)}
 .match-card.win{border-left:3px solid var(--orange)}
 .match-card.lose{border-left:3px solid var(--steel)}
@@ -160,15 +130,11 @@ table.dt tr:hover td{background:rgba(249,115,22,.03)}
 .mc-pills{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px;}
 .mc-pill{font-size:.5rem;font-family:var(--font-b);font-weight:700;padding:1px 5px;border-radius:3px;background:var(--s3);color:var(--tx3);}
 .mc-pill.ok{background:rgba(34,197,94,.1);color:var(--green)}
-
-/* ── FILTER BAR ── */
 .flt-row{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;align-items:center;}
 .flt-lbl{font-family:var(--font-b);font-size:.6rem;font-weight:700;letter-spacing:.1em;color:var(--tx3);}
 .flt-btn{padding:4px 11px;border-radius:14px;border:1px solid var(--s3);background:transparent;color:var(--tx2);font-size:.65rem;font-weight:700;cursor:pointer;font-family:var(--font-b);letter-spacing:.05em;transition:all .2s;}
 .flt-btn.on{background:rgba(249,115,22,.15);border-color:rgba(249,115,22,.4);color:var(--orange);}
 .flt-btn:active{transform:scale(.95)}
-
-/* ── PLAYER ROW ── */
 .player-row{display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid rgba(26,45,74,.4);}
 .player-row:last-child{border-bottom:none}
 .pr-rank{font-family:var(--font-d);font-size:1.3rem;color:var(--tx3);min-width:24px;text-align:center}
@@ -178,14 +144,9 @@ table.dt tr:hover td{background:rgba(249,115,22,.03)}
 .pr-stat{text-align:right;}
 .pr-stat-val{font-family:var(--font-b);font-size:.85rem;font-weight:700}
 .pr-stat-lbl{font-size:.48rem;color:var(--tx3);font-family:var(--font-b)}
-
-/* ── TREND TIMELINE ── */
 .timeline{display:flex;gap:4px;overflow-x:auto;padding-bottom:4px;scrollbar-width:none;margin-bottom:12px;}
 .timeline::-webkit-scrollbar{display:none}
-.tl-chip{
-  flex:0 0 auto;min-width:54px;background:var(--s1);border:1px solid var(--s3);border-radius:8px;
-  padding:7px 6px;text-align:center;cursor:pointer;transition:border-color .2s;
-}
+.tl-chip{flex:0 0 auto;min-width:54px;background:var(--s1);border:1px solid var(--s3);border-radius:8px;padding:7px 6px;text-align:center;cursor:pointer;transition:border-color .2s;}
 .tl-chip:hover{border-color:rgba(249,115,22,.35)}
 .tl-chip.selected{border-color:var(--orange);background:rgba(249,115,22,.06)}
 .tl-date{font-size:.5rem;color:var(--tx3);font-family:var(--font-b);margin-bottom:3px}
@@ -196,20 +157,10 @@ table.dt tr:hover td{background:rgba(249,115,22,.03)}
 .tl-sep{font-family:var(--font-d);font-size:.65rem;color:var(--tx3)}
 .tl-w{background:rgba(249,115,22,.12);border-color:rgba(249,115,22,.25)}
 .tl-l{background:rgba(91,141,184,.07);border-color:rgba(91,141,184,.2)}
-
-/* ── Q HEATMAP ── */
 .q-hm-wrap{display:flex;flex-direction:column;gap:3px}
 .q-hm-row{display:flex;gap:3px;align-items:center}
 .q-hm-lbl{font-family:var(--font-b);font-size:.55rem;color:var(--tx3);min-width:16px}
 .q-hm-cell{flex:1;height:28px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-family:var(--font-b);font-size:.7rem;font-weight:700;border:1px solid rgba(255,255,255,.04);}
-
-/* ── SEASONAL RECORD ── */
-.season-bar{display:flex;height:10px;border-radius:5px;overflow:hidden;gap:2px;margin:8px 0}
-.sb-w{flex:1;background:var(--orange)}
-.sb-d{flex:1;background:var(--tx3)}
-.sb-l{flex:1;background:var(--steel)}
-
-/* ── IMPORT MODAL ── */
 #importModal{display:none;position:fixed;inset:0;z-index:400;background:rgba(7,14,28,.85);backdrop-filter:blur(8px);align-items:center;justify-content:center;padding:max(20px,env(safe-area-inset-top)) 20px max(20px,env(safe-area-inset-bottom));}
 #importModal.open{display:flex;}
 .modal-box{background:var(--s2);border:1px solid var(--s3);border-radius:var(--rl);padding:22px;max-width:480px;width:100%;}
@@ -225,13 +176,10 @@ table.dt tr:hover td{background:rgba(249,115,22,.03)}
 .btn-ok{flex:1;background:var(--orange);color:#fff;border:none;border-radius:8px;padding:10px;font-family:var(--font-b);font-size:.8rem;font-weight:700;letter-spacing:.08em;cursor:pointer;transition:all .2s;}
 .btn-ok:hover{background:var(--orange2)}
 .btn-cancel{background:var(--s3);color:var(--tx2);border:none;border-radius:8px;padding:10px 16px;font-family:var(--font-b);font-size:.8rem;font-weight:700;cursor:pointer;}
-
-/* ── PILLS ── */
 .pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .pill{display:flex;align-items:center;gap:5px;background:var(--bg);border:1px solid var(--s3);border-radius:20px;padding:4px 10px;font-size:.62rem;font-weight:700;color:var(--tx3);transition:all .3s;}
 .pill.ok{background:rgba(34,197,94,.07);border-color:rgba(34,197,94,.3);color:var(--green)}
 .pdot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
-
 @media(max-width:400px){.m-val{font-size:2rem}}
 @media(max-width:400px){.hdr-stat,.clear-btn,.home-btn{font-size:.52rem;padding:3px 6px;}}
 </style>
@@ -255,7 +203,6 @@ table.dt tr:hover td{background:rgba(249,115,22,.03)}
 
 <main id="main">
 
-<!-- ① HOME -->
 <div class="pg on" id="pg-home">
   <div class="sec"><div class="sec-tag">HOME</div><div class="sec-ttl">試合データ管理</div><div class="sec-line"></div></div>
 
@@ -286,46 +233,38 @@ table.dt tr:hover td{background:rgba(249,115,22,.03)}
     </div>
   </div>
 
-  <!-- サマリー指標 -->
   <div id="homeSummary"></div>
 
-  <!-- 試合一覧タイムライン -->
   <div class="card">
     <div class="card-ttl">試合履歴</div>
     <div id="matchList"><div class="nodata"><div class="nd-i">📋</div>まだ試合データがありません</div></div>
   </div>
 
-  <!-- テストデータ -->
   <div style="margin-top:4px;text-align:center">
     <button class="flt-btn" style="font-size:.65rem;padding:6px 14px" onclick="loadTestMatches()">🧪 テストデータ（5試合）をロード</button>
   </div>
 </div>
 
-<!-- ② シーズン概観 -->
 <div class="pg" id="pg-season">
   <div class="sec"><div class="sec-tag">SEASON</div><div class="sec-ttl">シーズン概観</div><div class="sec-line"></div></div>
   <div id="seasonBody"><div class="nodata"><div class="nd-i">📈</div>試合データをロードしてください</div></div>
 </div>
 
-<!-- ③ 選手分析 -->
 <div class="pg" id="pg-player">
   <div class="sec"><div class="sec-tag">PLAYER</div><div class="sec-ttl">選手別 累計成績</div><div class="sec-line"></div></div>
   <div id="playerBody"><div class="nodata"><div class="nd-i">🏃</div>試合データをロードしてください</div></div>
 </div>
 
-<!-- ④ 対戦相手分析 -->
 <div class="pg" id="pg-opponent">
   <div class="sec"><div class="sec-tag">OPPONENT</div><div class="sec-ttl">対戦相手別 パターン</div><div class="sec-line"></div></div>
   <div id="opponentBody"><div class="nodata"><div class="nd-i">⚔️</div>試合データをロードしてください</div></div>
 </div>
 
-<!-- ⑤ Q分析 -->
 <div class="pg" id="pg-q">
   <div class="sec"><div class="sec-tag">QUARTER</div><div class="sec-ttl">Q別 傾向分析</div><div class="sec-line"></div></div>
   <div id="qBody"><div class="nodata"><div class="nd-i">⏱</div>試合データをロードしてください</div></div>
 </div>
 
-<!-- ⑥ 試合詳細 -->
 <div class="pg" id="pg-detail">
   <div class="sec"><div class="sec-tag">DETAIL</div><div class="sec-ttl">試合詳細</div><div class="sec-line"></div></div>
   <div id="detailBody"><div class="nodata"><div class="nd-i">🔍</div>左のタイムラインから試合を選択</div></div>
@@ -362,17 +301,14 @@ table.dt tr:hover td{background:rgba(249,115,22,.03)}
 <div class="toast" id="toast"></div>
 
 <script>
-// =============================================
-// CONSTANTS & STATE
-// =============================================
 const STORAGE_KEY = 'kul_match_history_v2';
 const TOOL_MAP = {
   'ScoreTool':'score','TOTool':'to','PossessionTool':'possession',
   'GBFoulTool':'gb_foul','DrawTool':'draw','GoalieTool':'goalie'
 };
 
-let DB = [];         // 蓄積済み試合リスト
-let pending = {};    // 現在読み込み中のJSON群
+let DB = [];
+let pending = {};
 let selectedMatchId = null;
 const charts = {};
 
@@ -380,9 +316,6 @@ Chart.defaults.color = '#4a6080';
 Chart.defaults.font.family = "'Barlow Condensed','Noto Sans JP',sans-serif";
 const CG = 'rgba(26,45,74,0.9)';
 
-// =============================================
-// UTILS
-// =============================================
 function $(id){ return document.getElementById(id); }
 function pct(a,b){ return b>0 ? Math.round(a/b*100) : 0; }
 function mmss(s){ if(!s&&s!==0) return '—'; return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; }
@@ -416,9 +349,6 @@ function donut(id,labels,data,colors){
   charts[id]=new Chart(el,{type:'doughnut',data:{labels,datasets:[{data,backgroundColor:colors,borderColor:'#132038',borderWidth:3}]},options:{responsive:true,maintainAspectRatio:false,cutout:'62%',plugins:{legend:{position:'right',labels:{font:{size:11,weight:'700'},padding:8,boxWidth:12}}}}});
 }
 
-// =============================================
-// STORAGE
-// =============================================
 function saveDB(){ try{localStorage.setItem(STORAGE_KEY, JSON.stringify(DB));}catch(e){} }
 function loadDB(){
   try{
@@ -427,9 +357,6 @@ function loadDB(){
   }catch(e){ DB=[]; }
 }
 
-// =============================================
-// FILE LOAD
-// =============================================
 const dz=$('dz'), fi=$('fi');
 dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
 dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
@@ -459,28 +386,21 @@ function handleFiles(files){
 
 function afterLoad(){
   if(!Object.keys(pending).length){toast('⚠️ 有効なJSONが見つかりませんでした');return;}
-
-  // ピル更新
   $('pendingPills').style.display='flex';
   $('pendingActions').style.display='flex';
   Object.keys(TOOL_MAP).forEach(k=>{
     const v=TOOL_MAP[k];
     $('pp-'+v)?.classList.toggle('ok', !!pending[v]);
   });
-
-  // メタ情報自動取得
   const meta=(pending.score||pending.to||pending.possession||pending.gb_foul||pending.draw||pending.goalie)?.meta||{};
   $('mDate').value = meta.date || new Date().toISOString().slice(0,10);
   $('mEnemy').value = meta.enemy || '';
   $('mCategory').value = meta.category || '';
   $('mNote').value = '';
-
   $('importModal').classList.add('open');
 }
 
-function closeModal(){
-  $('importModal').classList.remove('open');
-}
+function closeModal(){ $('importModal').classList.remove('open'); }
 
 function confirmSave(){
   const date=$('mDate').value;
@@ -488,23 +408,18 @@ function confirmSave(){
   const category=$('mCategory').value.trim();
   const note=$('mNote').value.trim();
   if(!date){toast('⚠️ 日付を入力してください');return;}
-
-  // 重複チェック（同日×同相手）
   const dup=DB.find(m=>m.date===date&&m.enemy===enemy);
   if(dup){
     if(!confirm(`${date} vs ${enemy} の試合は既に登録済みです。上書きしますか？`)) return;
     DB=DB.filter(m=>!(m.date===date&&m.enemy===enemy));
   }
-
   const id=`${date}_${enemy.replace(/\s/g,'_')}_${Date.now()}`;
   const shots=(pending.score?.shots)||[];
   const kGoals=shots.filter(s=>s.team==='kyoto'&&s.result==='goal').length;
   const eGoals=shots.filter(s=>s.team==='enemy'&&s.result==='goal').length;
   const result=kGoals>eGoals?'win':kGoals<eGoals?'lose':'draw';
-
   DB.push({id,date,enemy,category,note,result,kGoals,eGoals,data:pending,loadedAt:Date.now()});
   DB.sort((a,b)=>a.date.localeCompare(b.date));
-
   saveDB(); closeModal(); discardPending();
   renderAll();
   toast(`✅ ${date} vs ${enemy} を保存しました`);
@@ -519,9 +434,6 @@ function discardPending(){
   document.querySelectorAll('[id^="pp-"]').forEach(el=>el.classList.remove('ok'));
 }
 
-// =============================================
-// DELETE MATCH
-// =============================================
 function deleteMatch(id,e){
   e.stopPropagation();
   const m=DB.find(x=>x.id===id);
@@ -539,9 +451,6 @@ function clearAll(){
   toast('🗑 全データを消去しました');
 }
 
-// =============================================
-// FILTER
-// =============================================
 let fltResult='all', fltCategory='all';
 
 function filteredMatches(){
@@ -552,9 +461,6 @@ function filteredMatches(){
   });
 }
 
-// =============================================
-// RENDER HOME
-// =============================================
 function renderHome(){
   const matches=DB;
   const wins=matches.filter(m=>m.result==='win').length;
@@ -562,17 +468,13 @@ function renderHome(){
   const losses=matches.filter(m=>m.result==='lose').length;
   const total=matches.length;
   const winRate=pct(wins,total);
-
   $('hMatchCnt').textContent=`${total} 試合`;
   $('hWinRate').textContent=total?`${wins}勝${draws}分${losses}敗`:'勝率 —';
-
   if(!total){
     $('homeSummary').innerHTML='';
     $('matchList').innerHTML='<div class="nodata"><div class="nd-i">📋</div>まだ試合データがありません<br><small style="font-size:.7rem;margin-top:6px;display:block">JSONをドロップするか、テストデータをロードしてください</small></div>';
     return;
   }
-
-  // サマリー指標
   const kTotalGoals=matches.reduce((a,m)=>a+m.kGoals,0);
   const eTotalGoals=matches.reduce((a,m)=>a+m.eGoals,0);
   const kAllShots=matches.flatMap(m=>(m.data.score?.shots||[]).filter(s=>s.team==='kyoto'));
@@ -582,7 +484,6 @@ function renderHome(){
   const eTO=toList.filter(t=>t.side==='enemy').length;
   const drawList=matches.flatMap(m=>(m.data.draw?.draws||[]));
   const drawGetRate=pct(drawList.filter(d=>d.result==='ok').length,drawList.filter(d=>d.result!=='foul').length);
-
   $('homeSummary').innerHTML=`
   <div class="metrics m4" style="margin-bottom:12px">
     <div class="metric ko"><div class="m-lbl">勝率</div><div class="m-val ko">${winRate}<span style="font-size:1.3rem">%</span></div><div class="m-sub">${wins}勝${draws}分${losses}敗 / ${total}試合</div><div class="pbar"><div class="pfill pf-ko" style="width:${winRate}%"></div></div></div>
@@ -590,15 +491,12 @@ function renderHome(){
     <div class="metric gr"><div class="m-lbl">通算 決定率</div><div class="m-val gr">${kShotRate}<span style="font-size:1.3rem">%</span></div><div class="m-sub">${kTotalGoals}得点/${kAllShots.length}本</div></div>
     <div class="metric ${drawGetRate>=50?'ko':'en'}"><div class="m-lbl">ドローゲット率</div><div class="m-val ${drawGetRate>=50?'ko':'en'}">${drawList.filter(d=>d.result!=='foul').length?drawGetRate+'%':'—'}</div></div>
   </div>`;
-
-  // フィルターボタン
   const categories=[...new Set(DB.map(m=>m.category).filter(Boolean))];
   const fltHtml=`<div class="flt-row">
     <span class="flt-lbl">結果:</span>
     ${['all','win','draw','lose'].map(v=>`<button class="flt-btn ${fltResult===v?'on':''}" onclick="setFlt('result','${v}',this)">${{all:'全て',win:'勝',draw:'分',lose:'負'}[v]}</button>`).join('')}
     ${categories.length?`<span class="flt-lbl" style="margin-left:8px">カテゴリ:</span>${['all',...categories].map(c=>`<button class="flt-btn ${fltCategory===c?'on':''}" onclick="setFlt('cat','${c}',this)">${c==='all'?'全て':c}</button>`).join('')}`:''}
   </div>`;
-
   const fm=filteredMatches();
   const matchRows=fm.length? fm.map(m=>{
     const hasList=[];
@@ -619,7 +517,6 @@ function renderHome(){
       <button class="mc-del" onclick="deleteMatch('${m.id}',event)" title="削除">🗑</button>
     </div>`;
   }).join(''):'<div class="nodata" style="padding:18px">該当する試合がありません</div>';
-
   $('matchList').innerHTML=fltHtml+matchRows;
 }
 
@@ -636,23 +533,16 @@ function setFlt(type,val,btn){
   renderHome();
 }
 
-// =============================================
-// OPEN DETAIL
-// =============================================
 function openDetail(id){
   selectedMatchId=id;
   renderDetail();
   nav('detail');
 }
 
-// =============================================
-// RENDER SEASON
-// =============================================
 function renderSeason(){
   const el=$('seasonBody');
   const matches=DB;
   if(!matches.length){el.innerHTML='<div class="nodata"><div class="nd-i">📈</div>試合データをロードしてください</div>';return;}
-
   const labels=matches.map(m=>`${m.date.slice(5)} vs ${m.enemy.slice(0,4)}`);
   const kScores=matches.map(m=>m.kGoals);
   const eScores=matches.map(m=>m.eGoals);
@@ -673,15 +563,6 @@ function renderSeason(){
     const valid=draws.filter(d=>d.result!=='foul');
     return pct(draws.filter(d=>d.result==='ok').length,valid.length);
   });
-
-  // 累積勝敗
-  let cumWin=0,cumLose=0;
-  const cumBars=matches.map(m=>{
-    if(m.result==='win')cumWin++;
-    if(m.result==='lose')cumLose++;
-    return{w:cumWin,l:cumLose};
-  });
-
   el.innerHTML=`
   <div class="card">
     <div class="card-ttl">得点 / 失点 推移</div>
@@ -725,7 +606,6 @@ function renderSeason(){
       }).join('')}</tbody>
     </table></div>
   </div>`;
-
   linechart('sScore',labels,[
     {label:'京大得点',data:kScores,borderColor:'#f97316',backgroundColor:'rgba(249,115,22,.08)',tension:.35,borderWidth:3,pointRadius:5,pointBackgroundColor:'#f97316',fill:true},
     {label:'失点',data:eScores,borderColor:'#5b8db8',backgroundColor:'rgba(91,141,184,.06)',tension:.35,borderWidth:2,pointRadius:4,pointBackgroundColor:'#5b8db8',fill:true}
@@ -738,14 +618,9 @@ function renderSeason(){
   barchart('sDraw',labels,[{label:'ゲット率(%)',data:drawRates,backgroundColor:drColors,borderRadius:4}]);
 }
 
-// =============================================
-// RENDER PLAYER
-// =============================================
 function renderPlayer(){
   const el=$('playerBody');
   if(!DB.length){el.innerHTML='<div class="nodata"><div class="nd-i">🏃</div>試合データをロードしてください</div>';return;}
-
-  // 全試合のショットログ集計（選手別）
   const shooterMap={};
   DB.forEach(m=>{
     (m.data.score?.shots||[]).filter(s=>s.team==='kyoto').forEach(s=>{
@@ -755,10 +630,9 @@ function renderPlayer(){
       if(s.result==='save')shooterMap[p].saves++;
     });
   });
-  const shooters=Object.entries(shooterMap).map(([k,v])=>({num:k,games:v.games.size,...v,rate:pct(v.goals,v.shots),onTgt:pct(v.goals+v.saves,v.shots)}))
+  // FIX: ...v spread comes first, then games:v.games.size overrides the Set
+  const shooters=Object.entries(shooterMap).map(([k,v])=>({num:k,...v,games:v.games.size,rate:pct(v.goals,v.shots),onTgt:pct(v.goals+v.saves,v.shots)}))
     .filter(s=>s.shots>=1).sort((a,b)=>b.goals-a.goals||b.rate-a.rate);
-
-  // ドロワー別
   const drawMap={};
   DB.forEach(m=>{
     (m.data.draw?.draws||[]).forEach(d=>{
@@ -768,15 +642,12 @@ function renderPlayer(){
   });
   const drawPlayers=Object.entries(drawMap).map(([k,v])=>({num:k,...v,getRate:pct(v.ok,v.ok+v.ng)}))
     .filter(d=>d.ok+d.ng>=2).sort((a,b)=>b.getRate-a.getRate||b.ok+b.ng-a.ok-a.ng);
-
-  // ファール別
   const foulMap={};
   DB.forEach(m=>{
     const byP=m.data.gb_foul?.fouls?.summary?.by_player||{};
     Object.entries(byP).forEach(([num,cnt])=>{ foulMap[num]=(foulMap[num]||0)+cnt; });
   });
   const foulPlayers=Object.entries(foulMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
-
   el.innerHTML=`
   <div class="card">
     <div class="card-ttl">シューター 累計成績（スコアデータのある試合）</div>
@@ -792,7 +663,6 @@ function renderPlayer(){
       </tr>`).join('')}</tbody>
     </table></div>`:'<div class="nodata" style="padding:12px">スコアデータなし</div>'}
   </div>
-
   <div class="grid2">
     <div class="card">
       <div class="card-ttl">ドロワー 累計成績</div>
@@ -806,7 +676,6 @@ function renderPlayer(){
         </tr>`).join('')}</tbody>
       </table></div>`:'<div class="nodata" style="padding:12px">ドローデータなし</div>'}
     </div>
-
     <div class="card">
       <div class="card-ttl">ファール 累計（多い順）</div>
       ${foulPlayers.length?`<div class="tbl-w"><table class="dt">
@@ -818,13 +687,10 @@ function renderPlayer(){
       </table></div>`:'<div class="nodata" style="padding:12px">GBデータなし</div>'}
     </div>
   </div>
-
   <div class="card">
     <div class="card-ttl">ゴール数 推移（シューター別）</div>
     <div class="ch-box"><canvas id="pPlayerTrend"></canvas></div>
   </div>`;
-
-  // 選手別ゴール推移（上位5名）
   const top5=shooters.slice(0,5);
   const matchLabels=DB.map(m=>m.date.slice(5)+' '+m.enemy.slice(0,4));
   if(top5.length){
@@ -838,14 +704,9 @@ function renderPlayer(){
   }
 }
 
-// =============================================
-// RENDER OPPONENT
-// =============================================
 function renderOpponent(){
   const el=$('opponentBody');
   if(!DB.length){el.innerHTML='<div class="nodata"><div class="nd-i">⚔️</div>試合データをロードしてください</div>';return;}
-
-  // 対戦相手ごとに集計
   const opMap={};
   DB.forEach(m=>{
     const e=m.enemy;
@@ -855,7 +716,6 @@ function renderOpponent(){
     opMap[e].kGoals+=m.kGoals; opMap[e].eGoals+=m.eGoals;
   });
   const opponents=Object.values(opMap).sort((a,b)=>b.matches.length-a.matches.length);
-
   const rows=opponents.map(op=>{
     const n=op.matches.length;
     const wr=pct(op.wins,n);
@@ -867,8 +727,6 @@ function renderOpponent(){
       <td><div class="rb-w"><div class="rb"><div class="rb-f pf-ko" style="width:${wr}%"></div></div><span class="rb-lbl ${wr>=60?'good':wr>=40?'warn':'bad'}">${wr}%</span></div></td>
     </tr>`;
   }).join('');
-
-  // 相手別の決定率・TO・ドロー比較
   const opLabels=opponents.map(o=>o.enemy.slice(0,6));
   const opShotRates=opponents.map(op=>{
     const shots=op.matches.flatMap(m=>(m.data.score?.shots||[]).filter(s=>s.team==='kyoto'));
@@ -883,7 +741,6 @@ function renderOpponent(){
     const valid=draws.filter(d=>d.result!=='foul');
     return pct(draws.filter(d=>d.result==='ok').length,valid.length);
   });
-
   el.innerHTML=`
   <div class="card">
     <div class="card-ttl">対戦相手別 勝敗</div>
@@ -906,7 +763,6 @@ function renderOpponent(){
       <div class="ch-box-sm"><canvas id="opDraw"></canvas></div>
     </div>
   </div>`;
-
   const srColors=opShotRates.map(r=>r>=30?'rgba(249,115,22,.7)':'rgba(91,141,184,.5)');
   barchart('opShot',opLabels,[{label:'決定率(%)',data:opShotRates,backgroundColor:srColors,borderRadius:4}]);
   const tobColors=opToBalance.map(v=>v>=0?'rgba(34,197,94,.6)':'rgba(239,68,68,.6)');
@@ -915,15 +771,10 @@ function renderOpponent(){
   barchart('opDraw',opLabels,[{label:'ゲット率(%)',data:opDrawRates,backgroundColor:drColors,borderRadius:4}]);
 }
 
-// =============================================
-// RENDER Q ANALYSIS
-// =============================================
 function renderQ(){
   const el=$('qBody');
   if(!DB.length){el.innerHTML='<div class="nodata"><div class="nd-i">⏱</div>試合データをロードしてください</div>';return;}
-
   const QS=[1,2,3,4];
-  // Q別の得点・失点・決定率・セーブ率を全試合平均
   const qData=QS.map(q=>{
     const kGoals=DB.flatMap(m=>(m.data.score?.shots||[]).filter(s=>s.q===q&&s.team==='kyoto'&&s.result==='goal')).length;
     const kShots=DB.flatMap(m=>(m.data.score?.shots||[]).filter(s=>s.q===q&&s.team==='kyoto')).length;
@@ -936,11 +787,8 @@ function renderQ(){
     const gbTotal=gbSumSelf.reduce((a,d)=>a+d.total,0);
     return{q,kGoals,eGoals,kShots,dr:pct(kGoals,kShots),kTO,eTO,gbKyoto,gbTotal,gbR:pct(gbKyoto,gbTotal)};
   });
-
   const n=DB.filter(m=>m.data.score).length||1;
   const qLabels=QS.map(q=>`Q${q}`);
-
-  // Q別ヒートマップHTML（行：指標、列：Q）
   const hmMetrics=[
     {lbl:'得点(平均)',vals:qData.map(d=>(d.kGoals/n).toFixed(1)),max:3,color:'249,115,22'},
     {lbl:'失点(平均)',vals:qData.map(d=>(d.eGoals/n).toFixed(1)),max:3,color:'91,141,184'},
@@ -957,7 +805,6 @@ function renderQ(){
       return`<div class="q-hm-cell" style="background:rgba(${m.color},${alpha});color:var(--tx)">${m.vals[i]}</div>`;
     }).join('')}
   </div>`).join('');
-
   el.innerHTML=`
   <div class="card">
     <div class="card-ttl">Q別 パフォーマンスヒートマップ（全試合平均）</div>
@@ -966,7 +813,6 @@ function renderQ(){
     </div>
     <div class="q-hm-wrap">${hmRows}</div>
   </div>
-
   <div class="grid2">
     <div class="card">
       <div class="card-ttl">Q別 得点 / 失点</div>
@@ -977,7 +823,6 @@ function renderQ(){
       <div class="ch-box"><canvas id="qTO"></canvas></div>
     </div>
   </div>
-
   <div class="card">
     <div class="card-ttl">Q別 詳細データ（全試合合計）</div>
     <div class="tbl-w"><table class="dt">
@@ -993,7 +838,6 @@ function renderQ(){
       </tr>`).join('')}</tbody>
     </table></div>
   </div>`;
-
   barchart('qScore',qLabels,[
     {label:'京大得点',data:qData.map(d=>d.kGoals),backgroundColor:'rgba(249,115,22,.7)',borderRadius:4},
     {label:'失点',data:qData.map(d=>d.eGoals),backgroundColor:'rgba(91,141,184,.55)',borderRadius:4}
@@ -1002,15 +846,11 @@ function renderQ(){
   barchart('qTO',qLabels,[{label:'TOバランス',data:toBalQ,backgroundColor:toBalQ.map(v=>v>=0?'rgba(34,197,94,.6)':'rgba(239,68,68,.5)'),borderRadius:4}]);
 }
 
-// =============================================
-// RENDER DETAIL
-// =============================================
 function renderDetail(){
   const el=$('detailBody');
   if(!selectedMatchId){el.innerHTML='<div class="nodata"><div class="nd-i">🔍</div>ホームの試合一覧から試合を選択してください</div>';return;}
   const m=DB.find(x=>x.id===selectedMatchId);
   if(!m){el.innerHTML='<div class="nodata"><div class="nd-i">🔍</div>試合が見つかりません</div>';return;}
-
   const shots=m.data.score?.shots||[];
   const kShots=shots.filter(s=>s.team==='kyoto');
   const eShots=shots.filter(s=>s.team==='enemy');
@@ -1022,21 +862,13 @@ function renderDetail(){
   const eTO=tos.filter(t=>t.side==='enemy').length;
   const gs=m.data.goalie?.summary||{};
   const gk=gs.kyoto||{};
-  const drawSum=m.data.draw?.summary||{};
-  const gbSum=m.data.gb_foul?.gb?.summary||{};
-
-  // タイムライン（全試合リスト）
   const timelineHtml=DB.map(mx=>`<div class="tl-chip ${mx.result==='win'?'tl-w':'tl-l'} ${mx.id===selectedMatchId?'selected':''}" onclick="openDetail('${mx.id}')">
     <div class="tl-date">${mx.date.slice(5)}</div>
     <div class="tl-vs">vs ${mx.enemy.slice(0,5)}</div>
     <div class="tl-score"><span class="tl-k">${mx.kGoals}</span><span class="tl-sep">-</span><span class="tl-e">${mx.eGoals}</span></div>
   </div>`).join('');
-
   el.innerHTML=`
-  <!-- 試合選択タイムライン -->
   <div class="timeline">${timelineHtml}</div>
-
-  <!-- ヒーロー -->
   <div class="card" style="background:var(--s1);border-color:var(--s3);padding:16px 14px;margin-bottom:12px;position:relative;overflow:hidden">
     <div style="position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--orange),transparent 40%,transparent 60%,var(--steel))"></div>
     <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -1053,16 +885,12 @@ function renderDetail(){
       </div>
     </div>
   </div>
-
-  <!-- 主要指標 -->
   <div class="metrics m4">
     <div class="metric ko"><div class="m-lbl">ショット数</div><div class="m-val wh">${kShots.length}</div><div class="m-sub">vs ${eShots.length}</div></div>
     <div class="metric ko"><div class="m-lbl">決定率</div><div class="m-val ko">${pct(kG,kShots.length)}<span style="font-size:1.3rem">%</span></div><div class="m-sub">${kG}得点</div></div>
     <div class="metric en"><div class="m-lbl">Gセーブ率</div><div class="m-val en">${gk.save_rate_pct||'—'}<span style="font-size:1.3rem">${gk.save_rate_pct?'%':''}</span></div><div class="m-sub">${gk.saves||0}sv/${gk.total_shots||0}本</div></div>
     <div class="metric ${eTO-kTO>=0?'gr':'rd'}"><div class="m-lbl">TOバランス</div><div class="m-val ${eTO-kTO>=0?'gr':'rd'}">${eTO-kTO>=0?'+':''}${eTO-kTO}</div><div class="m-sub">奪/${kTO} 奪得/${eTO}</div></div>
   </div>
-
-  <!-- Q別スコア -->
   ${shots.length?`<div class="card">
     <div class="card-ttl">Q別スコア</div>
     <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px">
@@ -1080,25 +908,15 @@ function renderDetail(){
       }).join('')}
     </div>
   </div>`:''}
-
-  <!-- 読み込まれたデータ -->
   <div class="card">
     <div class="card-ttl">読み込まれたデータ</div>
     <div style="display:flex;flex-wrap:wrap;gap:6px">
       ${[['score','📊 スコア'],['to','🔄 TO'],['possession','⏱ ポゼ'],['gb_foul','🏃 GB'],['draw','🎯 ドロー'],['goalie','🥅 ゴーリー']].map(([k,l])=>`
         <div class="pill ${m.data[k]?'ok':''}"><div class="pdot"></div>${l}</div>`).join('')}
     </div>
-    <div style="margin-top:12px">
-      <a href="lacrosse_dashboard.html" style="display:inline-flex;align-items:center;gap:6px;background:rgba(249,115,22,.12);border:1px solid rgba(249,115,22,.3);color:var(--orange);padding:8px 14px;border-radius:8px;font-family:var(--font-b);font-size:.72rem;font-weight:700;text-decoration:none;transition:all .2s;" onmouseover="this.style.background='rgba(249,115,22,.2)'" onmouseout="this.style.background='rgba(249,115,22,.12)'">
-        🔍 この試合の詳細分析ページで開く（lacrosse_dashboard.html）
-      </a>
-    </div>
   </div>`;
 }
 
-// =============================================
-// RENDER ALL
-// =============================================
 function renderAll(){
   renderHome();
   renderSeason();
@@ -1108,24 +926,18 @@ function renderAll(){
   renderDetail();
 }
 
-// =============================================
-// TEST DATA
-// =============================================
 function loadTestMatches(){
   const opponents=['同志社大学','立命館大学','関西大学','甲南大学','大阪大学'];
   const dates=['2025-04-12','2025-05-10','2025-06-07','2025-06-28','2025-07-19'];
   const categories=['練習試合','リーグ戦','リーグ戦','リーグ戦','練習試合'];
   const scores=[[9,6],[7,8],[11,5],[8,7],[10,9]];
   const atStyles=['ドッジ','パス','カット','ドッジ','パス'];
-
   let added=0;
   opponents.forEach((enemy,i)=>{
     const date=dates[i]; const cat=categories[i];
     const [kG,eG]=scores[i];
     const id=`${date}_${enemy.replace(/\s/g,'_')}_test`;
     if(DB.find(m=>m.id===id)) return;
-
-    // スコア生成
     const shots=[];
     let kg=0,eg=0;
     for(let q=1;q<=4;q++){
@@ -1135,13 +947,9 @@ function loadTestMatches(){
       for(let j=0;j<qKG+Math.floor(Math.random()*4);j++) shots.push({q,team:'kyoto',result:j<qKG?'goal':Math.random()>.4?'save':'miss',attack:atStyles[Math.floor(Math.random()*atStyles.length)],shooter:String(10+Math.floor(Math.random()*12))});
       for(let j=0;j<qEG+Math.floor(Math.random()*3);j++) shots.push({q,team:'enemy',result:j<qEG?'goal':'save'});
     }
-    // 残りゴールをQ4に調整
     while(shots.filter(s=>s.team==='kyoto'&&s.result==='goal').length<kG){shots.push({q:4,team:'kyoto',result:'goal',attack:'ドッジ',shooter:String(10+Math.floor(Math.random()*8))})}
     while(shots.filter(s=>s.team==='enemy'&&s.result==='goal').length<eG){shots.push({q:4,team:'enemy',result:'goal'})}
-
     const scoreData={meta:{tool:'ScoreTool',enemy,date,qCount:4},shots};
-
-    // TO生成
     const toCauses=['パスミス','キープミス','インターセプト','タイムアウト'];
     const toTurnovers=Array.from({length:5+Math.floor(Math.random()*6)},(_,ti)=>({
       q:Math.ceil((ti+1)/3),side:'kyoto',cause:toCauses[Math.floor(Math.random()*toCauses.length)]
@@ -1149,8 +957,6 @@ function loadTestMatches(){
       q:Math.ceil((ti+1)/3),side:'enemy',cause:toCauses[Math.floor(Math.random()*toCauses.length)]
     })));
     const toData={meta:{tool:'TOTool',enemy,date},turnovers:toTurnovers,clearance:{}};
-
-    // ドロー生成
     const drawResults=['ok','ng','ok','ok','ng','foul','ok'];
     const drawList=Array.from({length:10+Math.floor(Math.random()*6)},(_,di)=>({
       q:Math.ceil((di+1)/4),drawer:String([32,33,17][di%3]),result:drawResults[di%drawResults.length],getWay:'自キャ'
@@ -1158,23 +964,17 @@ function loadTestMatches(){
     const drOk=drawList.filter(d=>d.result==='ok').length;
     const drAll=drawList.filter(d=>d.result!=='foul').length;
     const drawData={meta:{tool:'DrawTool',enemy,date},draws:drawList,summary:{total:drawList.length,got:drOk,lost:drawList.filter(d=>d.result==='ng').length,foul:drawList.filter(d=>d.result==='foul').length,get_rate_pct:pct(drOk,drAll)}};
-
-    // ゴーリー生成
     const gSaves=Math.floor((eG+5)*0.5+Math.random()*3);
     const gTotal=eG+gSaves;
     const goalieData={meta:{tool:'GoalieTool',enemy,date},shots:[],summary:{kyoto:{total_shots:gTotal,goals:eG,saves:gSaves,save_rate_pct:pct(gSaves,gTotal)},enemy:{total_shots:shots.filter(s=>s.team==='enemy').length,goals:kG,saves:shots.filter(s=>s.team==='enemy'&&s.result==='save').length,save_rate_pct:pct(shots.filter(s=>s.team==='enemy'&&s.result==='save').length,shots.filter(s=>s.team==='enemy').length+kG)}}};
-
-    // GB生成
     const gbByQ=[1,2,3,4].map(q=>({q,total:8+Math.floor(Math.random()*4),kyoto:4+Math.floor(Math.random()*3),enemy:0,kyoto_pct:0}));
     gbByQ.forEach(d=>{d.enemy=d.total-d.kyoto;d.kyoto_pct=pct(d.kyoto,d.total);});
     const gbK=gbByQ.reduce((a,d)=>a+d.kyoto,0),gbT=gbByQ.reduce((a,d)=>a+d.total,0);
     const gbData={meta:{tool:'GBFoulTool',enemy,date},gb:{summary:{kyoto_get:gbK,enemy_get:gbT-gbK,kyoto_pct:pct(gbK,gbT),by_q_self:gbByQ},by_location:[]},fouls:{summary:{by_type:{},by_player:{}}}};
-
     const result=kG>eG?'win':kG<eG?'lose':'draw';
     DB.push({id,date,enemy,category:cat,note:'',result,kGoals:kG,eGoals:eG,data:{score:scoreData,to:toData,draw:drawData,goalie:goalieData,gb_foul:gbData},loadedAt:Date.now()});
     added++;
   });
-
   if(added){
     DB.sort((a,b)=>a.date.localeCompare(b.date));
     saveDB(); renderAll();
@@ -1184,9 +984,6 @@ function loadTestMatches(){
   }
 }
 
-// =============================================
-// INIT
-// =============================================
 loadDB();
 renderAll();
 </script>
