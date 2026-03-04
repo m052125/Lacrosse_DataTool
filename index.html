@@ -247,12 +247,12 @@
     <div class="section-label">Recording Tools</div>
     <h2 class="section-heading">収集ツール一覧</h2>
     <p class="section-desc">
-      全7ツールを担当者で分担。試合後にJSONをエクスポートしてStreamlitへアップロード。
+      試合ツール（7種）と練習ツール（4種）の2カテゴリ。担当を分担して使用。
     </p>
 
-    <!-- === カテゴリ1：スコア・TO === -->
+    <!-- === 試合データ収集 === -->
     <div class="tool-category">
-      <div class="category-label">スコア・ターンオーバー</div>
+      <div class="category-label">試合データ収集</div>
       <div class="tools-grid">
 
         <a href="score_tool.html" class="tool-card">
@@ -287,14 +287,6 @@
           <div class="tool-arrow">↗</div>
         </a>
 
-      </div>
-    </div>
-
-    <!-- === カテゴリ2：ポゼッション === -->
-    <div class="tool-category">
-      <div class="category-label">ポゼッション計測</div>
-      <div class="tools-grid">
-
         <a href="possession_tool.html" class="tool-card">
           <div class="tool-card-header">
             <div class="tool-icon icon-poss">⏱</div>
@@ -310,14 +302,6 @@
           </div>
           <div class="tool-arrow">↗</div>
         </a>
-
-      </div>
-    </div>
-
-    <!-- === カテゴリ3：GB・ファール === -->
-    <div class="tool-category">
-      <div class="category-label">GB・ファール</div>
-      <div class="tools-grid">
 
         <a href="gb_foul_tool.html" class="tool-card">
           <div class="tool-card-header">
@@ -335,14 +319,6 @@
           <div class="tool-arrow">↗</div>
         </a>
 
-      </div>
-    </div>
-
-    <!-- === カテゴリ4：ドロー === -->
-    <div class="tool-category">
-      <div class="category-label">ドローデータ</div>
-      <div class="tools-grid">
-
         <a href="draw_tool.html" class="tool-card">
           <div class="tool-card-header">
             <div class="tool-icon icon-draw">🥍</div>
@@ -358,14 +334,6 @@
           </div>
           <div class="tool-arrow">↗</div>
         </a>
-
-      </div>
-    </div>
-
-    <!-- === カテゴリ5：ゴーリー === -->
-    <div class="tool-category">
-      <div class="category-label">ゴーリーデータ</div>
-      <div class="tools-grid">
 
         <a href="goalie_tool.html" class="tool-card">
           <div class="tool-card-header">
@@ -383,9 +351,24 @@
           <div class="tool-arrow">↗</div>
         </a>
 
+        <a href="https://lacrosse-app-hwvpua8goimukakgbhlmn8.streamlit.app" target="_blank" class="tool-card" style="border-color:rgba(99,102,241,0.3);">
+          <div class="tool-card-header">
+            <div class="tool-icon icon-stream">📈</div>
+            <span class="tool-badge badge-new">ANALYSIS</span>
+          </div>
+          <div>
+            <div class="tool-name">Streamlit 分析ダッシュボード</div>
+            <div class="tool-desc">各ツールからエクスポートしたJSONをアップロードして試合データを可視化・分析</div>
+          </div>
+          <div class="tool-tags">
+            <span class="tag">JSON読み込み</span><span class="tag">ヒートマップ</span>
+            <span class="tag">Q別集計</span><span class="tag">選手別分析</span>
+          </div>
+          <div class="tool-arrow">↗</div>
+        </a>
+
       </div>
     </div>
-
 
     <!-- === 練習ツール === -->
     <div class="tool-category">
@@ -459,29 +442,6 @@
       </div>
     </div>
 
-    <!-- === 分析ダッシュボード === -->
-    <div class="tool-category">
-      <div class="category-label">分析</div>
-      <div class="tools-grid">
-
-        <a href="https://lacrosse-app-hwvpua8goimukakgbhlmn8.streamlit.app" target="_blank" class="tool-card" style="border-color:rgba(99,102,241,0.3);">
-          <div class="tool-card-header">
-            <div class="tool-icon icon-stream">📈</div>
-            <span class="tool-badge badge-new">ANALYSIS</span>
-          </div>
-          <div>
-            <div class="tool-name">Streamlit 分析ダッシュボード</div>
-            <div class="tool-desc">各ツールからエクスポートしたJSONをアップロードして試合データを可視化・分析</div>
-          </div>
-          <div class="tool-tags">
-            <span class="tag">JSON読み込み</span><span class="tag">ヒートマップ</span>
-            <span class="tag">Q別集計</span><span class="tag">選手別分析</span>
-          </div>
-          <div class="tool-arrow">↗</div>
-        </a>
-
-      </div>
-    </div>
 
   </div>
 </section>
