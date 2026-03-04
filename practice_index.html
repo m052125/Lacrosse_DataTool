@@ -169,6 +169,28 @@ table.dt tr:hover td{background:rgba(249,115,22,.03)}
 .area-hm{display:grid;grid-template-rows:1fr 1fr;gap:4px}
 .area-hm-row{display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
 @media(max-width:400px){.m-val{font-size:2rem}}
+
+/* PLAYER SELECT */
+.role-tabs{display:flex;gap:6px;margin-bottom:14px;border-bottom:1px solid var(--s3);padding-bottom:10px;}
+.rtab{padding:6px 16px;border-radius:20px;border:1px solid var(--s3);background:transparent;color:var(--tx2);font-family:var(--font-b);font-size:.72rem;font-weight:700;letter-spacing:.1em;cursor:pointer;transition:all .2s;}
+.rtab.on{background:rgba(249,115,22,.15);border-color:rgba(249,115,22,.45);color:var(--orange);}
+.rtab.st.on{background:rgba(91,141,184,.15);border-color:rgba(91,141,184,.45);color:var(--steel);}
+.rtab.gr.on{background:rgba(34,197,94,.12);border-color:rgba(34,197,94,.4);color:var(--green);}
+.p-select-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap;}
+.p-select-lbl{font-family:var(--font-b);font-size:.62rem;font-weight:700;letter-spacing:.1em;color:var(--tx3);}
+.p-select{background:var(--s2);border:1px solid var(--s4);color:var(--tx);font-family:var(--font-b);font-size:.78rem;font-weight:700;padding:6px 12px;border-radius:10px;cursor:pointer;outline:none;min-width:130px;}
+.p-select:focus{border-color:var(--orange);}
+.player-panel{display:none;}.player-panel.on{display:block;}
+.stat-mini{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;}
+.sm-card{background:var(--s1);border:1px solid var(--s3);border-radius:8px;padding:10px 14px;flex:1;min-width:90px;}
+.sm-lbl{font-family:var(--font-b);font-size:.55rem;font-weight:700;letter-spacing:.12em;color:var(--tx3);margin-bottom:4px;}
+.sm-val{font-family:var(--font-d);font-size:1.8rem;line-height:1;}
+.sm-val.ko{color:var(--orange)}.sm-val.gr{color:var(--green)}.sm-val.en{color:var(--steel)}.sm-val.rd{color:var(--red)}.sm-val.wh{color:var(--tx)}
+.sm-sub{font-size:.6rem;color:var(--tx2);margin-top:2px;}
+.vs-tbl-w{overflow-x:auto;}
+.sec-inner{display:flex;align-items:center;gap:8px;margin:14px 0 10px;}
+.sec-inner-tag{font-family:var(--font-b);font-size:.58rem;font-weight:700;letter-spacing:.15em;color:var(--tx3);background:var(--s3);padding:2px 8px;border-radius:10px;}
+.sec-inner-line{flex:1;height:1px;background:var(--s3);}
 </style>
 </head>
 <body>
@@ -541,6 +563,20 @@ function renderHome(){
 // =============================================
 // RENDER FREESHOT
 // =============================================
+let _fsRole = 'shooter';
+
+function fsSwitchRole(role){
+  _fsRole = role;
+  document.querySelectorAll('.rtab[data-fsrole]').forEach(b=>{
+    b.classList.toggle('on', b.dataset.fsrole === role);
+  });
+  _renderFSRolePanel(role);
+}
+
+function fsSwitchPlayer(role, sel){
+  _renderFSPlayerDetail(role, sel.value);
+}
+
 function renderFS(){
   const el=$('fsBody');
   const data=DB.fs;
@@ -554,30 +590,6 @@ function renderFS(){
   const onTarget=goals+saves;
   const dr=pct(goals,total), svR=pct(saves,onTarget);
 
-  // シューター別集計
-  const shooterMap={};
-  data.forEach(r=>{
-    const s=r.shooter||'?'; if(!shooterMap[s])shooterMap[s]={total:0,goal:0,save:0,out:0};
-    shooterMap[s].total++; if(r.result==='ゴール')shooterMap[s].goal++;
-    if(r.result==='セーブ')shooterMap[s].save++; if(r.result==='枠外')shooterMap[s].out++;
-  });
-  const shooters=Object.entries(shooterMap).map(([k,v])=>({name:k,...v,rate:pct(v.goal,v.total)}))
-    .sort((a,b)=>b.rate-a.rate||b.total-a.total);
-
-  // ゴーリー別集計
-  const goalieMap={};
-  data.forEach(r=>{
-    const g=r.goalie||'?'; if(!goalieMap[g])goalieMap[g]={total:0,goal:0,save:0};
-    goalieMap[g].total++; if(r.result==='ゴール')goalieMap[g].goal++; if(r.result==='セーブ')goalieMap[g].save++;
-  });
-  const goalies=Object.entries(goalieMap).map(([k,v])=>({name:k,...v,svr:pct(v.save,v.goal+v.save)}))
-    .sort((a,b)=>b.svr-a.svr||b.total-a.total);
-
-  // 位置別
-  const posMap={};
-  data.forEach(r=>{const p=r.pos||r.position||'?';if(!posMap[p])posMap[p]={tot:0,goal:0};posMap[p].tot++;if(r.result==='ゴール')posMap[p].goal++;});
-
-  // エリア別
   const areaFn=(z)=>{
     const ar=data.filter(r=>String(r.area)===String(z));
     const tot=ar.length, goal=ar.filter(r=>r.result==='ゴール').length;
@@ -585,7 +597,6 @@ function renderFS(){
     return {val:tot?rate+'%':'—', sub:`${goal}/${tot}`, rate};
   };
 
-  // 日別推移
   const dateMap={};
   data.forEach(r=>{
     const d=(r.timestamp||r.date||'').slice(0,10); if(!d)return;
@@ -596,6 +607,7 @@ function renderFS(){
   const dateRates=dates.map(d=>pct(dateMap[d].goal,dateMap[d].tot));
 
   el.innerHTML=`
+  <!-- 全体サマリー -->
   <div class="metrics m4">
     <div class="metric ko"><div class="m-lbl">総シュート</div><div class="m-val wh">${total}</div></div>
     <div class="metric ko"><div class="m-lbl">決定率</div><div class="m-val ko">${dr}<span style="font-size:1.3rem">%</span></div><div class="m-sub">${goals}ゴール</div></div>
@@ -615,7 +627,7 @@ function renderFS(){
   </div>
 
   <div class="card">
-    <div class="card-ttl">コース別 決定率（3×3）</div>
+    <div class="card-ttl">コース別 決定率（全体）</div>
     <div style="max-width:280px;margin:0 auto">${renderCourseHM(data,'249,115,22')}</div>
   </div>
 
@@ -625,31 +637,16 @@ function renderFS(){
     <div class="ch-box"><canvas id="fsTrend"></canvas></div>
   </div>`:''}
 
-  <div class="card">
-    <div class="card-ttl">シューター別 成績</div>
-    <div class="tbl-w"><table class="dt">
-      <thead><tr><th>順</th><th>選手</th><th>本数</th><th>ゴール</th><th>決定率</th><th>セーブ</th></tr></thead>
-      <tbody>${shooters.map((s,i)=>`<tr>
-        <td><span class="nc ${i===0?'good':i===1?'warn':''}">${i+1}</span></td>
-        <td><b>${s.name}</b></td><td class="nc">${s.total}</td>
-        <td class="nc ${s.rate>=50?'good':s.rate>=30?'warn':'bad'}">${s.goal}</td>
-        <td><div class="rb-w"><div class="rb"><div class="rb-f pf-ko" style="width:${s.rate}%"></div></div><span class="rb-lbl ${s.rate>=50?'good':s.rate>=30?'warn':'bad'}">${s.rate}%</span></div></td>
-        <td class="nc">${s.save}</td>
-      </tr>`).join('')}</tbody>
-    </table></div>
-  </div>
-
-  <div class="card">
-    <div class="card-ttl">ゴーリー別 セーブ率</div>
-    <div class="tbl-w"><table class="dt">
-      <thead><tr><th>順</th><th>ゴーリー</th><th>被ショット</th><th>セーブ率</th><th>失点</th></tr></thead>
-      <tbody>${goalies.map((g,i)=>`<tr>
-        <td><span class="nc">${i+1}</span></td>
-        <td><b>${g.name}</b></td><td class="nc">${g.total}</td>
-        <td><div class="rb-w"><div class="rb"><div class="rb-f pf-st" style="width:${g.svr}%"></div></div><span class="rb-lbl">${g.svr}%</span></div></td>
-        <td class="nc bad">${g.goal}</td>
-      </tr>`).join('')}</tbody>
-    </table></div>
+  <!-- 個人詳細分析 -->
+  <div class="card" style="margin-top:4px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <div class="card-ttl" style="margin-bottom:0">個人詳細分析</div>
+    </div>
+    <div class="role-tabs">
+      <button class="rtab on" data-fsrole="shooter" onclick="fsSwitchRole('shooter')">🥍 シューター</button>
+      <button class="rtab gr" data-fsrole="goalie" onclick="fsSwitchRole('goalie')">🥅 ゴーリー</button>
+    </div>
+    <div id="fsRolePanel"></div>
   </div>`;
 
   donut('fsDonut',['ゴール','セーブ','枠外','キープミス'],[goals,saves,outs,miss],
@@ -657,11 +654,277 @@ function renderFS(){
   if(dates.length>1){
     linechart('fsTrend',dates,[{label:'決定率(%)',data:dateRates,borderColor:'#f97316',backgroundColor:'rgba(249,115,22,.1)',tension:.4,fill:true}]);
   }
+  _renderFSRolePanel(_fsRole);
 }
 
-// =============================================
+// ---- 役割パネル ----
+function _renderFSRolePanel(role){
+  const panel=$('fsRolePanel'); if(!panel)return;
+  const data=DB.fs;
+  const cfg={
+    shooter:{ players:[...new Set(data.map(r=>r.shooter).filter(Boolean))].sort() },
+    goalie: { players:[...new Set(data.map(r=>r.goalie).filter(Boolean))].sort() },
+  };
+  const opts=cfg[role].players.map(p=>`<option value="${p}">${p}</option>`).join('');
+  const lbl=role==='shooter'?'シューター':'ゴーリー';
+  panel.innerHTML=`
+    <div class="p-select-row">
+      <span class="p-select-lbl">${lbl}</span>
+      <select class="p-select" id="fsPlayerSel" onchange="fsSwitchPlayer('${role}',this)">
+        <option value="__all__">全体（全選手）</option>
+        ${opts}
+      </select>
+    </div>
+    <div id="fsPlayerDetail"></div>`;
+  _renderFSPlayerDetail(role, '__all__');
+}
+
+function _renderFSPlayerDetail(role, name){
+  const el=$('fsPlayerDetail'); if(!el)return;
+  if(role==='shooter') _renderFSShooter(el, DB.fs, name);
+  else                 _renderFSGoalie(el, DB.fs, name);
+}
+
+// ==== シューター詳細 ====
+function _renderFSShooter(el, data, name){
+  const d = name==='__all__' ? data : data.filter(r=>r.shooter===name);
+  if(!d.length){ el.innerHTML='<div class="nodata" style="padding:16px">データなし</div>'; return; }
+
+  const total=d.length;
+  const goals=d.filter(r=>r.result==='ゴール').length;
+  const saves=d.filter(r=>r.result==='セーブ').length;
+  const outs=d.filter(r=>r.result==='枠外').length;
+  const miss=d.filter(r=>r.result==='キープミス').length;
+  const onTgt=goals+saves;
+  const dr=pct(goals,total), svR=pct(saves,onTgt), missR=pct(miss,total);
+
+  // エリア別
+  const areaFn=(z)=>{
+    const ar=d.filter(r=>String(r.area)===String(z));
+    const tot=ar.length, goal=ar.filter(r=>r.result==='ゴール').length;
+    return {val:tot?pct(goal,tot)+'%':'—', sub:`${goal}/${tot}`, rate:pct(goal,tot)};
+  };
+
+  // ポジション別
+  const posMap={};
+  d.forEach(r=>{ const p=r.pos||r.position||'?'; if(!posMap[p])posMap[p]={tot:0,goal:0,save:0};
+    posMap[p].tot++; if(r.result==='ゴール')posMap[p].goal++;
+    if(r.result==='セーブ')posMap[p].save++; });
+  const posList=Object.entries(posMap).map(([k,v])=>({name:k,...v,rate:pct(v.goal,v.tot)}))
+    .sort((a,b)=>b.tot-a.tot);
+  const posKeys=posList.map(p=>p.name);
+
+  // vs ゴーリー別
+  const vsMap={};
+  if(name!=='__all__'){
+    d.forEach(r=>{ const g=r.goalie||'?'; if(!vsMap[g])vsMap[g]={tot:0,goal:0,save:0};
+      vsMap[g].tot++; if(r.result==='ゴール')vsMap[g].goal++;
+      if(r.result==='セーブ')vsMap[g].save++; });
+  } else {
+    // 全体：シューター別ランキング
+    d.forEach(r=>{ const s=r.shooter||'?'; if(!vsMap[s])vsMap[s]={tot:0,goal:0,save:0};
+      vsMap[s].tot++; if(r.result==='ゴール')vsMap[s].goal++;
+      if(r.result==='セーブ')vsMap[s].save++; });
+  }
+  const vsList=Object.entries(vsMap).map(([k,v])=>({name:k,...v,rate:pct(v.goal,v.tot)}))
+    .sort((a,b)=>b.rate-a.rate||b.tot-a.tot);
+
+  // 日別推移
+  const dateMap={};
+  d.forEach(r=>{ const dt=(r.timestamp||'').slice(0,10); if(!dt)return;
+    if(!dateMap[dt])dateMap[dt]={tot:0,goal:0};
+    dateMap[dt].tot++; if(r.result==='ゴール')dateMap[dt].goal++; });
+  const dates=Object.keys(dateMap).sort();
+
+  const sfx=name==='__all__'?'sh_all':('sh_'+name.replace(/[^a-z0-9]/gi,''));
+
+  el.innerHTML=`
+  <div class="stat-mini">
+    <div class="sm-card"><div class="sm-lbl">総シュート</div><div class="sm-val wh">${total}</div></div>
+    <div class="sm-card"><div class="sm-lbl">決定率</div><div class="sm-val ko">${dr}<span style="font-size:1.1rem">%</span></div><div class="sm-sub">${goals}G</div></div>
+    <div class="sm-card"><div class="sm-lbl">枠内率</div><div class="sm-val en">${pct(onTgt,total)}<span style="font-size:1.1rem">%</span></div><div class="sm-sub">${onTgt}本</div></div>
+    <div class="sm-card"><div class="sm-lbl">キープミス</div><div class="sm-val rd">${missR}<span style="font-size:1.1rem">%</span></div><div class="sm-sub">${miss}回</div></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card" style="background:var(--s1)">
+      <div class="card-ttl">エリア別 決定率</div>
+      ${renderAreaHM(d,areaFn,'249,115,22')}
+    </div>
+    <div class="card" style="background:var(--s1)">
+      <div class="card-ttl">コース別 決定率</div>
+      <div style="max-width:230px;margin:0 auto">${renderCourseHM(d,'249,115,22')}</div>
+    </div>
+  </div>
+
+  <div class="grid2">
+    <div class="card" style="background:var(--s1)">
+      <div class="card-ttl">ポジション別 決定率 / 本数</div>
+      <div class="ch-box"><canvas id="shPos_${sfx}"></canvas></div>
+    </div>
+    <div class="card" style="background:var(--s1)">
+      <div class="card-ttl">結果の内訳</div>
+      <div class="ch-box"><canvas id="shDonut_${sfx}"></canvas></div>
+    </div>
+  </div>
+
+  ${dates.length>1?`
+  <div class="card" style="background:var(--s1)">
+    <div class="card-ttl">日別 決定率 推移</div>
+    <div class="ch-box"><canvas id="shTrend_${sfx}"></canvas></div>
+  </div>`:''}
+
+  <div class="card" style="background:var(--s1)">
+    <div class="card-ttl">${name==='__all__'?'シューター別 成績ランキング':'vs ゴーリー別 成績'}</div>
+    <div class="tbl-w"><table class="dt">
+      <thead><tr><th>順</th><th>${name==='__all__'?'シューター':'ゴーリー'}</th><th>本数</th><th>ゴール</th><th>決定率</th><th>セーブ</th></tr></thead>
+      <tbody>${vsList.map((v,i)=>`<tr>
+        <td class="nc ${i===0?'good':i===1?'warn':''}">${i+1}</td>
+        <td><b>${v.name}</b></td>
+        <td class="nc">${v.tot}</td>
+        <td class="nc ${v.rate>=50?'good':v.rate>=30?'warn':'bad'}">${v.goal}</td>
+        <td><div class="rb-w"><div class="rb"><div class="rb-f pf-ko" style="width:${v.rate}%"></div></div><span class="rb-lbl ${v.rate>=50?'good':v.rate>=30?'warn':'bad'}">${v.rate}%</span></div></td>
+        <td class="nc">${v.save}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+  </div>`;
+
+  // チャート
+  barchart(`shPos_${sfx}`, posKeys, [
+    {label:'決定率(%)', data:posKeys.map(k=>posMap[k]?pct(posMap[k].goal,posMap[k].tot):0), backgroundColor:'rgba(249,115,22,.75)'},
+    {label:'本数',      data:posKeys.map(k=>posMap[k]?.tot||0), backgroundColor:'rgba(91,141,184,.4)'},
+  ]);
+  donut(`shDonut_${sfx}`,['ゴール','セーブ','枠外','キープミス'],
+    [goals,saves,outs,miss],['#f97316','#5b8db8','#4a6080','#ef4444']);
+  if(dates.length>1){
+    linechart(`shTrend_${sfx}`, dates, [{
+      label:'決定率(%)', data:dates.map(d=>pct(dateMap[d].goal,dateMap[d].tot)),
+      borderColor:'#f97316', backgroundColor:'rgba(249,115,22,.1)', tension:.4, fill:true
+    }]);
+  }
+}
+
+// ==== ゴーリー詳細 ====
+function _renderFSGoalie(el, data, name){
+  const d = name==='__all__' ? data : data.filter(r=>r.goalie===name);
+  // ゴーリー分析はショット（枠内）ベース
+  const shots=d.filter(r=>r.result==='ゴール'||r.result==='セーブ');
+  if(!shots.length){ el.innerHTML='<div class="nodata" style="padding:16px">データなし</div>'; return; }
+
+  const goals=shots.filter(r=>r.result==='ゴール').length;
+  const saves=shots.filter(r=>r.result==='セーブ').length;
+  const svR=pct(saves,shots.length), loseR=pct(goals,shots.length);
+
+  // エリア別セーブ率
+  const areaFn=(z)=>{
+    const ar=shots.filter(r=>String(r.area)===String(z));
+    const tot=ar.length, sv=ar.filter(r=>r.result==='セーブ').length;
+    return {val:tot?pct(sv,tot)+'%':'—', sub:`${sv}/${tot}`, rate:pct(sv,tot)};
+  };
+
+  // ポジション別 セーブ率
+  const posMap={};
+  shots.forEach(r=>{ const p=r.pos||r.position||'?'; if(!posMap[p])posMap[p]={tot:0,save:0,goal:0};
+    posMap[p].tot++; if(r.result==='セーブ')posMap[p].save++;
+    if(r.result==='ゴール')posMap[p].goal++; });
+  const posKeys=Object.keys(posMap).sort((a,b)=>posMap[b].tot-posMap[a].tot);
+
+  // vs シューター別
+  const vsMap={};
+  if(name!=='__all__'){
+    shots.forEach(r=>{ const s=r.shooter||'?'; if(!vsMap[s])vsMap[s]={tot:0,save:0,goal:0};
+      vsMap[s].tot++; if(r.result==='セーブ')vsMap[s].save++;
+      if(r.result==='ゴール')vsMap[s].goal++; });
+  } else {
+    // 全体：ゴーリー別ランキング
+    shots.forEach(r=>{ const g=r.goalie||'?'; if(!vsMap[g])vsMap[g]={tot:0,save:0,goal:0};
+      vsMap[g].tot++; if(r.result==='セーブ')vsMap[g].save++;
+      if(r.result==='ゴール')vsMap[g].goal++; });
+  }
+  const vsList=Object.entries(vsMap).map(([k,v])=>({name:k,...v,svr:pct(v.save,v.tot)}))
+    .sort((a,b)=>b.svr-a.svr||b.tot-a.tot);
+
+  // 日別推移
+  const dateMap={};
+  shots.forEach(r=>{ const dt=(r.timestamp||'').slice(0,10); if(!dt)return;
+    if(!dateMap[dt])dateMap[dt]={tot:0,save:0};
+    dateMap[dt].tot++; if(r.result==='セーブ')dateMap[dt].save++; });
+  const dates=Object.keys(dateMap).sort();
+
+  const sfx=name==='__all__'?'gl_all':('gl_'+name.replace(/[^a-z0-9]/gi,''));
+
+  el.innerHTML=`
+  <div class="stat-mini">
+    <div class="sm-card"><div class="sm-lbl">被枠内ショット</div><div class="sm-val wh">${shots.length}</div></div>
+    <div class="sm-card"><div class="sm-lbl">セーブ率</div><div class="sm-val en">${svR}<span style="font-size:1.1rem">%</span></div><div class="sm-sub">${saves}sv</div></div>
+    <div class="sm-card"><div class="sm-lbl">被決定率</div><div class="sm-val ${loseR<=30?'gr':loseR<=50?'wh':'rd'}">${loseR}<span style="font-size:1.1rem">%</span></div><div class="sm-sub">${goals}失点</div></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card" style="background:var(--s1)">
+      <div class="card-ttl">コース別 セーブ率</div>
+      <div style="max-width:230px;margin:0 auto">${renderCourseHM(shots.map(r=>({...r,result:r.result==='セーブ'?'goal':'miss'})),'34,197,94')}</div>
+    </div>
+    <div class="card" style="background:var(--s1)">
+      <div class="card-ttl">エリア別 セーブ率</div>
+      ${renderAreaHM(shots, areaFn, '34,197,94')}
+    </div>
+  </div>
+
+  <div class="card" style="background:var(--s1)">
+    <div class="card-ttl">ポジション別 セーブ率 / 被ショット数</div>
+    <div class="ch-box"><canvas id="glPos_${sfx}"></canvas></div>
+  </div>
+
+  ${dates.length>1?`
+  <div class="card" style="background:var(--s1)">
+    <div class="card-ttl">日別 セーブ率 推移</div>
+    <div class="ch-box"><canvas id="glTrend_${sfx}"></canvas></div>
+  </div>`:''}
+
+  <div class="card" style="background:var(--s1)">
+    <div class="card-ttl">${name==='__all__'?'ゴーリー別 成績ランキング（セーブ率順）':'vs シューター別 成績'}</div>
+    <div class="tbl-w"><table class="dt">
+      <thead><tr><th>順</th><th>${name==='__all__'?'ゴーリー':'シューター'}</th><th>被ショット</th><th>セーブ率</th><th>失点</th></tr></thead>
+      <tbody>${vsList.map((v,i)=>`<tr>
+        <td class="nc ${i===0?'good':''}">${i+1}</td>
+        <td><b>${v.name}</b></td>
+        <td class="nc">${v.tot}</td>
+        <td><div class="rb-w"><div class="rb"><div class="rb-f pf-gr" style="width:${v.svr}%"></div></div><span class="rb-lbl" style="color:var(--green)">${v.svr}%</span></div></td>
+        <td class="nc bad">${v.goal}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+  </div>`;
+
+  barchart(`glPos_${sfx}`, posKeys, [
+    {label:'セーブ率(%)',   data:posKeys.map(k=>pct(posMap[k].save,posMap[k].tot)), backgroundColor:'rgba(34,197,94,.75)'},
+    {label:'被ショット数',  data:posKeys.map(k=>posMap[k].tot), backgroundColor:'rgba(91,141,184,.4)'},
+  ]);
+  if(dates.length>1){
+    linechart(`glTrend_${sfx}`, dates, [{
+      label:'セーブ率(%)', data:dates.map(d=>pct(dateMap[d].save,dateMap[d].tot)),
+      borderColor:'#22c55e', backgroundColor:'rgba(34,197,94,.1)', tension:.4, fill:true
+    }]);
+  }
+}
+
 // RENDER 1on1
 // =============================================
+// ---- 1on1 役割タブ管理 ----
+let _on1Role = 'at'; // 'at'|'df'|'g'
+
+function on1SwitchRole(role){
+  _on1Role = role;
+  document.querySelectorAll('.rtab[data-role]').forEach(b=>{
+    b.classList.toggle('on', b.dataset.role===role);
+  });
+  _renderOn1RolePanel(role);
+}
+
+function on1SwitchPlayer(role, sel){
+  _renderOn1PlayerDetail(role, sel.value);
+}
+
 function render1on1(){
   const el=$('on1Body');
   const data=DB.on1;
@@ -671,69 +934,32 @@ function render1on1(){
   const shots=data.filter(r=>r.endType==='ショット');
   const goals=shots.filter(r=>r.result==='ゴール').length;
   const saves=shots.filter(r=>r.result==='セーブ').length;
-  const gbs=data.filter(r=>r.endType==='GB').length;
   const shotRate=pct(shots.length,total);
   const goalRate=pct(goals,shots.length);
   const svR=pct(saves,goals+saves);
 
-  // AT別
-  const atMap={};
-  data.forEach(r=>{
-    const a=r.at||'?'; if(!atMap[a])atMap[a]={tot:0,shot:0,goal:0};
-    atMap[a].tot++; if(r.endType==='ショット')atMap[a].shot++;
-    if(r.result==='ゴール')atMap[a].goal++;
-  });
-  const atList=Object.entries(atMap).map(([k,v])=>({name:k,...v,shootR:pct(v.shot,v.tot),goalR:pct(v.goal,v.shot)}))
-    .sort((a,b)=>b.goalR-a.goalR||b.tot-a.tot);
-
-  // DF別
-  const dfMap={};
-  data.forEach(r=>{
-    const d=r.df||'?'; if(!dfMap[d])dfMap[d]={tot:0,shot:0,goal:0};
-    dfMap[d].tot++; if(r.endType==='ショット')dfMap[d].shot++;
-    if(r.result==='ゴール')dfMap[d].goal++;
-  });
-  const dfList=Object.entries(dfMap).map(([k,v])=>({name:k,...v,blkR:pct(v.tot-v.shot,v.tot)}))
-    .sort((a,b)=>b.blkR-a.blkR||b.tot-a.tot);
+  const endTypes=data.reduce((m,r)=>{m[r.endType||'?']=(m[r.endType||'?']||0)+1;return m;},{});
 
   // 起点別
   const originMap={};
-  data.forEach(r=>{
-    const o=r.origin||'?'; if(!originMap[o])originMap[o]={tot:0,shot:0,goal:0};
-    originMap[o].tot++; if(r.endType==='ショット')originMap[o].shot++;
-    if(r.result==='ゴール')originMap[o].goal++;
-  });
+  data.forEach(r=>{ const o=r.origin||'?'; if(!originMap[o])originMap[o]={tot:0,shot:0,goal:0};
+    originMap[o].tot++; if(r.endType==='ショット')originMap[o].shot++; if(r.result==='ゴール')originMap[o].goal++; });
+  const origins=Object.keys(originMap);
 
   // 抜き方別
   const dodgeMap={};
-  data.forEach(r=>{
-    const d=r.dodge||'?'; if(d==='NULL'||!d)return;
+  data.forEach(r=>{ const d=r.dodge||''; if(!d||d==='NULL')return;
     if(!dodgeMap[d])dodgeMap[d]={tot:0,shot:0};
-    dodgeMap[d].tot++; if(r.endType==='ショット')dodgeMap[d].shot++;
-  });
-
-  // 日別
-  const dateMap={};
-  data.forEach(r=>{
-    const d=(r.timestamp||'').slice(0,10); if(!d)return;
-    if(!dateMap[d])dateMap[d]={tot:0,shot:0,goal:0};
-    dateMap[d].tot++; if(r.endType==='ショット')dateMap[d].shot++;
-    if(r.result==='ゴール')dateMap[d].goal++;
-  });
-  const dates=Object.keys(dateMap).sort();
-
-  const origins=Object.keys(originMap);
-  const originShot=origins.map(o=>pct(originMap[o].shot,originMap[o].tot));
-  const originGoal=origins.map(o=>pct(originMap[o].goal,originMap[o].shot));
-
+    dodgeMap[d].tot++; if(r.endType==='ショット')dodgeMap[d].shot++; });
   const dodges=Object.keys(dodgeMap);
 
   el.innerHTML=`
+  <!-- 全体サマリー -->
   <div class="metrics m4">
     <div class="metric ko"><div class="m-lbl">総対戦数</div><div class="m-val wh">${total}</div></div>
     <div class="metric ko"><div class="m-lbl">ショット率</div><div class="m-val ko">${shotRate}<span style="font-size:1.3rem">%</span></div><div class="m-sub">${shots.length}本</div></div>
     <div class="metric gr"><div class="m-lbl">ショット決定率</div><div class="m-val gr">${goalRate}<span style="font-size:1.3rem">%</span></div><div class="m-sub">${goals}ゴール</div></div>
-    <div class="metric en"><div class="m-lbl">GセーブRate</div><div class="m-val en">${svR}<span style="font-size:1.3rem">%</span></div><div class="m-sub">${saves}セーブ</div></div>
+    <div class="metric en"><div class="m-lbl">Gセーブ率</div><div class="m-val en">${svR}<span style="font-size:1.3rem">%</span></div><div class="m-sub">${saves}セーブ</div></div>
   </div>
 
   <div class="grid2">
@@ -742,14 +968,9 @@ function render1on1(){
       <div class="ch-box"><canvas id="on1Donut"></canvas></div>
     </div>
     <div class="card">
-      <div class="card-ttl">コース別 決定率（ショットのみ）</div>
-      <div style="max-width:240px;margin:0 auto">${renderCourseHM(shots,'249,115,22')}</div>
+      <div class="card-ttl">起点別 ショット率 / 決定率</div>
+      <div class="ch-box"><canvas id="on1Origin"></canvas></div>
     </div>
-  </div>
-
-  <div class="card">
-    <div class="card-ttl">起点別 ショット率 / 決定率</div>
-    <div class="ch-box"><canvas id="on1Origin"></canvas></div>
   </div>
 
   ${dodges.length?`
@@ -758,47 +979,352 @@ function render1on1(){
     <div class="ch-box"><canvas id="on1Dodge"></canvas></div>
   </div>`:''}
 
-  <div class="card">
-    <div class="card-ttl">AT選手 成績</div>
-    <div class="tbl-w"><table class="dt">
-      <thead><tr><th>順</th><th>AT</th><th>対戦</th><th>ショット率</th><th>決定率</th></tr></thead>
-      <tbody>${atList.map((a,i)=>`<tr>
-        <td class="nc ${i===0?'good':''}">${i+1}</td>
-        <td><b>${a.name}</b></td><td class="nc">${a.tot}</td>
-        <td><div class="rb-w"><div class="rb"><div class="rb-f pf-ko" style="width:${a.shootR}%"></div></div><span class="rb-lbl">${a.shootR}%</span></div></td>
-        <td class="nc ${a.goalR>=50?'good':a.goalR>=25?'warn':'bad'}">${a.goalR}%</td>
-      </tr>`).join('')}</tbody>
-    </table></div>
-  </div>
-
-  <div class="card">
-    <div class="card-ttl">DF選手 成績（阻止率順）</div>
-    <div class="tbl-w"><table class="dt">
-      <thead><tr><th>順</th><th>DF</th><th>対戦</th><th>阻止率</th><th>被ショット</th></tr></thead>
-      <tbody>${dfList.map((d,i)=>`<tr>
-        <td class="nc ${i===0?'good':''}">${i+1}</td>
-        <td><b>${d.name}</b></td><td class="nc">${d.tot}</td>
-        <td><div class="rb-w"><div class="rb"><div class="rb-f pf-st" style="width:${d.blkR}%"></div></div><span class="rb-lbl">${d.blkR}%</span></div></td>
-        <td class="nc">${d.shot}</td>
-      </tr>`).join('')}</tbody>
-    </table></div>
+  <!-- ===== 役割別詳細分析 ===== -->
+  <div class="card" style="margin-top:4px">
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
+      <div class="card-ttl" style="margin-bottom:0">個人詳細分析</div>
+    </div>
+    <div class="role-tabs">
+      <button class="rtab on" data-role="at" onclick="on1SwitchRole('at')">⚔️ AT</button>
+      <button class="rtab st" data-role="df" onclick="on1SwitchRole('df')">🛡️ DF</button>
+      <button class="rtab gr" data-role="g" onclick="on1SwitchRole('g')">🥅 G</button>
+    </div>
+    <div id="on1RolePanel"></div>
   </div>`;
 
-  const endTypes=data.reduce((m,r)=>{m[r.endType||'?']=(m[r.endType||'?']||0)+1;return m;},{});
+  // チャート描画
   donut('on1Donut',Object.keys(endTypes),Object.values(endTypes),
     ['#f97316','#5b8db8','#22c55e','#ef4444','#a78bfa']);
   barchart('on1Origin',origins,[
-    {label:'ショット率(%)',data:originShot,backgroundColor:'rgba(249,115,22,.7)'},
-    {label:'決定率(%)',data:originGoal,backgroundColor:'rgba(34,197,94,.6)'}
+    {label:'ショット率(%)',data:origins.map(o=>pct(originMap[o].shot,originMap[o].tot)),backgroundColor:'rgba(249,115,22,.7)'},
+    {label:'決定率(%)',data:origins.map(o=>pct(originMap[o].goal,originMap[o].shot)),backgroundColor:'rgba(34,197,94,.6)'}
   ]);
   if(dodges.length){
     barchart('on1Dodge',dodges,[
       {label:'ショット率(%)',data:dodges.map(d=>pct(dodgeMap[d].shot,dodgeMap[d].tot)),backgroundColor:'rgba(167,139,250,.7)'}
     ]);
   }
+
+  // 役割パネル初期描画
+  _renderOn1RolePanel(_on1Role);
 }
 
-// =============================================
+// ---- 役割パネル描画 ----
+function _renderOn1RolePanel(role){
+  const panel=$('on1RolePanel');
+  if(!panel)return;
+  const data=DB.on1;
+
+  const roleCfg={
+    at:{ key:'at', label:'AT選手', color:'ko', accentRgb:'249,115,22',
+         players: [...new Set(data.map(r=>r.at).filter(Boolean))].sort() },
+    df:{ key:'df', label:'DF選手', color:'st', accentRgb:'91,141,184',
+         players: [...new Set(data.map(r=>r.df).filter(Boolean))].sort() },
+    g: { key:'goalie', label:'G選手', color:'gr', accentRgb:'34,197,94',
+         players: [...new Set(data.map(r=>r.goalie).filter(Boolean))].sort() },
+  };
+  const cfg = roleCfg[role];
+
+  const opts = cfg.players.map(p=>`<option value="${p}">${p}</option>`).join('');
+
+  panel.innerHTML=`
+    <div class="p-select-row">
+      <span class="p-select-lbl">${cfg.label}</span>
+      <select class="p-select" id="on1PlayerSel" onchange="on1SwitchPlayer('${role}',this)">
+        <option value="__all__">全体（全選手）</option>
+        ${opts}
+      </select>
+    </div>
+    <div id="on1PlayerDetail"></div>`;
+
+  _renderOn1PlayerDetail(role, '__all__');
+}
+
+// ---- 選手別詳細パネル描画 ----
+function _renderOn1PlayerDetail(role, name){
+  const el=$('on1PlayerDetail');
+  if(!el) return;
+  const data=DB.on1;
+
+  if(role==='at')      _renderOn1AT(el, data, name);
+  else if(role==='df') _renderOn1DF(el, data, name);
+  else if(role==='g')  _renderOn1G(el, data, name);
+}
+
+// ==== AT詳細 ====
+function _renderOn1AT(el, data, name){
+  const d = name==='__all__' ? data : data.filter(r=>r.at===name);
+  if(!d.length){ el.innerHTML='<div class="nodata" style="padding:16px">データなし</div>'; return; }
+
+  const shots=d.filter(r=>r.endType==='ショット');
+  const goals=shots.filter(r=>r.result==='ゴール').length;
+  const saves=shots.filter(r=>r.result==='セーブ').length;
+  const gbs=d.filter(r=>r.endType==='GB').length;
+  const shotR=pct(shots.length,d.length), goalR=pct(goals,shots.length);
+
+  // 起点別
+  const origMap={};
+  d.forEach(r=>{ const o=r.origin||'?'; if(!origMap[o])origMap[o]={tot:0,shot:0,goal:0};
+    origMap[o].tot++; if(r.endType==='ショット')origMap[o].shot++; if(r.result==='ゴール')origMap[o].goal++; });
+  const origs=Object.keys(origMap);
+
+  // 抜き方別
+  const dodgeMap={};
+  d.forEach(r=>{ const dg=r.dodge||''; if(!dg||dg==='NULL')return;
+    if(!dodgeMap[dg])dodgeMap[dg]={tot:0,shot:0,goal:0};
+    dodgeMap[dg].tot++; if(r.endType==='ショット')dodgeMap[dg].shot++;
+    if(r.result==='ゴール')dodgeMap[dg].goal++; });
+  const dodgeKeys=Object.keys(dodgeMap);
+
+  // 利き手別
+  const handMap={};
+  d.forEach(r=>{ const h=r.hand||'?'; if(!handMap[h])handMap[h]={tot:0,shot:0,goal:0};
+    handMap[h].tot++; if(r.endType==='ショット')handMap[h].shot++; if(r.result==='ゴール')handMap[h].goal++; });
+
+  // 相手DF別（全体表示時のみ省略、個人時はvs相手を表示）
+  const vsMap={};
+  if(name!=='__all__'){
+    d.forEach(r=>{ const df=r.df||'?'; if(!vsMap[df])vsMap[df]={tot:0,shot:0,goal:0};
+      vsMap[df].tot++; if(r.endType==='ショット')vsMap[df].shot++; if(r.result==='ゴール')vsMap[df].goal++; });
+  } else {
+    // 全体時：AT選手別ランキング
+    const atPMap={};
+    d.forEach(r=>{ const a=r.at||'?'; if(!atPMap[a])atPMap[a]={tot:0,shot:0,goal:0};
+      atPMap[a].tot++; if(r.endType==='ショット')atPMap[a].shot++; if(r.result==='ゴール')atPMap[a].goal++; });
+    Object.assign(vsMap, atPMap);
+  }
+  const vsList=Object.entries(vsMap).map(([k,v])=>({name:k,...v,shootR:pct(v.shot,v.tot),goalR:pct(v.goal,v.shot)}))
+    .sort((a,b)=>b.goalR-a.goalR||b.tot-a.tot);
+
+  const sfx=name==='__all__'?'at_all':('at_'+name.replace(/[^a-z0-9]/gi,''));
+
+  el.innerHTML=`
+  <div class="stat-mini">
+    <div class="sm-card"><div class="sm-lbl">総対戦</div><div class="sm-val wh">${d.length}</div></div>
+    <div class="sm-card"><div class="sm-lbl">ショット率</div><div class="sm-val ko">${shotR}<span style="font-size:1.1rem">%</span></div><div class="sm-sub">${shots.length}本</div></div>
+    <div class="sm-card"><div class="sm-lbl">決定率</div><div class="sm-val gr">${goalR}<span style="font-size:1.1rem">%</span></div><div class="sm-sub">${goals}G</div></div>
+    <div class="sm-card"><div class="sm-lbl">GB取得</div><div class="sm-val en">${gbs}</div></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card" style="background:var(--s1)">
+      <div class="card-ttl">起点別 ショット率 / 決定率</div>
+      <div class="ch-box"><canvas id="atOrig_${sfx}"></canvas></div>
+    </div>
+    <div class="card" style="background:var(--s1)">
+      <div class="card-ttl">コース別 決定率（ショットのみ）</div>
+      <div style="max-width:230px;margin:0 auto">${renderCourseHM(shots,'249,115,22')}</div>
+    </div>
+  </div>
+
+  ${dodgeKeys.length?`
+  <div class="grid2">
+    <div class="card" style="background:var(--s1)">
+      <div class="card-ttl">抜き方別 ショット率 / 決定率</div>
+      <div class="ch-box"><canvas id="atDodge_${sfx}"></canvas></div>
+    </div>
+    <div class="card" style="background:var(--s1)">
+      <div class="card-ttl">利き手別 ショット率</div>
+      <div class="ch-box"><canvas id="atHand_${sfx}"></canvas></div>
+    </div>
+  </div>`:`
+  <div class="card" style="background:var(--s1)">
+    <div class="card-ttl">利き手別 ショット率</div>
+    <div class="ch-box"><canvas id="atHand_${sfx}"></canvas></div>
+  </div>`}
+
+  <div class="card" style="background:var(--s1)">
+    <div class="card-ttl">${name==='__all__'?'AT選手 成績ランキング':'相手DF別 成績'}</div>
+    <div class="tbl-w"><table class="dt">
+      <thead><tr><th>順</th><th>${name==='__all__'?'AT選手':'相手DF'}</th><th>対戦</th><th>ショット率</th><th>決定率</th></tr></thead>
+      <tbody>${vsList.map((v,i)=>`<tr>
+        <td class="nc ${i===0?'good':''}">${i+1}</td>
+        <td><b>${v.name}</b></td><td class="nc">${v.tot}</td>
+        <td><div class="rb-w"><div class="rb"><div class="rb-f pf-ko" style="width:${v.shootR}%"></div></div><span class="rb-lbl">${v.shootR}%</span></div></td>
+        <td class="nc ${v.goalR>=50?'good':v.goalR>=25?'warn':'bad'}">${v.goalR}%</td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+  </div>`;
+
+  // チャート
+  barchart(`atOrig_${sfx}`,origs,[
+    {label:'ショット率(%)',data:origs.map(o=>pct(origMap[o].shot,origMap[o].tot)),backgroundColor:'rgba(249,115,22,.75)'},
+    {label:'決定率(%)',data:origs.map(o=>pct(origMap[o].goal,origMap[o].shot)),backgroundColor:'rgba(34,197,94,.65)'}
+  ]);
+  if(dodgeKeys.length){
+    barchart(`atDodge_${sfx}`,dodgeKeys,[
+      {label:'ショット率(%)',data:dodgeKeys.map(k=>pct(dodgeMap[k].shot,dodgeMap[k].tot)),backgroundColor:'rgba(167,139,250,.75)'},
+      {label:'決定率(%)',data:dodgeKeys.map(k=>pct(dodgeMap[k].goal,dodgeMap[k].shot)),backgroundColor:'rgba(251,191,36,.6)'}
+    ]);
+  }
+  const hands=Object.keys(handMap);
+  barchart(`atHand_${sfx}`,hands,[
+    {label:'ショット率(%)',data:hands.map(h=>pct(handMap[h].shot,handMap[h].tot)),backgroundColor:'rgba(56,189,248,.7)'},
+    {label:'決定率(%)',data:hands.map(h=>pct(handMap[h].goal,handMap[h].shot)),backgroundColor:'rgba(249,115,22,.65)'}
+  ]);
+}
+
+// ==== DF詳細 ====
+function _renderOn1DF(el, data, name){
+  const d = name==='__all__' ? data : data.filter(r=>r.df===name);
+  if(!d.length){ el.innerHTML='<div class="nodata" style="padding:16px">データなし</div>'; return; }
+
+  const shots=d.filter(r=>r.endType==='ショット');
+  const goals=shots.filter(r=>r.result==='ゴール').length;
+  const blkd=d.filter(r=>r.endType!=='ショット').length;
+  const blkR=pct(blkd,d.length);
+  const allowR=pct(goals,shots.length);
+
+  // 被起点別
+  const origMap={};
+  d.forEach(r=>{ const o=r.origin||'?'; if(!origMap[o])origMap[o]={tot:0,shot:0,goal:0};
+    origMap[o].tot++; if(r.endType==='ショット')origMap[o].shot++; if(r.result==='ゴール')origMap[o].goal++; });
+  const origs=Object.keys(origMap);
+
+  // 被抜き方別（ショットになった時）
+  const dodgeMap={};
+  d.filter(r=>r.endType==='ショット').forEach(r=>{ const dg=r.dodge||'?'; if(dg==='NULL')return;
+    if(!dodgeMap[dg])dodgeMap[dg]={tot:0,goal:0};
+    dodgeMap[dg].tot++; if(r.result==='ゴール')dodgeMap[dg].goal++; });
+  const dodgeKeys=Object.keys(dodgeMap);
+
+  // 相手AT別（全体時はDF別ランキング）
+  const vsMap={};
+  if(name!=='__all__'){
+    d.forEach(r=>{ const at=r.at||'?'; if(!vsMap[at])vsMap[at]={tot:0,shot:0,goal:0};
+      vsMap[at].tot++; if(r.endType==='ショット')vsMap[at].shot++; if(r.result==='ゴール')vsMap[at].goal++; });
+  } else {
+    d.forEach(r=>{ const df=r.df||'?'; if(!vsMap[df])vsMap[df]={tot:0,shot:0,goal:0};
+      vsMap[df].tot++; if(r.endType==='ショット')vsMap[df].shot++; if(r.result==='ゴール')vsMap[df].goal++; });
+  }
+  const vsList=Object.entries(vsMap).map(([k,v])=>({name:k,...v,blkR:pct(v.tot-v.shot,v.tot),allowR:pct(v.goal,v.shot)}))
+    .sort((a,b)=>b.blkR-a.blkR||b.tot-a.tot);
+
+  const sfx=name==='__all__'?'df_all':('df_'+name.replace(/[^a-z0-9]/gi,''));
+
+  el.innerHTML=`
+  <div class="stat-mini">
+    <div class="sm-card"><div class="sm-lbl">総対戦</div><div class="sm-val wh">${d.length}</div></div>
+    <div class="sm-card"><div class="sm-lbl">阻止率</div><div class="sm-val en">${blkR}<span style="font-size:1.1rem">%</span></div><div class="sm-sub">${blkd}回阻止</div></div>
+    <div class="sm-card"><div class="sm-lbl">被ショット</div><div class="sm-val rd">${shots.length}</div></div>
+    <div class="sm-card"><div class="sm-lbl">被決定率</div><div class="sm-val ${allowR<=30?'gr':allowR<=50?'wh':'rd'}">${allowR}<span style="font-size:1.1rem">%</span></div></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card" style="background:var(--s1)">
+      <div class="card-ttl">被起点別 阻止率</div>
+      <div class="ch-box"><canvas id="dfOrig_${sfx}"></canvas></div>
+    </div>
+    <div class="card" style="background:var(--s1)">
+      <div class="card-ttl">被コース分布（ショットのみ）</div>
+      <div style="max-width:230px;margin:0 auto">${renderCourseHM(shots,'91,141,184')}</div>
+    </div>
+  </div>
+
+  ${dodgeKeys.length?`
+  <div class="card" style="background:var(--s1)">
+    <div class="card-ttl">被抜き方別（ショットになった回数 / 被決定率）</div>
+    <div class="ch-box"><canvas id="dfDodge_${sfx}"></canvas></div>
+  </div>`:''}
+
+  <div class="card" style="background:var(--s1)">
+    <div class="card-ttl">${name==='__all__'?'DF選手 成績ランキング（阻止率順）':'相手AT別 成績'}</div>
+    <div class="tbl-w"><table class="dt">
+      <thead><tr><th>順</th><th>${name==='__all__'?'DF選手':'相手AT'}</th><th>対戦</th><th>阻止率</th><th>被決定率</th></tr></thead>
+      <tbody>${vsList.map((v,i)=>`<tr>
+        <td class="nc ${i===0?'good':''}">${i+1}</td>
+        <td><b>${v.name}</b></td><td class="nc">${v.tot}</td>
+        <td><div class="rb-w"><div class="rb"><div class="rb-f pf-st" style="width:${v.blkR}%"></div></div><span class="rb-lbl en">${v.blkR}%</span></div></td>
+        <td class="nc ${v.allowR<=30?'good':v.allowR<=50?'warn':'bad'}">${v.allowR}%</td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+  </div>`;
+
+  barchart(`dfOrig_${sfx}`,origs,[
+    {label:'阻止率(%)',data:origs.map(o=>pct(origMap[o].tot-origMap[o].shot,origMap[o].tot)),backgroundColor:'rgba(91,141,184,.75)'},
+    {label:'被決定率(%)',data:origs.map(o=>pct(origMap[o].goal,origMap[o].shot)),backgroundColor:'rgba(239,68,68,.55)'}
+  ]);
+  if(dodgeKeys.length){
+    barchart(`dfDodge_${sfx}`,dodgeKeys,[
+      {label:'被ショット数',data:dodgeKeys.map(k=>dodgeMap[k].tot),backgroundColor:'rgba(239,68,68,.55)'},
+      {label:'被決定率(%)',data:dodgeKeys.map(k=>pct(dodgeMap[k].goal,dodgeMap[k].tot)),backgroundColor:'rgba(251,191,36,.65)'}
+    ]);
+  }
+}
+
+// ==== G詳細 ====
+function _renderOn1G(el, data, name){
+  const d = name==='__all__' ? data.filter(r=>r.goalie) : data.filter(r=>r.goalie===name);
+  const shots = d.filter(r=>r.endType==='ショット');
+  if(!shots.length){ el.innerHTML='<div class="nodata" style="padding:16px">ショットデータなし</div>'; return; }
+
+  const goals=shots.filter(r=>r.result==='ゴール').length;
+  const saves=shots.filter(r=>r.result==='セーブ').length;
+  const outs=shots.filter(r=>r.result==='枠外').length;
+  const onTgt=goals+saves;
+  const svR=pct(saves,onTgt), loseR=pct(goals,onTgt);
+
+  // 相手AT別
+  const atMap={};
+  shots.forEach(r=>{ const a=r.at||'?'; if(!atMap[a])atMap[a]={tot:0,goal:0,save:0};
+    atMap[a].tot++; if(r.result==='ゴール')atMap[a].goal++; if(r.result==='セーブ')atMap[a].save++; });
+  const atList=Object.entries(atMap).map(([k,v])=>({name:k,...v,svr:pct(v.save,v.goal+v.save)}))
+    .sort((a,b)=>b.svr-a.svr||b.tot-a.tot);
+
+  // 起点別セーブ率
+  const origMap={};
+  shots.forEach(r=>{ const o=r.origin||r.shotPos||'?'; if(!origMap[o])origMap[o]={tot:0,goal:0,save:0};
+    origMap[o].tot++; if(r.result==='ゴール')origMap[o].goal++; if(r.result==='セーブ')origMap[o].save++; });
+  const origs=Object.keys(origMap);
+
+  // Gランキング（全体時）
+  const gRankMap={};
+  if(name==='__all__'){
+    shots.forEach(r=>{ const g=r.goalie||'?'; if(!gRankMap[g])gRankMap[g]={tot:0,goal:0,save:0};
+      gRankMap[g].tot++; if(r.result==='ゴール')gRankMap[g].goal++; if(r.result==='セーブ')gRankMap[g].save++; });
+  }
+  const gRankList=Object.entries(gRankMap).map(([k,v])=>({name:k,...v,svr:pct(v.save,v.goal+v.save)}))
+    .sort((a,b)=>b.svr-a.svr||b.tot-a.tot);
+
+  const sfx=name==='__all__'?'g_all':('g_'+name.replace(/[^a-z0-9]/gi,''));
+
+  el.innerHTML=`
+  <div class="stat-mini">
+    <div class="sm-card"><div class="sm-lbl">被ショット(枠内)</div><div class="sm-val wh">${onTgt}</div><div class="sm-sub">枠外${outs}本含む計${shots.length}</div></div>
+    <div class="sm-card"><div class="sm-lbl">セーブ率</div><div class="sm-val en">${svR}<span style="font-size:1.1rem">%</span></div><div class="sm-sub">${saves}sv</div></div>
+    <div class="sm-card"><div class="sm-lbl">被決定率</div><div class="sm-val ${loseR<=30?'gr':loseR<=50?'wh':'rd'}">${loseR}<span style="font-size:1.1rem">%</span></div><div class="sm-sub">${goals}失点</div></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card" style="background:var(--s1)">
+      <div class="card-ttl">コース別 セーブ率</div>
+      <div style="max-width:230px;margin:0 auto">${renderCourseHM(shots.map(r=>({...r,result:r.result==='セーブ'?'goal':'miss'})),'34,197,94')}</div>
+    </div>
+    <div class="card" style="background:var(--s1)">
+      <div class="card-ttl">起点別 セーブ率</div>
+      <div class="ch-box"><canvas id="gOrig_${sfx}"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card" style="background:var(--s1)">
+    <div class="card-ttl">${name==='__all__'?'G選手 成績ランキング（セーブ率順）':'相手AT別 セーブ率'}</div>
+    <div class="tbl-w"><table class="dt">
+      <thead><tr><th>順</th><th>${name==='__all__'?'G選手':'相手AT'}</th><th>被ショット</th><th>セーブ率</th><th>失点</th></tr></thead>
+      <tbody>${(name==='__all__'?gRankList:atList).map((v,i)=>`<tr>
+        <td class="nc ${i===0?'good':''}">${i+1}</td>
+        <td><b>${v.name}</b></td><td class="nc">${v.tot}</td>
+        <td><div class="rb-w"><div class="rb"><div class="rb-f pf-gr" style="width:${v.svr}%"></div></div><span class="rb-lbl" style="color:var(--green)">${v.svr}%</span></div></td>
+        <td class="nc bad">${v.goal}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+  </div>`;
+
+  barchart(`gOrig_${sfx}`,origs,[
+    {label:'セーブ率(%)',data:origs.map(o=>pct(origMap[o].save,origMap[o].goal+origMap[o].save)),backgroundColor:'rgba(34,197,94,.7)'},
+    {label:'被ショット数',data:origs.map(o=>origMap[o].tot),backgroundColor:'rgba(91,141,184,.45)'}
+  ]);
+}
+
 // RENDER 6on6
 // =============================================
 function render6on6(){
