@@ -226,8 +226,7 @@
   </h1>
   <p class="hero-subtitle">
     試合中のデータをリアルタイムで収集し、<br>
-    Streamlitで可視化・分析するための統合ツール群。<br>
-    <span style="color:var(--accent3);font-size:13px">練習データ収集・分析ツールも追加。</span>
+    HTMLダッシュボードで即座に可視化・分析するための統合ツール群。
   </p>
   <div class="hero-cta-row">
     <a href="#tools" class="btn-hero btn-hero-primary">▶ ツールを使う</a>
@@ -244,10 +243,10 @@
 <!-- ======== TOOLS ======== -->
 <section id="tools">
   <div class="section-inner">
-    <div class="section-label">Recording Tools</div>
-    <h2 class="section-heading">収集ツール一覧</h2>
+    <div class="section-label">Tools</div>
+    <h2 class="section-heading">ツール一覧</h2>
     <p class="section-desc">
-      試合ツール（7種）と練習ツール（4種）の2カテゴリ。担当を分担して使用。
+      試合ツール（6種）と練習ツール（4種）で収集し、分析ダッシュボード（3種）で可視化。
     </p>
 
     <!-- === 試合データ収集 === -->
@@ -351,26 +350,10 @@
           <div class="tool-arrow">↗</div>
         </a>
 
-        <a href="https://lacrosse-app-hwvpua8goimukakgbhlmn8.streamlit.app" target="_blank" class="tool-card" style="border-color:rgba(99,102,241,0.3);">
-          <div class="tool-card-header">
-            <div class="tool-icon icon-stream">📈</div>
-            <span class="tool-badge badge-new">ANALYSIS</span>
-          </div>
-          <div>
-            <div class="tool-name">Streamlit 分析ダッシュボード</div>
-            <div class="tool-desc">各ツールからエクスポートしたJSONをアップロードして試合データを可視化・分析</div>
-          </div>
-          <div class="tool-tags">
-            <span class="tag">JSON読み込み</span><span class="tag">ヒートマップ</span>
-            <span class="tag">Q別集計</span><span class="tag">選手別分析</span>
-          </div>
-          <div class="tool-arrow">↗</div>
-        </a>
-
       </div>
     </div>
 
-    <!-- === 練習ツール === -->
+    <!-- === 練習データ収集 === -->
     <div class="tool-category">
       <div class="category-label">練習データ収集</div>
       <div class="tools-grid">
@@ -423,25 +406,64 @@
           <div class="tool-arrow">↗</div>
         </a>
 
-        <a href="practice_index.html" class="tool-card" style="border-color:rgba(249,115,22,0.25);">
+      </div>
+    </div>
+
+    <!-- === 分析ダッシュボード === -->
+    <div class="tool-category">
+      <div class="category-label">分析ダッシュボード</div>
+      <div class="tools-grid">
+
+        <a href="lacrosse_dashboard.html" class="tool-card" style="border-color:rgba(249,115,22,0.35);">
           <div class="tool-card-header">
-            <div class="tool-icon" style="background:rgba(249,115,22,0.15);">📊</div>
+            <div class="tool-icon icon-stream">📊</div>
             <span class="tool-badge badge-new">ANALYSIS</span>
           </div>
           <div>
-            <div class="tool-name">練習分析ダッシュボード</div>
-            <div class="tool-desc">上記3ツールのCSVを読み込んで可視化。フリシュー・1on1・6on6を選手別・日別に分析</div>
+            <div class="tool-name">試合データ分析</div>
+            <div class="tool-desc">JSONを読み込んで1試合を詳細分析。スコア・TO・ポゼ・GB・ドロー・ゴーリー対応。試合直後の詳細確認に</div>
           </div>
           <div class="tool-tags">
-            <span class="tag">CSV読み込み</span><span class="tag">選手別</span>
-            <span class="tag">日別推移</span><span class="tag">ヒートマップ</span>
+            <span class="tag">1試合詳細</span><span class="tag">ヒートマップ</span>
+            <span class="tag">Q別集計</span><span class="tag">ゴーリー図</span>
+          </div>
+          <div class="tool-arrow">↗</div>
+        </a>
+
+        <a href="match_history.html" class="tool-card" style="border-color:rgba(56,189,248,0.3);">
+          <div class="tool-card-header">
+            <div class="tool-icon" style="background:rgba(56,189,248,0.15);">📈</div>
+            <span class="tool-badge" style="background:rgba(56,189,248,0.12);color:var(--cyan);border-color:rgba(56,189,248,0.3)">HISTORY</span>
+          </div>
+          <div>
+            <div class="tool-name">試合履歴・蓄積分析</div>
+            <div class="tool-desc">複数試合のJSONをブラウザに蓄積。シーズン推移・対戦相手別パターン・選手累計成績・Q別傾向を横断分析</div>
+          </div>
+          <div class="tool-tags">
+            <span class="tag">蓄積対応</span><span class="tag">シーズン推移</span>
+            <span class="tag">選手追跡</span><span class="tag">相手別分析</span>
+          </div>
+          <div class="tool-arrow">↗</div>
+        </a>
+
+        <a href="practice_index.html" class="tool-card" style="border-color:rgba(34,197,94,0.3);">
+          <div class="tool-card-header">
+            <div class="tool-icon" style="background:rgba(34,197,94,0.15);">🏋️</div>
+            <span class="tool-badge" style="background:rgba(34,197,94,0.12);color:var(--green);border-color:rgba(34,197,94,0.3)">PRACTICE</span>
+          </div>
+          <div>
+            <div class="tool-name">練習データ分析</div>
+            <div class="tool-desc">フリシュー・1on1・6on6の練習CSVをブラウザに蓄積。決定率・ヒートマップ・選手ランキングをいつでも確認</div>
+          </div>
+          <div class="tool-tags">
+            <span class="tag">データ蓄積</span><span class="tag">フリシュー</span>
+            <span class="tag">1on1</span><span class="tag">6on6</span>
           </div>
           <div class="tool-arrow">↗</div>
         </a>
 
       </div>
     </div>
-
 
   </div>
 </section>
@@ -455,7 +477,7 @@
     <h2 class="section-heading">担当割り当てと流れ</h2>
     <p class="section-desc">
       試合当日、6名程度で担当を決めて各ツールを開くだけ。<br>
-      試合後はJSONをまとめてStreamlitへ。
+      試合後はJSONをまとめて分析ダッシュボードへ。
     </p>
 
     <!-- 担当表 -->
@@ -519,8 +541,8 @@
       </div>
       <div class="flow-step">
         <div class="step-num">04</div>
-        <div class="step-title">Streamlitで分析</div>
-        <div class="step-desc">ダッシュボードにJSONをアップロードして自動集計</div>
+        <div class="step-title">HTMLで分析</div>
+        <div class="step-desc">分析ダッシュボードにJSONをドロップして自動集計・グラフ化</div>
       </div>
     </div>
   </div>
@@ -532,15 +554,23 @@
 <section>
   <div class="section-inner">
     <div class="cta-section">
-      <div class="cta-icon">📈</div>
+      <div class="cta-icon">📊</div>
       <div class="cta-title">OPEN DASHBOARD</div>
       <p class="cta-desc">
-        JSONをアップロードするだけで<br>
+        JSONをドロップするだけで<br>
         試合データが即座にグラフ・ヒートマップに変換されます。
       </p>
-      <a href="https://lacrosse-app-hwvpua8goimukakgbhlmn8.streamlit.app" target="_blank" class="btn-cta">
-        📊 Streamlit ダッシュボードを開く ↗
-      </a>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;justify-content:center;">
+        <a href="lacrosse_dashboard.html" class="btn-cta">
+          📊 試合データ分析（1試合詳細） ↗
+        </a>
+        <a href="match_history.html" class="btn-cta" style="background:rgba(56,189,248,0.12);border:1px solid rgba(56,189,248,0.3);color:var(--cyan);box-shadow:0 0 20px rgba(56,189,248,0.15);">
+          📈 試合履歴・蓄積分析 ↗
+        </a>
+        <a href="practice_index.html" class="btn-cta" style="background:rgba(34,197,94,0.12);border:1px solid rgba(34,197,94,0.3);color:var(--green);box-shadow:0 0 20px rgba(34,197,94,0.1);">
+          🏋️ 練習データ分析 ↗
+        </a>
+      </div>
     </div>
   </div>
 </section>
@@ -549,7 +579,8 @@
 <footer class="footer">
   <div class="footer-logo">KYOTO LACROSSE</div>
   <div>試合データ収集システム — 全7ツール</div>
-  <div style="margin-top:6px;color:var(--text3);">score · to · possession · gb_foul · draw · goalie · streamlit<br><span style="color:var(--accent2)">freeshot · 1on1 · 6on6 · practice dashboard</span></div>
+  <div style="margin-top:6px;color:var(--text3);">score · to · possession · gb_foul · draw · goalie</div>
+  <div style="margin-top:4px"><span style="color:var(--accent2)">lacrosse_dashboard · match_history · practice_index</span></div>
 </footer>
 
 <script>
