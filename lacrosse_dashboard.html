@@ -1,0 +1,1242 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<title>京大ラクロス｜試合分析</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@400;600;700;800&family=Noto+Sans+JP:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+:root{
+  --bg:#070e1c; --s1:#0d1829; --s2:#132038; --s3:#1a2d4a; --s4:#243d60;
+  --orange:#f97316; --orange2:#fb923c; --odim:#c2580e; --oglow:rgba(249,115,22,0.18);
+  --steel:#5b8db8; --sdim:#3a6a94;
+  --green:#22c55e; --red:#ef4444; --yellow:#fbbf24; --cyan:#38bdf8; --purple:#a78bfa;
+  --tx:#f0f6ff; --tx2:#94afc8; --tx3:#4a6080;
+  --r:10px; --rl:16px;
+  --font-d:'Bebas Neue',sans-serif;
+  --font-b:'Barlow Condensed','Noto Sans JP',sans-serif;
+  --font-n:'Noto Sans JP',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--font-n);background:var(--bg);color:var(--tx);
+  min-height:100vh;min-height:100dvh;overflow-x:hidden;
+  background-image:
+    radial-gradient(ellipse 80% 50% at 50% -10%,rgba(249,115,22,0.06) 0%,transparent 60%),
+    radial-gradient(ellipse 40% 30% at 90% 90%,rgba(59,130,246,0.04) 0%,transparent 50%);
+}
+body::before{
+  content:'';position:fixed;inset:0;pointer-events:none;z-index:0;
+  background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.025'/%3E%3C/svg%3E");
+}
+
+/* ── HEADER ── */
+#hdr{
+  position:fixed;top:0;left:0;right:0;z-index:200;
+  background:rgba(7,14,28,0.92);backdrop-filter:blur(24px);
+  border-bottom:1px solid var(--s3);
+}
+.hdr-in{
+  display:flex;align-items:center;gap:10px;
+  padding:0 14px;height:54px;max-width:900px;margin:0 auto;
+}
+.hdr-brand{display:flex;flex-direction:column}
+.hdr-name{font-family:var(--font-b);font-size:1.05rem;font-weight:800;letter-spacing:.12em;color:var(--orange)}
+.hdr-sub{font-size:.58rem;color:var(--tx3);letter-spacing:.06em;line-height:1.4}
+.hdr-score{
+  margin-left:auto;display:flex;align-items:center;gap:5px;
+  opacity:0;transition:opacity .4s;
+}
+.hdr-score.show{opacity:1}
+.hs-num{font-family:var(--font-d);font-size:2.2rem;line-height:1;letter-spacing:.02em}
+.hs-k{color:var(--orange);text-shadow:0 0 20px rgba(249,115,22,.4)}
+.hs-e{color:var(--steel)}
+.hs-sep{font-family:var(--font-d);font-size:1.1rem;color:var(--tx3);margin:0 2px}
+.hdr-date{font-size:.62rem;color:var(--tx3);border-left:1px solid var(--s3);padding-left:10px;margin-left:4px}
+
+/* ── BOTTOM NAV ── */
+#bnav{
+  position:fixed;bottom:0;left:0;right:0;z-index:200;
+  background:rgba(7,14,28,.97);border-top:1px solid var(--s3);
+  padding-bottom:env(safe-area-inset-bottom);
+  display:flex;overflow-x:auto;scrollbar-width:none;
+}
+#bnav::-webkit-scrollbar{display:none}
+.nb{
+  flex:1;min-width:52px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;padding:7px 4px;border:none;background:none;
+  cursor:pointer;color:var(--tx3);font-size:.5rem;letter-spacing:.05em;
+  font-family:var(--font-b);font-weight:700;gap:3px;transition:color .2s;min-height:52px;
+}
+.nb .ni{font-size:1.15rem;line-height:1}
+.nb.on{color:var(--orange)}
+.nb.on .ni{filter:drop-shadow(0 0 5px rgba(249,115,22,.7))}
+
+/* ── MAIN ── */
+#main{
+  padding-top:54px;padding-bottom:calc(52px + env(safe-area-inset-bottom));
+  max-width:900px;margin:0 auto;position:relative;z-index:1;
+}
+.pg{display:none;padding:14px}
+.pg.on{display:block}
+
+/* ── SECTION HDR ── */
+.sec{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.sec-tag{
+  font-family:var(--font-b);font-size:.6rem;font-weight:800;letter-spacing:.2em;
+  color:var(--orange);background:rgba(249,115,22,.08);
+  border:1px solid rgba(249,115,22,.22);padding:3px 10px;border-radius:20px;white-space:nowrap;
+}
+.sec-ttl{font-family:var(--font-b);font-size:1.1rem;font-weight:700;letter-spacing:.06em}
+.sec-line{flex:1;height:1px;background:var(--s3)}
+
+/* ── SETUP CARD ── */
+.setup{background:var(--s2);border:1px solid var(--s3);border-radius:var(--rl);padding:20px;margin-bottom:14px}
+.setup-ttl{font-family:var(--font-b);font-size:1rem;font-weight:700;letter-spacing:.1em;color:var(--orange);margin-bottom:6px}
+.setup-desc{font-size:.76rem;color:var(--tx2);line-height:1.7;margin-bottom:14px}
+.dropzone{
+  border:2px dashed var(--s4);border-radius:var(--r);padding:26px 14px;
+  text-align:center;cursor:pointer;transition:all .25s;
+}
+.dropzone:hover,.dropzone.over{border-color:var(--orange);background:rgba(249,115,22,.05)}
+.dz-icon{font-size:1.8rem;margin-bottom:6px}
+.dz-ttl{font-family:var(--font-b);font-size:.9rem;font-weight:700;letter-spacing:.06em}
+.dz-sub{font-size:.7rem;color:var(--tx3);margin-top:3px}
+.pills{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.pill{
+  display:flex;align-items:center;gap:5px;
+  background:var(--bg);border:1px solid var(--s3);
+  border-radius:20px;padding:4px 10px;
+  font-size:.62rem;font-weight:700;color:var(--tx3);transition:all .3s;
+}
+.pill.ok{background:rgba(34,197,94,.07);border-color:rgba(34,197,94,.3);color:var(--green)}
+.pdot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
+
+/* ── SCORE HERO ── */
+.hero{
+  background:var(--s2);border:1px solid var(--s3);border-radius:var(--rl);
+  padding:18px 14px;margin-bottom:12px;
+  display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;
+  position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:linear-gradient(90deg,var(--orange),transparent 40%,transparent 60%,var(--steel));
+}
+.h-team{text-align:center}
+.h-tname{font-family:var(--font-b);font-size:.7rem;font-weight:700;letter-spacing:.1em;color:var(--tx2);margin-bottom:3px}
+.h-score{font-family:var(--font-d);font-size:4rem;line-height:1}
+.h-sk{color:var(--orange);text-shadow:0 0 40px rgba(249,115,22,.35)}
+.h-se{color:var(--steel)}
+.h-shot{font-size:.62rem;color:var(--tx3);margin-top:3px}
+.h-vs{text-align:center}
+.h-vs-tx{font-family:var(--font-d);font-size:1.2rem;color:var(--tx3)}
+.h-res{font-family:var(--font-b);font-size:.68rem;font-weight:700;letter-spacing:.1em;padding:3px 10px;border-radius:20px;display:inline-block;margin-top:3px}
+.res-w{background:rgba(249,115,22,.15);color:var(--orange);border:1px solid rgba(249,115,22,.3)}
+.res-l{background:rgba(91,141,184,.15);color:var(--steel);border:1px solid rgba(91,141,184,.3)}
+.res-d{background:rgba(107,133,168,.1);color:var(--tx3);border:1px solid var(--s3)}
+
+/* ── CARD ── */
+.card{background:var(--s2);border:1px solid var(--s3);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.card-ttl{
+  font-family:var(--font-b);font-size:.78rem;font-weight:700;letter-spacing:.1em;
+  color:var(--tx2);text-transform:uppercase;margin-bottom:12px;
+  display:flex;align-items:center;gap:6px;
+}
+.card-ttl::before{content:'';display:block;width:3px;height:13px;background:var(--orange);border-radius:2px;flex-shrink:0}
+.grid2{display:grid;grid-template-columns:1fr;gap:12px}
+@media(min-width:600px){.grid2{grid-template-columns:1fr 1fr}}
+
+/* ── METRICS ── */
+.metrics{display:grid;gap:9px;margin-bottom:12px}
+.m2{grid-template-columns:1fr 1fr}
+.m3{grid-template-columns:repeat(3,1fr)}
+.m4{grid-template-columns:repeat(2,1fr)}
+@media(min-width:600px){.m4{grid-template-columns:repeat(4,1fr)}}
+.metric{
+  background:var(--s2);border:1px solid var(--s3);border-radius:var(--r);
+  padding:12px 13px;position:relative;overflow:hidden;
+}
+.metric::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.metric.ko::before{background:linear-gradient(90deg,transparent,var(--orange),transparent)}
+.metric.en::before{background:linear-gradient(90deg,transparent,var(--steel),transparent)}
+.metric.gr::before{background:linear-gradient(90deg,transparent,var(--green),transparent)}
+.metric.cy::before{background:linear-gradient(90deg,transparent,var(--cyan),transparent)}
+.metric.pu::before{background:linear-gradient(90deg,transparent,var(--purple),transparent)}
+.m-lbl{font-family:var(--font-b);font-size:.58rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--tx3);margin-bottom:5px}
+.m-val{font-family:var(--font-d);font-size:2.4rem;line-height:1;letter-spacing:.02em}
+.m-val.ko{color:var(--orange);text-shadow:0 0 20px rgba(249,115,22,.3)}
+.m-val.en{color:var(--steel)}
+.m-val.gr{color:var(--green)}
+.m-val.cy{color:var(--cyan)}
+.m-val.pu{color:var(--purple)}
+.m-val.wh{color:var(--tx)}
+.m-val.rd{color:var(--red)}
+.m-sub{font-size:.65rem;color:var(--tx2);margin-top:4px;line-height:1.4}
+.pbar{height:3px;background:var(--s3);border-radius:2px;overflow:hidden;margin-top:6px}
+.pfill{height:100%;border-radius:2px;transition:width .6s ease}
+.pf-ko{background:linear-gradient(90deg,var(--odim),var(--orange))}
+.pf-gr{background:var(--green)}
+.pf-rd{background:var(--red)}
+.pf-st{background:var(--steel)}
+.pf-cy{background:var(--cyan)}
+
+/* ── TABLE ── */
+.tbl-w{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table.dt{width:100%;border-collapse:collapse;font-size:.78rem;white-space:nowrap}
+table.dt th{font-family:var(--font-b);font-size:.58rem;font-weight:700;letter-spacing:.12em;color:var(--tx3);padding:7px 9px;border-bottom:1px solid var(--s3);text-align:left}
+table.dt td{padding:8px 9px;border-bottom:1px solid rgba(26,45,74,.5);color:var(--tx)}
+table.dt tr:last-child td{border-bottom:none}
+table.dt tr:hover td{background:rgba(249,115,22,.03)}
+.nc{font-family:var(--font-b);font-size:.95rem;font-weight:700}
+.good{color:var(--green)}.warn{color:var(--yellow)}.bad{color:var(--red)}
+.qtag{display:inline-block;padding:2px 7px;border-radius:4px;font-family:var(--font-b);font-size:.72rem;font-weight:700}
+.qtag.ko{background:rgba(249,115,22,.15);color:var(--orange)}
+.qtag.en{background:rgba(91,141,184,.15);color:var(--steel)}
+.qtag.n{background:var(--s3);color:var(--tx2)}
+
+/* ── CHART ── */
+.ch-box{position:relative;height:200px}
+@media(min-width:600px){.ch-box{height:240px}}
+
+/* ── RATE BAR ── */
+.rb-w{display:flex;align-items:center;gap:6px}
+.rb{flex:1;height:5px;background:var(--s3);border-radius:3px;overflow:hidden}
+.rb-f{height:100%;border-radius:3px;transition:width .5s}
+.rb-lbl{font-family:var(--font-b);font-weight:700;font-size:.8rem;min-width:36px;text-align:right}
+
+/* ── POSSESSION BAR ── */
+.pb-row{margin-bottom:12px}
+.pb-qlbl{font-family:var(--font-b);font-size:.78rem;font-weight:700;margin-bottom:5px;display:flex;justify-content:space-between}
+.pb{height:28px;border-radius:6px;overflow:hidden;display:flex}
+.pb-k{background:var(--orange);display:flex;align-items:center;justify-content:flex-start;padding:0 7px;font-family:var(--font-b);font-size:.75rem;font-weight:700;color:#fff;transition:width .6s;min-width:0}
+.pb-e{background:var(--sdim);display:flex;align-items:center;justify-content:flex-end;padding:0 7px;font-family:var(--font-b);font-size:.75rem;font-weight:700;color:#fff;transition:width .6s;min-width:0}
+
+/* ── HEATMAP ── */
+.hm-w{display:grid;grid-template-columns:16px 1fr;gap:3px}
+.hm-yl{display:flex;flex-direction:column;justify-content:space-around;padding:2px 0}
+.hm-ylabel{font-size:.55rem;color:var(--tx3);text-align:right}
+.hm-in{display:flex;flex-direction:column;gap:3px}
+.hm-xl{display:grid;grid-template-columns:repeat(3,1fr);margin-bottom:2px}
+.hm-xlabel{font-size:.56rem;color:var(--tx3);text-align:center}
+.hm-row{display:grid;grid-template-columns:repeat(3,1fr);gap:3px}
+.hm-c{
+  aspect-ratio:1;border-radius:6px;border:1px solid rgba(255,255,255,.04);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  transition:transform .1s;cursor:default;
+}
+.hm-c:active{transform:scale(.95)}
+.hm-v{font-family:var(--font-b);font-size:.82rem;font-weight:700}
+.hm-s{font-size:.5rem;color:rgba(255,255,255,.45);margin-top:1px}
+
+/* ── BALANCE ── */
+.bal{display:flex;align-items:center;justify-content:center;font-family:var(--font-d);font-size:3rem;line-height:1}
+.bal.pos{color:var(--orange);text-shadow:0 0 30px rgba(249,115,22,.4)}
+.bal.neg{color:var(--steel)}
+.bal.zero{color:var(--tx3)}
+
+/* ── NODATA ── */
+.nodata{background:var(--s2);border:1px dashed var(--s3);border-radius:var(--r);padding:36px 16px;text-align:center;color:var(--tx3);font-size:.8rem}
+.nodata .nd-i{font-size:1.7rem;margin-bottom:7px}
+
+/* ── DRAW PLAYER THUMB ── */
+.draw-thumb{
+  width:100%;aspect-ratio:4/3;border-radius:6px;background:#0f2918;
+  position:relative;overflow:hidden;display:block;
+}
+.draw-thumb canvas{width:100%;height:100%;display:block}
+.draw-log-row{
+  background:var(--s1);border:1px solid var(--s3);border-radius:8px;
+  padding:10px 12px;margin-bottom:8px;display:flex;gap:10px;align-items:flex-start;
+  flex-wrap:wrap;border-left:3px solid var(--s3);
+}
+.draw-log-row.ok{border-left-color:var(--orange)}
+.draw-log-row.ng{border-left-color:var(--steel)}
+.draw-log-row.foul{border-left-color:var(--yellow)}
+.dlr-left{flex:0 0 90px}
+.dlr-right{flex:1;min-width:0}
+.dlr-meta{display:flex;gap:5px;align-items:center;flex-wrap:wrap;margin-bottom:5px}
+.dlr-res{font-family:var(--font-b);font-size:.75rem;font-weight:700;padding:2px 7px;border-radius:4px}
+.dlr-ok{background:rgba(249,115,22,.15);color:var(--orange)}
+.dlr-ng{background:rgba(91,141,184,.15);color:var(--steel)}
+.dlr-foul{background:rgba(251,191,36,.12);color:var(--yellow)}
+.dlr-info{font-size:.7rem;color:var(--tx2);line-height:1.5}
+
+/* ── TOAST ── */
+.toast{
+  position:fixed;bottom:72px;left:50%;transform:translateX(-50%) translateY(20px);
+  background:var(--s3);border:1px solid var(--s4);
+  padding:8px 16px;border-radius:20px;font-size:.76rem;color:var(--tx);
+  opacity:0;transition:all .3s;z-index:999;white-space:nowrap;pointer-events:none;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── POSS DUAL SECTION ── */
+.poss-dual{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.poss-panel{background:var(--s2);border:1px solid var(--s3);border-radius:var(--r);padding:12px}
+.poss-panel.ko{border-top:2px solid var(--orange)}
+.poss-panel.en{border-top:2px solid var(--steel)}
+.pp-ttl{font-family:var(--font-b);font-size:.7rem;font-weight:700;letter-spacing:.1em;margin-bottom:8px}
+.pp-ttl.ko{color:var(--orange)}
+.pp-ttl.en{color:var(--steel)}
+.pp-big{font-family:var(--font-d);font-size:2rem;line-height:1}
+.pp-big.ko{color:var(--orange)}
+.pp-big.en{color:var(--steel)}
+.pp-sub{font-size:.6rem;color:var(--tx3);margin-top:3px}
+
+/* ── Q SCORE MINI ── */
+.q-score-row{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:12px;scrollbar-width:none}
+.q-score-row::-webkit-scrollbar{display:none}
+.q-chip{
+  flex:1;min-width:60px;background:var(--s1);border:1px solid var(--s3);
+  border-radius:8px;padding:8px 6px;text-align:center;
+}
+.q-chip-lbl{font-family:var(--font-b);font-size:.6rem;font-weight:700;letter-spacing:.08em;color:var(--tx3);margin-bottom:4px}
+.q-chip-scores{display:flex;align-items:center;justify-content:center;gap:4px}
+.q-chip-k{font-family:var(--font-d);font-size:1.5rem;color:var(--orange);line-height:1}
+.q-chip-e{font-family:var(--font-d);font-size:1.5rem;color:var(--steel);line-height:1}
+.q-chip-sep{font-family:var(--font-d);font-size:.8rem;color:var(--tx3)}
+
+/* ── POSS COMPARE ── */
+.poss-cmp-bar{height:24px;border-radius:5px;overflow:hidden;display:flex;margin-top:6px}
+.pcb-k{background:var(--orange);display:flex;align-items:center;padding:0 6px;font-family:var(--font-b);font-size:.7rem;font-weight:700;color:#fff;transition:width .6s;min-width:0;justify-content:flex-start}
+.pcb-e{background:var(--sdim);display:flex;align-items:center;padding:0 6px;font-family:var(--font-b);font-size:.7rem;font-weight:700;color:#fff;transition:width .6s;min-width:0;justify-content:flex-end}
+
+@media(max-width:400px){
+  .h-score{font-size:3.2rem}
+  .m-val{font-size:2rem}
+}
+.draw-flt-btn{padding:5px 11px;border-radius:16px;border:1px solid var(--s3);background:transparent;color:var(--text2);font-size:.68rem;font-weight:700;cursor:pointer;font-family:var(--font-l);letter-spacing:.05em;transition:all .2s}
+.draw-flt-btn.active{background:var(--s3);color:var(--text)}
+.draw-flt-btn:active{transform:scale(.95)}
+</style>
+</head>
+<body>
+
+<header id="hdr">
+  <div class="hdr-in">
+    <div class="hdr-brand">
+      <div class="hdr-name">🥍 KU LACROSSE</div>
+      <div class="hdr-sub" id="hSub">京都大学ラクロス部 試合分析</div>
+    </div>
+    <div class="hdr-score" id="hScore">
+      <div class="hs-num hs-k" id="hSk">-</div>
+      <div class="hs-sep">:</div>
+      <div class="hs-num hs-e" id="hSe">-</div>
+    </div>
+    <div class="hdr-date" id="hDate"></div>
+  </div>
+</header>
+
+<main id="main">
+
+<!-- ① SUMMARY -->
+<div class="pg on" id="pg-sum">
+  <div class="sec"><div class="sec-tag">SUMMARY</div><div class="sec-ttl">試合サマリー</div><div class="sec-line"></div></div>
+  <div class="setup" id="setupCard">
+    <div class="setup-ttl">データをロード</div>
+    <div class="setup-desc">各ツールからエクスポートしたJSONを複数まとめてドロップ or タップ選択。<br>同志社大学戦のテストデータを用意しています。</div>
+    <div class="dropzone" id="dz" onclick="document.getElementById('fi').click()">
+      <div class="dz-icon">📂</div>
+      <div class="dz-ttl">JSONをドロップ / タップして選択</div>
+      <div class="dz-sub">score / to / possession / gb_foul / draw / goalie の6種対応</div>
+    </div>
+    <input type="file" id="fi" accept=".json" multiple style="display:none">
+    <div class="pills" id="pills">
+      <div class="pill" id="pl-score"><div class="pdot"></div>📊 スコア</div>
+      <div class="pill" id="pl-to"><div class="pdot"></div>🔄 TO/クリア</div>
+      <div class="pill" id="pl-possession"><div class="pdot"></div>⏱ ポゼ</div>
+      <div class="pill" id="pl-gb_foul"><div class="pdot"></div>🏃 GB/ファール</div>
+      <div class="pill" id="pl-draw"><div class="pdot"></div>🎯 ドロー</div>
+      <div class="pill" id="pl-goalie"><div class="pdot"></div>🥅 ゴーリー</div>
+    </div>
+  </div>
+  <div id="sumBody" style="display:none">
+    <div id="scoreHero"></div>
+    <div id="qChips" class="q-score-row"></div>
+    <div class="metrics m4" id="topM"></div>
+    <div class="grid2" id="miniC"></div>
+    <div class="card" id="qChartCard" style="display:none">
+      <div class="card-ttl">Q別スコア推移</div>
+      <div class="ch-box"><canvas id="cQ"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<!-- ② SCORE -->
+<div class="pg" id="pg-score">
+  <div class="sec"><div class="sec-tag">SCORE & SHOTS</div><div class="sec-ttl">スコア・ショット</div><div class="sec-line"></div></div>
+  <div id="scoreBody"><div class="nodata"><div class="nd-i">📊</div>スコアのJSONをロード</div></div>
+</div>
+
+<!-- ③ TO -->
+<div class="pg" id="pg-to">
+  <div class="sec"><div class="sec-tag">TURNOVER / CLEARANCE</div><div class="sec-ttl">TO・クリア</div><div class="sec-line"></div></div>
+  <div id="toBody"><div class="nodata"><div class="nd-i">🔄</div>TO/クリアのJSONをロード</div></div>
+</div>
+
+<!-- ④ POSS -->
+<div class="pg" id="pg-poss">
+  <div class="sec"><div class="sec-tag">POSSESSION</div><div class="sec-ttl">ポゼッション</div><div class="sec-line"></div></div>
+  <div id="possBody"><div class="nodata"><div class="nd-i">⏱</div>ポゼッションのJSONをロード</div></div>
+</div>
+
+<!-- ⑤ GB -->
+<div class="pg" id="pg-gb">
+  <div class="sec"><div class="sec-tag">GB & FOUL</div><div class="sec-ttl">GB・ファール</div><div class="sec-line"></div></div>
+  <div id="gbBody"><div class="nodata"><div class="nd-i">🏃</div>GB・ファールのJSONをロード</div></div>
+</div>
+
+<!-- ⑥ DRAW -->
+<div class="pg" id="pg-draw">
+  <div class="sec"><div class="sec-tag">DRAW</div><div class="sec-ttl">ドロー</div><div class="sec-line"></div></div>
+  <div id="drawBody"><div class="nodata"><div class="nd-i">🎯</div>ドローのJSONをロード</div></div>
+</div>
+
+<!-- ⑦ GOALIE -->
+<div class="pg" id="pg-goalie">
+  <div class="sec"><div class="sec-tag">GOALIE</div><div class="sec-ttl">ゴーリー</div><div class="sec-line"></div></div>
+  <div id="goalieBody"><div class="nodata"><div class="nd-i">🥅</div>ゴーリーのJSONをロード</div></div>
+</div>
+
+</main>
+
+<nav id="bnav">
+  <button class="nb on" data-p="sum"><div class="ni">🏠</div>サマリー</button>
+  <button class="nb" data-p="score"><div class="ni">📊</div>ショット</button>
+  <button class="nb" data-p="to"><div class="ni">🔄</div>TO</button>
+  <button class="nb" data-p="poss"><div class="ni">⏱</div>ポゼ</button>
+  <button class="nb" data-p="gb"><div class="ni">🏃</div>GB</button>
+  <button class="nb" data-p="draw"><div class="ni">🎯</div>ドロー</button>
+  <button class="nb" data-p="goalie"><div class="ni">🥅</div>ゴーリー</button>
+</nav>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ===================== STATE =====================
+const S = { score:null, to:null, possession:null, gb_foul:null, draw:null, goalie:null };
+const charts = {};
+
+const TOOL_MAP = {
+  'ScoreTool':     'score',
+  'TOTool':        'to',
+  'PossessionTool':'possession',
+  'GBFoulTool':    'gb_foul',
+  'DrawTool':      'draw',
+  'GoalieTool':    'goalie',
+};
+
+Chart.defaults.color = '#4a6080';
+Chart.defaults.font.family = "'Barlow Condensed','Noto Sans JP',sans-serif";
+const CG = 'rgba(26,45,74,0.9)';
+
+// ===================== UTILS =====================
+const mmss  = s => { if(!s&&s!==0)return'—'; return `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`; };
+const pct   = (a,b) => b>0 ? Math.round(a/b*100) : 0;
+const en    = () => (S.score||S.to||S.possession||S.gb_foul||S.draw||S.goalie)?.meta?.enemy || '相手';
+const qc    = () => (S.score||S.to||S.possession||S.gb_foul||S.draw||S.goalie)?.meta?.qCount || 4;
+const qs    = () => Array.from({length:qc()},(_,i)=>i+1);
+
+function toast(msg,dur=2200){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),dur);
+}
+function dc(id){if(charts[id]){charts[id].destroy();delete charts[id];}}
+function $(id){return document.getElementById(id);}
+
+const chartBase={
+  responsive:true,maintainAspectRatio:false,
+  plugins:{legend:{labels:{font:{size:12,weight:'700'},padding:10,boxWidth:12}}},
+  scales:{
+    x:{grid:{color:CG},ticks:{font:{size:11,weight:'700'}}},
+    y:{grid:{color:CG},ticks:{font:{size:10}},beginAtZero:true}
+  }
+};
+function barchart(id,labels,datasets,stacked=false){
+  dc(id);const el=$(id);if(!el)return;
+  const o=JSON.parse(JSON.stringify(chartBase));
+  if(stacked){o.scales.x.stacked=true;o.scales.y.stacked=true;}
+  charts[id]=new Chart(el,{type:'bar',data:{labels,datasets},options:o});
+}
+function linechart(id,labels,datasets){
+  dc(id);const el=$(id);if(!el)return;
+  charts[id]=new Chart(el,{type:'line',data:{labels,datasets},options:JSON.parse(JSON.stringify(chartBase))});
+}
+function donut(id,labels,data,colors){
+  dc(id);const el=$(id);if(!el)return;
+  charts[id]=new Chart(el,{type:'doughnut',
+    data:{labels,datasets:[{data,backgroundColor:colors,borderColor:'#132038',borderWidth:3}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'62%',
+      plugins:{legend:{position:'right',labels:{font:{size:11,weight:'700'},padding:8,boxWidth:12}}}}});
+}
+
+// ===================== FILE LOAD =====================
+function parseJSON(d){
+  const t=d?.meta?.tool||'';
+  for(const[k,v] of Object.entries(TOOL_MAP)){
+    if(t.includes(k)){
+      S[v]=d;
+      $('pl-'+v)?.classList.add('ok');
+      return v;
+    }
+  }
+  return null;
+}
+function loadFiles(files){
+  let done=0,total=files.length;
+  Array.from(files).forEach(f=>{
+    const r=new FileReader();
+    r.onload=e=>{
+      try{parseJSON(JSON.parse(e.target.result));}catch(err){}
+      done++;
+      if(done===total){renderAll();toast(`✓ ${total}件ロード完了`);}
+    };
+    r.readAsText(f);
+  });
+}
+const dz=$('dz');
+dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('over');});
+dz.addEventListener('dragleave',()=>dz.classList.remove('over'));
+dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('over');loadFiles(e.dataTransfer.files);});
+$('fi').addEventListener('change',e=>loadFiles(e.target.files));
+
+// ===================== NAV =====================
+document.querySelectorAll('.nb').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.nb').forEach(b=>b.classList.remove('on'));
+    document.querySelectorAll('.pg').forEach(p=>p.classList.remove('on'));
+    btn.classList.add('on');
+    const pg=$('pg-'+btn.dataset.p);if(pg)pg.classList.add('on');
+    window.scrollTo(0,0);
+  });
+});
+
+// ===================== RENDER ALL =====================
+function renderAll(){
+  const any=Object.values(S).some(v=>v!==null);
+  $('sumBody').style.display=any?'block':'none';
+  const meta=(S.score||S.to||S.possession||S.gb_foul||S.draw||S.goalie)?.meta||{};
+  if(meta.enemy){
+    $('hSub').textContent=`vs ${meta.enemy}　${meta.date||''}`;
+    $('hDate').textContent=meta.date||'';
+  }
+  rSum();rScore();rTO();rPoss();rGB();rDraw();rGoalie();
+}
+
+// ===================== ① SUMMARY =====================
+function rSum(){
+  const hero=$('scoreHero'),topM=$('topM'),miniC=$('miniC'),qcc=$('qChartCard'),chips=$('qChips');
+  if(!S.score){hero.innerHTML='';topM.innerHTML='';miniC.innerHTML='';qcc.style.display='none';chips.innerHTML='';return;}
+  const shots=S.score.shots||[];
+  const kG=shots.filter(s=>s.team==='kyoto'&&s.result==='goal').length;
+  const eG=shots.filter(s=>s.team==='enemy'&&s.result==='goal').length;
+  const kS=shots.filter(s=>s.team==='kyoto').length;
+  const eS=shots.filter(s=>s.team==='enemy').length;
+  $('hScore').classList.add('show');
+  $('hSk').textContent=kG;$('hSe').textContent=eG;
+  const res=kG>eG?`<div class="h-res res-w">WIN</div>`:kG<eG?`<div class="h-res res-l">LOSE</div>`:`<div class="h-res res-d">DRAW</div>`;
+  hero.innerHTML=`
+    <div class="h-team"><div class="h-tname">京都大学</div><div class="h-score h-sk">${kG}</div><div class="h-shot">${kS}本 ${pct(kG,kS)}%</div></div>
+    <div class="h-vs"><div class="h-vs-tx">VS</div>${res}</div>
+    <div class="h-team"><div class="h-tname">${en()}</div><div class="h-score h-se">${eG}</div><div class="h-shot">${eS}本 ${pct(eG,eS)}%</div></div>`;
+
+  // Q別チップ
+  chips.innerHTML=qs().map(q=>{
+    const kq=shots.filter(s=>s.q===q&&s.team==='kyoto'&&s.result==='goal').length;
+    const eq=shots.filter(s=>s.q===q&&s.team==='enemy'&&s.result==='goal').length;
+    return`<div class="q-chip"><div class="q-chip-lbl">Q${q}</div><div class="q-chip-scores"><div class="q-chip-k">${kq}</div><div class="q-chip-sep">-</div><div class="q-chip-e">${eq}</div></div></div>`;
+  }).join('');
+
+  const kSv=shots.filter(s=>s.team==='kyoto'&&s.result==='save').length;
+  const eSv=shots.filter(s=>s.team==='enemy'&&s.result==='save').length;
+  topM.innerHTML=`
+    <div class="metric ko"><div class="m-lbl">京大 決定率</div><div class="m-val ko">${pct(kG,kS)}<span style="font-size:1.3rem">%</span></div><div class="m-sub">${kG}得点/${kS}本</div><div class="pbar"><div class="pfill pf-ko" style="width:${pct(kG,kS)}%"></div></div></div>
+    <div class="metric en"><div class="m-lbl">${en()} 決定率</div><div class="m-val en">${pct(eG,eS)}<span style="font-size:1.3rem">%</span></div><div class="m-sub">${eG}得点/${eS}本</div><div class="pbar"><div class="pfill pf-st" style="width:${pct(eG,eS)}%"></div></div></div>
+    <div class="metric cy"><div class="m-lbl">京大 枠内率</div><div class="m-val cy">${pct(kG+kSv,kS)}<span style="font-size:1.3rem">%</span></div><div class="m-sub">${kG+kSv}本枠内</div></div>
+    <div class="metric"><div class="m-lbl">${en()} 枠内率</div><div class="m-val wh">${pct(eG+eSv,eS)}<span style="font-size:1.3rem">%</span></div><div class="m-sub">${eG+eSv}本枠内</div></div>`;
+
+  let mini='';
+  if(S.possession){
+    const ofByQ=S.possession.of_possession?.by_q||[];
+    const oeByQ=S.possession.of_possession_enemy?.by_q||[];
+    const kTot=ofByQ.reduce((a,q)=>a+q.total_sec,0);
+    const eTot=oeByQ.reduce((a,q)=>a+q.total_sec,0);
+    const tot=kTot+eTot;
+    const kPct=tot>0?pct(kTot,tot):50;
+    mini+=`<div class="card"><div class="card-ttl">⏱ OFポゼッション比較</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">
+        <div><div class="m-lbl">京大 合計</div><div style="font-family:var(--font-d);font-size:1.7rem;color:var(--orange)">${mmss(kTot)}</div></div>
+        <div><div class="m-lbl">${en()} 合計</div><div style="font-family:var(--font-d);font-size:1.7rem;color:var(--steel)">${mmss(eTot)}</div></div>
+      </div>
+      <div class="poss-cmp-bar">
+        <div class="pcb-k" style="width:${kPct}%">${kPct>=15?kPct+'%':''}</div>
+        <div class="pcb-e" style="width:${100-kPct}%">${(100-kPct)>=15?(100-kPct)+'%':''}</div>
+      </div></div>`;
+  }
+  if(S.gb_foul){
+    const gs=S.gb_foul.gb?.summary||{};
+    mini+=`<div class="card"><div class="card-ttl">🏃 GBゲット率</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-family:var(--font-d);font-size:2.2rem;color:var(--orange);line-height:1">${gs.kyoto_pct||0}%</div>
+        <div style="flex:1"><div class="rb"><div class="rb-f" style="width:${gs.kyoto_pct||0}%;background:var(--orange)"></div></div>
+        <div style="font-size:.65rem;color:var(--tx3);margin-top:3px">京大${gs.kyoto_get||0}本 vs ${en()}${gs.enemy_get||0}本</div></div>
+      </div></div>`;
+  }
+  if(S.draw){
+    const ds=S.draw.summary||{};
+    mini+=`<div class="card"><div class="card-ttl">🎯 ドローゲット率</div>
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="font-family:var(--font-d);font-size:2.2rem;color:${(ds.get_rate_pct||0)>=50?'var(--green)':'var(--red)'};line-height:1">${ds.get_rate_pct||0}%</div>
+        <div style="flex:1"><div class="rb"><div class="rb-f" style="width:${ds.get_rate_pct||0}%;background:${(ds.get_rate_pct||0)>=50?'var(--green)':'var(--red)'}"></div></div>
+        <div style="font-size:.65rem;color:var(--tx3);margin-top:3px">ゲット${ds.got||0} / 失${ds.lost||0} / ファール${ds.foul||0}</div></div>
+      </div></div>`;
+  }
+  if(S.goalie){
+    const gs=S.goalie.summary||{};
+    const ks=gs.kyoto||{},es=gs.enemy||{};
+    mini+=`<div class="card"><div class="card-ttl">🥅 ゴーリーセーブ率</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+        <div><div class="m-lbl">京大G</div><div style="font-family:var(--font-d);font-size:1.7rem;color:var(--orange)">${ks.save_rate_pct||0}%</div><div style="font-size:.62rem;color:var(--tx3)">${ks.saves||0}セーブ/失${ks.goals||0}</div></div>
+        <div><div class="m-lbl">${en()}G</div><div style="font-family:var(--font-d);font-size:1.7rem;color:var(--steel)">${es.save_rate_pct||0}%</div><div style="font-size:.62rem;color:var(--tx3)">${es.saves||0}セーブ/失${es.goals||0}</div></div>
+      </div></div>`;
+  }
+  if(S.to){
+    const tos=S.to.turnovers||[];
+    const kTO=tos.filter(t=>t.side==='kyoto').length;
+    const eTO=tos.filter(t=>t.side==='enemy').length;
+    const bal=eTO-kTO;
+    mini+=`<div class="card"><div class="card-ttl">🔄 TOバランス</div>
+      <div style="display:flex;align-items:center;gap:12px">
+        <div class="bal ${bal>0?'pos':bal<0?'neg':'zero'}">${bal>=0?'+':''}${bal}</div>
+        <div><div style="font-size:.68rem;color:var(--tx2)">奪われ <b style="color:var(--red)">${kTO}</b> / 奪得 <b style="color:var(--orange)">${eTO}</b></div>
+        <div style="font-size:.65rem;color:var(--tx3)">${bal>0?'京大有利':bal<0?'相手有利':'互角'}</div></div>
+      </div></div>`;
+  }
+  miniC.innerHTML=mini;
+
+  // Q累積得点グラフ
+  let kCum=0,eCum=0;const kD=[],eD=[];
+  qs().forEach(q=>{
+    kCum+=shots.filter(s=>s.q===q&&s.team==='kyoto'&&s.result==='goal').length;
+    eCum+=shots.filter(s=>s.q===q&&s.team==='enemy'&&s.result==='goal').length;
+    kD.push(kCum);eD.push(eCum);
+  });
+  qcc.style.display='block';
+  linechart('cQ',qs().map(q=>`Q${q}`),[
+    {label:'京大',data:kD,borderColor:'#f97316',backgroundColor:'rgba(249,115,22,.1)',borderWidth:3,pointRadius:6,pointBackgroundColor:'#f97316',tension:.35,fill:true},
+    {label:en(),data:eD,borderColor:'#5b8db8',backgroundColor:'rgba(91,141,184,.07)',borderWidth:3,pointRadius:6,pointBackgroundColor:'#5b8db8',tension:.35,fill:true}
+  ]);
+}
+
+// ===================== ② SCORE =====================
+function rScore(){
+  const el=$('scoreBody');
+  if(!S.score){el.innerHTML='<div class="nodata"><div class="nd-i">📊</div>スコアのJSONをロード</div>';return;}
+  const shots=S.score.shots||[];
+  let tb='';
+  [['kyoto','京大','ko'],['enemy',en(),'en']].forEach(([team,lbl,cls])=>{
+    const ts=shots.filter(s=>s.team===team);
+    const g=ts.filter(s=>s.result==='goal').length;
+    const sv=ts.filter(s=>s.result==='save').length;
+    const ms=ts.filter(s=>s.result==='miss').length;
+    tb+=`<div class="metric ${cls}"><div class="m-lbl">${lbl}</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin-top:6px">
+        ${[['SHOT',ts.length,'wh'],['GOAL',g,'gr'],['SAVE',sv,'cy'],['RATE',pct(g,ts.length)+'%',cls==='ko'?'ko':'en']].map(([l,v,c])=>
+          `<div><div style="font-size:.52rem;color:var(--tx3);letter-spacing:.1em">${l}</div><div style="font-family:var(--font-d);font-size:1.5rem;color:var(--${c==='ko'?'orange':c==='en'?'steel':c==='gr'?'green':c==='cy'?'cyan':'tx'})">${v}</div></div>`
+        ).join('')}
+      </div></div>`;
+  });
+
+  let qRows='';
+  qs().forEach(q=>{
+    [['kyoto','京大','ko'],['enemy',en(),'en']].forEach(([team,lbl,cls])=>{
+      const ts=shots.filter(s=>s.q===q&&s.team===team);
+      if(!ts.length)return;
+      const g=ts.filter(s=>s.result==='goal').length,r=pct(g,ts.length);
+      qRows+=`<tr>
+        <td><span class="qtag ${cls}">Q${q}</span></td><td>${lbl}</td>
+        <td class="nc">${ts.length}</td><td class="nc good">${g}</td>
+        <td class="nc warn">${ts.filter(s=>s.result==='save').length}</td>
+        <td class="nc" style="color:var(--tx3)">${ts.filter(s=>s.result==='miss').length}</td>
+        <td><span class="nc ${r>=30?'good':r>=20?'warn':'bad'}">${r}%</span></td>
+      </tr>`;
+    });
+  });
+
+  const attMap={};
+  shots.filter(s=>s.team==='kyoto'&&s.attack).forEach(s=>{attMap[s.attack]=attMap[s.attack]||{t:0,g:0};attMap[s.attack].t++;if(s.result==='goal')attMap[s.attack].g++;});
+  const aK=Object.keys(attMap);
+  const attRows=aK.map(k=>{const r=pct(attMap[k].g,attMap[k].t);return`<tr>
+    <td>${k}</td><td class="nc">${attMap[k].t}</td><td class="nc good">${attMap[k].g}</td>
+    <td><div class="rb-w"><div class="rb"><div class="rb-f" style="width:${r}%;background:${r>=30?'var(--green)':'var(--orange)'}"></div></div><span class="rb-lbl ${r>=30?'good':'warn'}">${r}%</span></div></td>
+  </tr>`;}).join('');
+
+  el.innerHTML=`
+    <div class="metrics m2">${tb}</div>
+    <div class="card"><div class="card-ttl">Q別ショット内訳</div>
+      <div class="tbl-w"><table class="dt"><thead><tr><th>Q</th><th>チーム</th><th>本</th><th>得点</th><th>セーブ</th><th>枠外</th><th>決定率</th></tr></thead><tbody>${qRows}</tbody></table></div>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="card-ttl">攻め方別（京大）</div><div class="ch-box"><canvas id="cAtt"></canvas></div></div>
+      <div class="card"><div class="card-ttl">攻め方 決定率</div><div class="tbl-w"><table class="dt"><thead><tr><th>攻め方</th><th>本</th><th>得点</th><th>決定率</th></tr></thead><tbody>${attRows}</tbody></table></div></div>
+    </div>`;
+  barchart('cAtt',aK,[
+    {label:'得点',data:aK.map(k=>attMap[k].g),backgroundColor:'rgba(34,197,94,.7)',borderRadius:4},
+    {label:'失敗',data:aK.map(k=>attMap[k].t-attMap[k].g),backgroundColor:'rgba(249,115,22,.35)',borderRadius:4}
+  ],true);
+}
+
+// ===================== ③ TO =====================
+function rTO(){
+  const el=$('toBody');
+  if(!S.to){el.innerHTML='<div class="nodata"><div class="nd-i">🔄</div>TO/クリアのJSONをロード</div>';return;}
+  const tos=S.to.turnovers||[];
+  const cl=S.to.clearance||{};
+  const kTO=tos.filter(t=>t.side==='kyoto');
+  const eTO=tos.filter(t=>t.side==='enemy');
+  const bal=eTO.length-kTO.length;
+
+  const kC={},eC={};
+  kTO.forEach(t=>{kC[t.cause]=(kC[t.cause]||0)+1;});
+  eTO.forEach(t=>{eC[t.cause]=(eC[t.cause]||0)+1;});
+  const kSorted=Object.entries(kC).sort((a,b)=>b[1]-a[1]);
+  const eSorted=Object.entries(eC).sort((a,b)=>b[1]-a[1]);
+
+  const kByQ=qs().map(q=>kTO.filter(t=>t.q===q).length);
+  const eByQ=qs().map(q=>eTO.filter(t=>t.q===q).length);
+
+  // クリア成功率テーブル
+  let clRows='';
+  for(let q=1;q<=qc();q++){
+    const qd=cl[String(q)]||cl[q]||{};
+    const kk=qd.kyoto||{};const ek=qd.enemy||{};
+    clRows+=`<tr>
+      <td><span class="qtag n">Q${q}</span></td>
+      <td><span class="nc ${(kk.rate||0)>=70?'good':(kk.rate||0)>=50?'warn':'bad'}">${kk.rate!=null?kk.rate+'%':'—'}</span></td>
+      <td style="font-size:.72rem;color:var(--tx3)">${kk.ok||0}成/${(kk.ok||0)+(kk.ng||0)}本</td>
+      <td><span class="nc ${(ek.rate||0)>=70?'good':(ek.rate||0)>=50?'warn':'bad'}">${ek.rate!=null?ek.rate+'%':'—'}</span></td>
+      <td style="font-size:.72rem;color:var(--tx3)">${ek.ok||0}成/${(ek.ok||0)+(ek.ng||0)}本</td>
+    </tr>`;
+  }
+  // 全体クリア率
+  let kClAll={ok:0,ng:0},eClAll={ok:0,ng:0};
+  for(let q=1;q<=qc();q++){
+    const qd=cl[String(q)]||cl[q]||{};
+    kClAll.ok+=(qd.kyoto?.ok||0);kClAll.ng+=(qd.kyoto?.ng||0);
+    eClAll.ok+=(qd.enemy?.ok||0);eClAll.ng+=(qd.enemy?.ng||0);
+  }
+  const kClR=kClAll.ok+kClAll.ng>0?pct(kClAll.ok,kClAll.ok+kClAll.ng):null;
+  const eClR=eClAll.ok+eClAll.ng>0?pct(eClAll.ok,eClAll.ok+eClAll.ng):null;
+
+  el.innerHTML=`
+    <div class="metrics m3">
+      <div class="metric" style="border-color:rgba(239,68,68,.3)"><div class="m-lbl">奪われたTO</div><div class="m-val rd">${kTO.length}</div></div>
+      <div class="metric ko"><div class="m-lbl">奪ったTO</div><div class="m-val ko">${eTO.length}</div></div>
+      <div class="metric ${bal>=0?'gr':''}">
+        <div class="m-lbl">TOバランス</div>
+        <div class="bal ${bal>0?'pos':bal<0?'neg':'zero'}">${bal>=0?'+':''}${bal}</div>
+        <div class="m-sub">${bal>0?'京大有利':bal<0?'相手有利':'互角'}</div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="card-ttl">原因別（奪われ）</div><div class="ch-box"><canvas id="cTOk"></canvas></div></div>
+      <div class="card"><div class="card-ttl">原因別（奪得）</div><div class="ch-box"><canvas id="cTOe"></canvas></div></div>
+    </div>
+    <div class="card"><div class="card-ttl">Q別TOバランス</div><div class="ch-box"><canvas id="cTOQ"></canvas></div></div>
+    <div class="card">
+      <div class="card-ttl">クリア成功率（Q別）</div>
+      <div class="metrics m2" style="margin-bottom:10px">
+        <div class="metric ko"><div class="m-lbl">京大クリア成功率（全体）</div><div class="m-val ko">${kClR!=null?kClR+'%':'—'}</div><div class="m-sub">${kClAll.ok}成功/${kClAll.ok+kClAll.ng}本</div></div>
+        <div class="metric en"><div class="m-lbl">${en()} クリア成功率（全体）</div><div class="m-val en">${eClR!=null?eClR+'%':'—'}</div><div class="m-sub">${eClAll.ok}成功/${eClAll.ok+eClAll.ng}本</div></div>
+      </div>
+      <div class="tbl-w"><table class="dt"><thead><tr><th>Q</th><th>京大率</th><th>内訳</th><th>${en()}率</th><th>内訳</th></tr></thead><tbody>${clRows}</tbody></table></div>
+    </div>`;
+
+  const RC=['#ef4444','#f97316','#fbbf24','#22c55e','#38bdf8','#a78bfa','#ec4899'];
+  const RO=['#f97316','#3b82f6','#8b5cf6','#22c55e','#fbbf24','#ef4444','#38bdf8'];
+  donut('cTOk',kSorted.map(x=>x[0]),kSorted.map(x=>x[1]),RC);
+  donut('cTOe',eSorted.map(x=>x[0]),eSorted.map(x=>x[1]),RO);
+  barchart('cTOQ',qs().map(q=>`Q${q}`),[
+    {label:'奪われ',data:kByQ,backgroundColor:'rgba(239,68,68,.65)',borderRadius:4},
+    {label:'奪得', data:eByQ,backgroundColor:'rgba(249,115,22,.65)',borderRadius:4}
+  ]);
+}
+
+// ===================== ④ POSSESSION =====================
+function rPoss(){
+  const el=$('possBody');
+  if(!S.possession){el.innerHTML='<div class="nodata"><div class="nd-i">⏱</div>ポゼッションのJSONをロード</div>';return;}
+  const ofK=S.possession.of_possession?.by_q||[];
+  const ofE=S.possession.of_possession_enemy?.by_q||[];
+  const clByQ=S.possession.clrd_possession?.by_q||[];
+
+  // 全体サマリー
+  const kTotSec=ofK.reduce((a,q)=>a+q.total_sec,0);
+  const eTotSec=ofE.reduce((a,q)=>a+q.total_sec,0);
+  const totSec=kTotSec+eTotSec;
+  const kTotPct=totSec>0?pct(kTotSec,totSec):50;
+
+  // Q別OFポゼ比較バー
+  let cmpBars='';
+  qs().forEach(q=>{
+    const kq=(ofK.find(x=>x.q===q)||{total_sec:0}).total_sec;
+    const eq=(ofE.find(x=>x.q===q)||{total_sec:0}).total_sec;
+    const tot=kq+eq;const kp=tot>0?pct(kq,tot):50;
+    cmpBars+=`<div class="pb-row">
+      <div class="pb-qlbl"><span>Q${q}</span><span style="font-size:.65rem;color:var(--tx2)">京大 ${mmss(kq)} / ${en()} ${mmss(eq)}</span></div>
+      <div class="poss-cmp-bar">
+        <div class="pcb-k" style="width:${kp}%">${kp>=15?kp+'%':''}</div>
+        <div class="pcb-e" style="width:${100-kp}%">${(100-kp)>=15?(100-kp)+'%':''}</div>
+      </div></div>`;
+  });
+
+  // 京大OFポゼ詳細テーブル
+  const kRows=ofK.filter(q=>q.set_count>0).map(q=>`<tr>
+    <td><span class="qtag n">Q${q.q}</span></td>
+    <td class="nc">${q.set_count}</td>
+    <td class="nc" style="color:var(--orange)">${mmss(q.total_sec)}</td>
+    <td class="nc good">${q.goal_count}</td>
+    <td class="nc bad">${q.to_count}</td>
+    <td>${q.avg_goal_sec?mmss(q.avg_goal_sec):'—'}</td>
+  </tr>`).join('');
+
+  const eRows=ofE.filter(q=>q.set_count>0).map(q=>`<tr>
+    <td><span class="qtag n">Q${q.q}</span></td>
+    <td class="nc">${q.set_count}</td>
+    <td class="nc" style="color:var(--steel)">${mmss(q.total_sec)}</td>
+    <td class="nc good">${q.goal_count}</td>
+    <td class="nc bad">${q.to_count}</td>
+    <td>${q.avg_goal_sec?mmss(q.avg_goal_sec):'—'}</td>
+  </tr>`).join('');
+
+  const clBars=clByQ.map(q=>{
+    const kp=q.kyoto_pct,ep=100-kp;
+    return`<div class="pb-row">
+      <div class="pb-qlbl"><span>Q${q.q}</span><span style="font-size:.65rem;color:var(--tx2)">京大 ${kp}% / ${en()} ${ep}%</span></div>
+      <div class="pb"><div class="pb-k" style="width:${kp}%">${kp>=15?kp+'%':''}</div><div class="pb-e" style="width:${ep}%">${ep>=15?ep+'%':''}</div></div>
+    </div>`;
+  }).join('');
+
+  const ofLabels=ofK.filter(q=>q.set_count>0).map(q=>`Q${q.q}`);
+  const ofSecArr=ofK.filter(q=>q.set_count>0).map(q=>q.total_sec);
+  const oeSecArr=ofE.filter(q=>q.set_count>0).map(q=>q.total_sec);
+  const ofGArr=ofK.filter(q=>q.set_count>0).map(q=>q.goal_count);
+
+  el.innerHTML=`
+    <div class="metrics m4">
+      <div class="metric ko"><div class="m-lbl">京大 OFポゼ合計</div><div class="m-val ko" style="font-size:1.8rem">${mmss(kTotSec)}</div><div class="m-sub">全Q合計</div></div>
+      <div class="metric en"><div class="m-lbl">${en()} OFポゼ合計</div><div class="m-val en" style="font-size:1.8rem">${mmss(eTotSec)}</div><div class="m-sub">全Q合計</div></div>
+      <div class="metric ko"><div class="m-lbl">京大 OFポゼ率</div><div class="m-val ko">${kTotPct}<span style="font-size:1.3rem">%</span></div><div class="pbar"><div class="pfill pf-ko" style="width:${kTotPct}%"></div></div></div>
+      <div class="metric cy"><div class="m-lbl">京大 得点セット数</div><div class="m-val cy">${ofK.reduce((a,q)=>a+q.goal_count,0)}</div><div class="m-sub">/${ofK.reduce((a,q)=>a+q.set_count,0)}セット</div></div>
+    </div>
+    <div class="card"><div class="card-ttl">Q別 OFポゼ比較（京大 vs ${en()}）</div>${cmpBars}</div>
+    <div class="card"><div class="card-ttl">OFポゼ比較チャート</div><div class="ch-box"><canvas id="cOF"></canvas></div></div>
+    <div class="grid2">
+      <div class="card"><div class="card-ttl" style="color:var(--orange)">京大 OFポゼ詳細</div>
+        <div class="tbl-w"><table class="dt"><thead><tr><th>Q</th><th>セット</th><th>合計</th><th>得点</th><th>TO</th><th>平均</th></tr></thead><tbody>${kRows||'<tr><td colspan="6" style="color:var(--tx3);text-align:center">データなし</td></tr>'}</tbody></table></div>
+      </div>
+      <div class="card"><div class="card-ttl" style="color:var(--steel)">${en()} OFポゼ詳細</div>
+        <div class="tbl-w"><table class="dt"><thead><tr><th>Q</th><th>セット</th><th>合計</th><th>得点</th><th>TO</th><th>平均</th></tr></thead><tbody>${eRows||'<tr><td colspan="6" style="color:var(--tx3);text-align:center">データなし</td></tr>'}</tbody></table></div>
+      </div>
+    </div>
+    <div class="card"><div class="card-ttl">CLRDポゼッション（京大攻め方向）</div>${clBars||'<div style="color:var(--tx3);font-size:.78rem">データなし</div>'}</div>`;
+
+  barchart('cOF',ofLabels,[
+    {label:'京大 OFポゼ(秒)',data:ofSecArr,backgroundColor:'rgba(249,115,22,.5)',borderRadius:4},
+    {label:`${en()} OFポゼ(秒)`,data:oeSecArr,backgroundColor:'rgba(91,141,184,.45)',borderRadius:4},
+    {label:'京大得点',data:ofGArr,type:'line',borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,.1)',borderWidth:3,pointRadius:5,pointBackgroundColor:'#22c55e',yAxisID:'y2'}
+  ]);
+  // 2軸設定
+  if(charts['cOF']){
+    charts['cOF'].options.scales.y2={type:'linear',position:'right',beginAtZero:true,grid:{drawOnChartArea:false},ticks:{font:{size:10}},title:{display:true,text:'得点',font:{size:11}}};
+    charts['cOF'].update();
+  }
+}
+
+// ===================== ⑤ GB =====================
+function rGB(){
+  const el=$('gbBody');
+  if(!S.gb_foul){el.innerHTML='<div class="nodata"><div class="nd-i">🏃</div>GB・ファールのJSONをロード</div>';return;}
+  const gs=S.gb_foul.gb?.summary||{};
+  const fs=S.gb_foul.fouls?.summary||{};
+  const loc=gs.by_location||[];
+  const byQSelf=gs.by_q_self||[];
+  const byType=fs.by_type||{};
+  const byPlayer=fs.by_player||{};
+
+  const locL=loc.map(l=>({self:'自陣',center:'センター',enemy:'敵陣'}[l.loc]||l.loc));
+  const ftK=Object.keys(byType).sort((a,b)=>byType[b]-byType[a]);
+  const maxP=Math.max(...Object.values(byPlayer),1);
+
+  const pRows=Object.entries(byPlayer).sort((a,b)=>b[1]-a[1]).map(([num,cnt])=>`<tr>
+    <td><span style="font-family:var(--font-d);font-size:1rem">#${num}</span></td>
+    <td class="nc bad">${cnt}</td>
+    <td><div class="rb"><div class="rb-f pf-rd" style="width:${pct(cnt,maxP)}%"></div></div></td>
+  </tr>`).join('');
+
+  const selfRows=byQSelf.map(d=>`<tr>
+    <td><span class="qtag n">Q${d.q}</span></td>
+    <td class="nc">${d.total}</td>
+    <td class="nc" style="color:var(--orange)">${d.kyoto}</td>
+    <td class="nc" style="color:var(--steel)">${d.enemy}</td>
+    <td><span class="nc ${(d.kyoto_pct||0)>=60?'good':(d.kyoto_pct||0)>=40?'warn':'bad'}">${d.kyoto_pct!=null?d.kyoto_pct+'%':'—'}</span></td>
+  </tr>`).join('');
+
+  el.innerHTML=`
+    <div class="metrics m3">
+      <div class="metric ko"><div class="m-lbl">京大 GBゲット</div><div class="m-val ko">${gs.kyoto_get||0}</div><div class="m-sub">vs ${en()}: ${gs.enemy_get||0}本</div></div>
+      <div class="metric en"><div class="m-lbl">${en()} GBゲット</div><div class="m-val en">${gs.enemy_get||0}</div></div>
+      <div class="metric gr"><div class="m-lbl">京大 ゲット率</div><div class="m-val gr">${gs.kyoto_pct||0}<span style="font-size:1.3rem">%</span></div>
+        <div class="pbar"><div class="pfill pf-gr" style="width:${gs.kyoto_pct||0}%"></div></div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="card-ttl">場所別 GB</div><div class="ch-box"><canvas id="cGBL"></canvas></div></div>
+      <div class="card"><div class="card-ttl">ファール種別</div><div class="ch-box"><canvas id="cFT"></canvas></div></div>
+    </div>
+    <div class="card"><div class="card-ttl">Q別 自陣GBゲット率</div>
+      <div class="tbl-w"><table class="dt"><thead><tr><th>Q</th><th>総数</th><th>京大</th><th>${en()}</th><th>京大ゲット率</th></tr></thead><tbody>${selfRows||'<tr><td colspan="5" style="color:var(--tx3)">データなし</td></tr>'}</tbody></table></div>
+    </div>
+    <div class="card"><div class="card-ttl">選手別ファール数</div>
+      <div class="tbl-w"><table class="dt"><thead><tr><th>背番号</th><th>回数</th><th></th></tr></thead><tbody>${pRows||'<tr><td colspan="3" style="color:var(--tx3);text-align:center">データなし</td></tr>'}</tbody></table></div>
+    </div>`;
+
+  barchart('cGBL',locL,[
+    {label:'京大',data:loc.map(l=>l.kyoto||0),backgroundColor:'rgba(249,115,22,.65)',borderRadius:4},
+    {label:en(),data:loc.map(l=>l.enemy||0),backgroundColor:'rgba(91,141,184,.6)',borderRadius:4}
+  ]);
+  donut('cFT',ftK,ftK.map(k=>byType[k]),['#f97316','#ef4444','#fbbf24','#8b5cf6','#38bdf8','#22c55e','#ec4899','#0ea5e9','#84cc16','#f43f5e']);
+}
+
+// ===================== ⑥ DRAW =====================
+function drawFieldMini(canvas, players, drawer){
+  if(!canvas) return;
+  const ctx=canvas.getContext('2d');
+  const W=canvas.width, H=canvas.height;
+  // 背景
+  ctx.fillStyle='#0f2918';ctx.fillRect(0,0,W,H);
+  // グリッド
+  ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
+  for(let x=0;x<=W;x+=W/6){ctx.beginPath();ctx.moveTo(x,0);ctx.lineTo(x,H);ctx.stroke();}
+  for(let y=0;y<=H;y+=H/4){ctx.beginPath();ctx.moveTo(0,y);ctx.lineTo(W,y);ctx.stroke();}
+  // センターライン
+  ctx.strokeStyle='rgba(255,255,255,.1)';ctx.lineWidth=1;ctx.setLineDash([4,3]);
+  ctx.beginPath();ctx.moveTo(0,H/2);ctx.lineTo(W,H/2);ctx.stroke();ctx.setLineDash([]);
+  // ドローサークル
+  const cx=W/2,cy=H/2,outerR=Math.min(W,H)*.35,innerR=outerR*.22;
+  ctx.beginPath();ctx.arc(cx,cy,outerR,0,Math.PI*2);
+  ctx.strokeStyle='rgba(255,255,255,.25)';ctx.lineWidth=1.5;ctx.stroke();
+  ctx.fillStyle='rgba(255,255,255,.02)';ctx.fill();
+  ctx.beginPath();ctx.arc(cx,cy,innerR,0,Math.PI*2);
+  ctx.strokeStyle='rgba(255,200,50,.6)';ctx.lineWidth=1.5;ctx.stroke();
+  // ドロワー
+  if(drawer){
+    ctx.beginPath();ctx.arc(cx,cy,innerR*.7,0,Math.PI*2);
+    ctx.fillStyle='rgba(59,130,246,.85)';ctx.fill();
+    ctx.fillStyle='#fff';
+    ctx.font=`bold ${Math.floor(innerR*.55)}px sans-serif`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('#'+drawer,cx,cy);
+  }
+  // 選手
+  if(!players||!players.length)return;
+  const R=Math.max(W,H)*.075;
+  players.forEach(p=>{
+    const px=p.nx*W, py=p.ny*H;
+    const isK=p.team==='kyoto';
+    const col=isK?'#3b82f6':'#ef4444';
+    const brd=isK?'#93c5fd':'#fca5a5';
+    ctx.beginPath();ctx.arc(px+1,py+1,R,0,Math.PI*2);
+    ctx.fillStyle='rgba(0,0,0,.3)';ctx.fill();
+    ctx.beginPath();ctx.arc(px,py,R,0,Math.PI*2);
+    ctx.fillStyle=col;ctx.fill();
+    ctx.strokeStyle=brd;ctx.lineWidth=1.5;ctx.stroke();
+    const fs=p.num&&p.num.length>2?Math.floor(R*.65):Math.floor(R*.8);
+    ctx.fillStyle='#fff';ctx.font=`bold ${fs}px sans-serif`;
+    ctx.textAlign='center';ctx.textBaseline='middle';
+    ctx.fillText('#'+p.num,px,py);
+  });
+}
+
+function rDraw(){
+  const el=$('drawBody');
+  if(!S.draw){el.innerHTML='<div class="nodata"><div class="nd-i">🎯</div>ドローのJSONをロード</div>';return;}
+  const draws=S.draw.draws||[];
+  const sum=S.draw.summary||{};
+
+  const drMap={};
+  draws.forEach(d=>{
+    const k=d.drawer||'?';
+    drMap[k]=drMap[k]||{ok:0,ng:0,foul:0};
+    drMap[k][d.result]=(drMap[k][d.result]||0)+1;
+  });
+  const drRows=Object.entries(drMap).sort((a,b)=>(b[1].ok+b[1].ng)-(a[1].ok+a[1].ng)).map(([num,c])=>{
+    const t=c.ok+c.ng,r=pct(c.ok,t);
+    return`<tr>
+      <td><span style="font-family:var(--font-d);font-size:1rem">#${num}</span></td>
+      <td class="nc">${t+c.foul}</td><td class="nc good">${c.ok}</td>
+      <td class="nc bad">${c.ng}</td><td class="nc warn">${c.foul}</td>
+      <td><div class="rb-w"><div class="rb"><div class="rb-f" style="width:${r}%;background:${r>=50?'var(--green)':'var(--red)'}"></div></div><span class="rb-lbl ${r>=50?'good':'bad'}">${r}%</span></div></td>
+    </tr>`;
+  }).join('');
+
+  const wayMap={};
+  draws.filter(d=>d.result==='ok'&&d.getWay).forEach(d=>{wayMap[d.getWay]=(wayMap[d.getWay]||0)+1;});
+  const qG=qs().map(q=>draws.filter(d=>d.q===q&&d.result==='ok').length);
+  const qL=qs().map(q=>draws.filter(d=>d.q===q&&d.result==='ng').length);
+  const qF=qs().map(q=>draws.filter(d=>d.q===q&&d.result==='foul').length);
+  const gRate=sum.get_rate_pct||0;
+
+  // ドローログ（軌道画像 + 配置図サムネ）
+  const logRows=draws.map((d,i)=>{
+    const resLbl=d.result==='ok'?'ゲット':d.result==='ng'?'失敗':d.result==='foul'?'ファール':'?';
+    const resCls=d.result==='ok'?'dlr-ok':d.result==='ng'?'dlr-ng':'dlr-foul';
+    const infoTxts=[];
+    if(d.drawer)infoTxts.push(`ドロワー #${d.drawer}`);
+    if(d.firstTeam&&d.firstNum)infoTxts.push(`1st ${d.firstTeam==='kyoto'?'京大':en()} #${d.firstNum}`);
+    if(d.getWay)infoTxts.push(`取: ${d.getWay}`);
+    if(d.note)infoTxts.push(`※${d.note}`);
+    const hasTraj=d.trajectory?.top&&d.trajectory?.side;
+    // グローバルに画像URLを保存してモーダルで表示
+    const tkT='traj_'+i+'_top', tkS='traj_'+i+'_side';
+    if(hasTraj){_trajImgs[tkT]=d.trajectory.top;_trajImgs[tkS]=d.trajectory.side;}
+    const trajHtml=hasTraj?`
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap">
+        <div style="text-align:center">
+          <div style="font-size:9px;color:var(--muted);font-weight:700;letter-spacing:.06em;margin-bottom:3px">▼ 上から（水平）</div>
+          <img src="${d.trajectory.top}" style="width:100px;height:100px;border-radius:8px;border:1px solid var(--s3);object-fit:contain;background:#0d1f12;cursor:zoom-in;transition:transform .15s" onmouseenter="this.style.transform='scale(1.05)'" onmouseleave="this.style.transform='scale(1)'" onclick="openTrajImg('${tkT}')">
+        </div>
+        <div style="text-align:center">
+          <div style="font-size:9px;color:var(--muted);font-weight:700;letter-spacing:.06em;margin-bottom:3px">▼ 横から（垂直）</div>
+          <img src="${d.trajectory.side}" style="width:100px;height:100px;border-radius:8px;border:1px solid var(--s3);object-fit:contain;background:#0d1f12;cursor:zoom-in;transition:transform .15s" onmouseenter="this.style.transform='scale(1.05)'" onmouseleave="this.style.transform='scale(1)'" onclick="openTrajImg('${tkS}')">
+        </div>
+      </div>`:'<div style="font-size:.65rem;color:var(--muted);margin-top:6px">軌道なし</div>';
+    return`<div class="draw-log-row ${d.result}">
+      <div class="dlr-left">
+        <div class="draw-thumb"><canvas id="dc${i}" width="120" height="90"></canvas></div>
+      </div>
+      <div class="dlr-right" style="flex:1;min-width:0">
+        <div class="dlr-meta">
+          <span class="qtag n">Q${d.q}-${d.index||''}</span>
+          <span class="dlr-res ${resCls}">${resLbl}</span>
+        </div>
+        <div class="dlr-info">${infoTxts.join(' ／ ')||'詳細なし'}</div>
+        ${trajHtml}
+      </div>
+    </div>`;
+  }).join('');
+
+  el.innerHTML=`
+    <div class="metrics m4">
+      <div class="metric"><div class="m-lbl">総ドロー</div><div class="m-val wh">${sum.total||0}</div></div>
+      <div class="metric ko"><div class="m-lbl">京大ゲット</div><div class="m-val ko">${sum.got||0}</div></div>
+      <div class="metric en"><div class="m-lbl">相手ゲット</div><div class="m-val en">${sum.lost||0}</div></div>
+      <div class="metric ${gRate>=50?'gr':''}"><div class="m-lbl">ゲット率</div><div class="m-val ${gRate>=50?'gr':'rd'}">${gRate}<span style="font-size:1.3rem">%</span></div>
+        <div class="pbar"><div class="pfill ${gRate>=50?'pf-gr':'pf-rd'}" style="width:${gRate}%"></div></div>
+      </div>
+    </div>
+    <div class="grid2">
+      <div class="card"><div class="card-ttl">Q別ドロー結果</div><div class="ch-box"><canvas id="cDQ"></canvas></div></div>
+      <div class="card"><div class="card-ttl">取り方別（ゲット時）</div><div class="ch-box"><canvas id="cWay"></canvas></div></div>
+    </div>
+    <div class="card"><div class="card-ttl">ドロワー別成績</div>
+      <div class="tbl-w"><table class="dt"><thead><tr><th>背番号</th><th>ドロー</th><th>ゲット</th><th>失敗</th><th>ファール</th><th>ゲット率</th></tr></thead><tbody>${drRows}</tbody></table></div>
+    </div>
+    <div class="card"><div class="card-ttl">ドローログ（軌道・配置付き）</div>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px">
+        <button class="draw-flt-btn active" data-f="all" onclick="drawFlt('all',this)">すべて(${draws.length})</button>
+        <button class="draw-flt-btn" data-f="ok" onclick="drawFlt('ok',this)">ゲット(${draws.filter(d=>d.result==='ok').length})</button>
+        <button class="draw-flt-btn" data-f="ng" onclick="drawFlt('ng',this)">失敗(${draws.filter(d=>d.result==='ng').length})</button>
+        <button class="draw-flt-btn" data-f="foul" onclick="drawFlt('foul',this)">ファール(${draws.filter(d=>d.result==='foul').length})</button>
+      </div>
+      <div id="drawLogWrap">${logRows}</div>
+    </div>
+    <div id="trajModal" style="display:none;position:fixed;inset:0;z-index:600;background:rgba(7,14,28,.92);align-items:center;justify-content:center;padding:20px" onclick="closeTrajModal()">
+      <img id="trajModalImg" style="max-width:100%;max-height:80dvh;border-radius:12px;border:1px solid var(--s3)">
+    </div>`;
+
+  barchart('cDQ',qs().map(q=>`Q${q}`),[
+    {label:'ゲット',data:qG,backgroundColor:'rgba(249,115,22,.7)',borderRadius:4},
+    {label:'失敗',  data:qL,backgroundColor:'rgba(91,141,184,.5)',borderRadius:4},
+    {label:'ファール',data:qF,backgroundColor:'rgba(251,191,36,.55)',borderRadius:4}
+  ],true);
+  donut('cWay',Object.keys(wayMap),Object.values(wayMap),['#f97316','#3b82f6','#8b5cf6','#22c55e','#fbbf24','#ef4444']);
+
+  requestAnimationFrame(()=>{
+    draws.forEach((d,i)=>{
+      const canvas=$('dc'+i);
+      if(canvas) drawFieldMini(canvas,d.players||[],d.drawer);
+    });
+  });
+}
+
+// 軌道画像モーダル
+const _trajImgs={};
+function openTrajImg(key){
+  const src=_trajImgs[key];
+  if(!src)return;
+  const modal=$('trajModal');
+  if(!modal)return;
+  $('trajModalImg').src=src;
+  modal.style.display='flex';
+}
+function closeTrajModal(){
+  const m=$('trajModal');if(m)m.style.display='none';
+}
+
+// ドローフィルター
+function drawFlt(f,btn){
+  document.querySelectorAll('.draw-flt-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const wrap=$('drawLogWrap');if(!wrap)return;
+  wrap.querySelectorAll('.draw-log-row').forEach(row=>{
+    const res=row.querySelector('.dlr-res');
+    if(!res)return;
+    const txt=res.textContent;
+    const ok=f==='all'||(f==='ok'&&txt==='ゲット')||(f==='ng'&&txt==='失敗')||(f==='foul'&&txt==='ファール');
+    row.style.display=ok?'':'none';
+  });
+}
+
+// ===================== ⑦ GOALIE =====================
+function rGoalie(){
+  const el=$('goalieBody');
+  if(!S.goalie){el.innerHTML='<div class="nodata"><div class="nd-i">🥅</div>ゴーリーのJSONをロード</div>';return;}
+  const shots=S.goalie.shots||[];
+  const sum=S.goalie.summary||{};
+  const ks=sum.kyoto||{},es=sum.enemy||{};
+  const CNAMES=['左上','中上','右上','左中','中央','右中','左下','中下','右下'];
+
+  // ビジュアルショットチャート生成関数
+  // shotList: {result,course}[] を受け取り3x3グリッドHTMLを返す
+  function shotChart(shotList, accentColor){
+    // グリッドごとにショットリストを作成
+    const cells=Array(9).fill(null).map(()=>[]);
+    shotList.forEach(s=>{if(s.course>=0&&s.course<9)cells[s.course].push(s);});
+    const rows=[[0,1,2],[3,4,5],[6,7,8]].map(rowIdxs=>{
+      const cellHtml=rowIdxs.map(ci=>{
+        const list=cells[ci];
+        // ショットを小さい丸で並べる (最大8個表示)
+        const dots=list.slice(0,8).map(s=>{
+          if(s.result==='goal')  return`<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:rgba(239,68,68,.25);border:2px solid #ef4444;color:#ef4444;font-size:10px;font-weight:900;text-align:center;line-height:20px">×</span>`;
+          if(s.result==='save')  return`<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:rgba(34,197,94,.2);border:2.5px solid #22c55e;color:#22c55e;font-size:11px;font-weight:700;text-align:center;line-height:20px">○</span>`;
+          return`<span style="display:inline-block;width:22px;height:22px;border-radius:50%;background:rgba(251,191,36,.2);border:2px solid #fbbf24;color:#fbbf24;font-size:8px;font-weight:700;text-align:center;line-height:20px">セ</span>`;
+        }).join('');
+        const overflow=list.length>8?`<span style="font-size:9px;color:var(--muted)">+${list.length-8}</span>`:'';
+        const g=list.filter(s=>s.result==='goal').length;
+        const sv=list.filter(s=>s.result==='save').length;
+        const svRate=g+sv>0?Math.round(sv/(g+sv)*100):null;
+        return`<td style="width:33.3%;padding:6px 4px;border:1px solid rgba(255,255,255,.07);vertical-align:top;text-align:center;background:rgba(${accentColor},${list.length>0?0.04+list.length*0.018:0.02})">
+          <div style="font-size:9px;color:var(--muted);margin-bottom:4px">${CNAMES[ci]}</div>
+          <div style="display:flex;flex-wrap:wrap;gap:2px;justify-content:center;min-height:26px">${dots}${overflow}</div>
+          <div style="font-size:9px;color:rgba(${accentColor},0.9);margin-top:4px;font-weight:700">${svRate!==null?svRate+'%':'—'}<span style="color:var(--muted);font-weight:400"> (${sv}/${g+sv})</span></div>
+        </td>`;
+      }).join('');
+      return`<tr>${cellHtml}</tr>`;
+    }).join('');
+
+    return`<table style="width:100%;border-collapse:collapse;table-layout:fixed">${rows}</table>`;
+  }
+
+  // Q別ショットチャート
+  function qShotCharts(side, accentColor){
+    const qCount=qc();
+    return Array.from({length:qCount},(_,i)=>{
+      const q=i+1;
+      const qShots=shots.filter(s=>s.side===side&&s.q===q);
+      if(!qShots.length) return `<div style="padding:12px;text-align:center;color:var(--muted);font-size:.75rem">Q${q}: データなし</div>`;
+      const g=qShots.filter(s=>s.result==='goal').length;
+      const sv=qShots.filter(s=>s.result==='save').length;
+      const r=g+sv>0?Math.round(sv/(g+sv)*100):0;
+      return`<div style="margin-bottom:14px">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <span style="font-family:var(--font-l);font-size:.75rem;font-weight:700;color:var(--text2)">Q${q}</span>
+          <span style="font-size:.7rem;color:var(--muted)">${qShots.length}本 　セーブ率 <b style="color:rgba(${accentColor},1)">${r}%</b> (${sv}sv/${g}失点)</span>
+        </div>
+        ${shotChart(qShots, accentColor)}
+      </div>`;
+    }).join('');
+  }
+
+  const kyotoColor='249,115,22';
+  const enemyColor='91,141,184';
+  const kyotoAll=shots.filter(s=>s.side==='kyoto');
+  const enemyAll=shots.filter(s=>s.side==='enemy');
+
+  let qRows='';
+  qs().forEach(q=>[['kyoto','京大','ko'],['enemy',en(),'en']].forEach(([side,lbl,cls])=>{
+    const qs2=shots.filter(s=>s.q===q&&s.side===side);if(!qs2.length)return;
+    const g=qs2.filter(s=>s.result==='goal').length;
+    const sv=qs2.filter(s=>s.result==='save').length;
+    const r=pct(sv,g+sv);
+    qRows+=`<tr><td><span class="qtag ${cls}">Q${q}</span></td><td>${lbl}</td>
+      <td class="nc">${qs2.length}</td><td class="nc bad">${g}</td><td class="nc good">${sv}</td>
+      <td><span class="nc ${r>=60?'good':r>=40?'warn':'bad'}">${r}%</span></td></tr>`;
+  }));
+
+  el.innerHTML=`
+    <div class="metrics m4">
+      <div class="metric ko"><div class="m-lbl">京大G 被ショット</div><div class="m-val wh">${ks.total_shots||0}</div></div>
+      <div class="metric ko"><div class="m-lbl">京大G セーブ率</div><div class="m-val ko">${ks.save_rate_pct||0}<span style="font-size:1.3rem">%</span></div>
+        <div class="m-sub">${ks.saves||0}セーブ / 失点${ks.goals||0}</div></div>
+      <div class="metric en"><div class="m-lbl">${en()}G 被ショット</div><div class="m-val wh">${es.total_shots||0}</div></div>
+      <div class="metric en"><div class="m-lbl">${en()}G セーブ率</div><div class="m-val en">${es.save_rate_pct||0}<span style="font-size:1.3rem">%</span></div>
+        <div class="m-sub">${es.saves||0}セーブ / 失点${es.goals||0}</div></div>
+    </div>
+
+    <!-- 試合全体ショットチャート -->
+    <div class="grid2" style="margin-bottom:10px">
+      <div class="card">
+        <div class="card-ttl" style="color:var(--orange)">京大G 試合全体</div>
+        <div style="font-size:.68rem;color:var(--muted);margin-bottom:8px">
+          <span style="color:#22c55e;font-weight:700">○</span> セーブ &nbsp;
+          <span style="color:#ef4444;font-weight:700">×</span> 失点 &nbsp;
+          <span style="color:#fbbf24;font-weight:700">セ</span> 枠外
+        </div>
+        ${shotChart(kyotoAll, kyotoColor)}
+      </div>
+      <div class="card">
+        <div class="card-ttl" style="color:var(--steel)">${en()}G 試合全体</div>
+        <div style="font-size:.68rem;color:var(--muted);margin-bottom:8px">
+          <span style="color:#22c55e;font-weight:700">○</span> セーブ &nbsp;
+          <span style="color:#ef4444;font-weight:700">×</span> 失点 &nbsp;
+          <span style="color:#fbbf24;font-weight:700">セ</span> 枠外
+        </div>
+        ${shotChart(enemyAll, enemyColor)}
+      </div>
+    </div>
+
+    <!-- Q別ショットチャート -->
+    <div class="grid2" style="margin-bottom:10px">
+      <div class="card">
+        <div class="card-ttl" style="color:var(--orange)">京大G Q別ショットチャート</div>
+        ${qShotCharts('kyoto', kyotoColor)}
+      </div>
+      <div class="card">
+        <div class="card-ttl" style="color:var(--steel)">${en()}G Q別ショットチャート</div>
+        ${qShotCharts('enemy', enemyColor)}
+      </div>
+    </div>
+
+    <div class="card"><div class="card-ttl">Q別セーブ率</div>
+      <div class="tbl-w"><table class="dt"><thead><tr><th>Q</th><th>G</th><th>被ショット</th><th>失点</th><th>セーブ</th><th>セーブ率</th></tr></thead><tbody>${qRows}</tbody></table></div>
+    </div>`;
+}
+renderAll();
+</script>
+
+<script>
+// ツールで記録中の場合、離脱前に警告
+window.addEventListener('beforeunload', e => {
+  const keys = ['kul_score','kul_to','kul_possession','kul_draw','kul_gb_foul','kul_goalie'];
+  if (keys.some(k => localStorage.getItem(k))) {
+    e.preventDefault(); e.returnValue = '';
+  }
+});
+</script>
+</body>
+</html>
