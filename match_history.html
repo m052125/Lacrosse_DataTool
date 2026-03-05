@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
@@ -182,6 +183,14 @@ table.dt tr:hover td{background:rgba(249,115,22,.03)}
 .pdot{width:5px;height:5px;border-radius:50%;background:currentColor;flex-shrink:0}
 @media(max-width:400px){.m-val{font-size:2rem}}
 @media(max-width:400px){.hdr-stat,.clear-btn,.home-btn{font-size:.52rem;padding:3px 6px;}}
+.sel-row{display:flex;align-items:center;gap:10px;margin-bottom:14px;flex-wrap:wrap}
+.sel-lbl{font-family:var(--font-n);font-size:.7rem;font-weight:500;color:var(--tx3);white-space:nowrap}
+.sel-inp{background:var(--s1);border:1px solid var(--s4);border-radius:8px;padding:7px 12px;color:var(--tx);font-size:.8rem;font-family:var(--font-n);cursor:pointer;flex:1;min-width:140px;max-width:260px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%234a6080' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;transition:border-color .2s}
+.sel-inp:focus{outline:none;border-color:rgba(249,115,22,.5)}
+.detail-panel{background:var(--s2);border:1px solid var(--s4);border-radius:var(--rl);padding:16px;margin-bottom:14px;border-top:2px solid var(--orange)}
+.dp-name{font-family:var(--font-n);font-size:.95rem;font-weight:700;color:var(--orange);margin-bottom:12px}
+.sub-ttl{font-family:var(--font-n);font-size:.78rem;font-weight:700;color:var(--tx2);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.sub-ttl::before{content:'';display:block;width:3px;height:12px;background:var(--orange);border-radius:2px;flex-shrink:0}
 </style>
 </head>
 <body>
@@ -270,6 +279,16 @@ table.dt tr:hover td{background:rgba(249,115,22,.03)}
   <div id="detailBody"><div class="nodata"><div class="nd-i">🔍</div>左のタイムラインから試合を選択</div></div>
 </div>
 
+<div class="pg" id="pg-draw">
+  <div class="sec"><div class="sec-tag">DRAW</div><div class="sec-ttl">ドロー 総合分析</div><div class="sec-line"></div></div>
+  <div id="drawBody"><div class="nodata"><div class="nd-i">🎯</div>試合データをロードしてください</div></div>
+</div>
+
+<div class="pg" id="pg-goalie">
+  <div class="sec"><div class="sec-tag">GOALIE</div><div class="sec-ttl">ゴーリー 分析</div><div class="sec-line"></div></div>
+  <div id="goalieBody"><div class="nodata"><div class="nd-i">🥅</div>試合データをロードしてください</div></div>
+</div>
+
 </main>
 
 <nav id="bnav">
@@ -278,6 +297,8 @@ table.dt tr:hover td{background:rgba(249,115,22,.03)}
   <button class="nb" data-p="player"><div class="ni">🏃</div>選手</button>
   <button class="nb" data-p="opponent"><div class="ni">⚔️</div>相手別</button>
   <button class="nb" data-p="q"><div class="ni">⏱</div>Q分析</button>
+  <button class="nb" data-p="draw"><div class="ni">🎯</div>ドロー</button>
+  <button class="nb" data-p="goalie"><div class="ni">🥅</div>ゴーリー</button>
   <button class="nb" data-p="detail"><div class="ni">🔍</div>詳細</button>
 </nav>
 
@@ -310,6 +331,9 @@ const TOOL_MAP = {
 let DB = [];
 let pending = {};
 let selectedMatchId = null;
+let selectedPlayer = null;
+let selectedDrawer = null;
+let selectedGoalie = null;
 const charts = {};
 
 Chart.defaults.color = '#4a6080';
@@ -621,18 +645,32 @@ function renderSeason(){
 function renderPlayer(){
   const el=$('playerBody');
   if(!DB.length){el.innerHTML='<div class="nodata"><div class="nd-i">🏃</div>試合データをロードしてください</div>';return;}
+
+  // --- build shooter map ---
   const shooterMap={};
   DB.forEach(m=>{
     (m.data.score?.shots||[]).filter(s=>s.team==='kyoto').forEach(s=>{
-      const p=s.shooter||'?'; if(!shooterMap[p])shooterMap[p]={games:new Set(),shots:0,goals:0,saves:0};
+      const p=s.shooter||'?';
+      if(!shooterMap[p])shooterMap[p]={games:new Set(),shots:0,goals:0,saves:0,misses:0,byQ:{1:{shots:0,goals:0},2:{shots:0,goals:0},3:{shots:0,goals:0},4:{shots:0,goals:0}},byAttack:{},byMatch:[]};
       shooterMap[p].games.add(m.id); shooterMap[p].shots++;
-      if(s.result==='goal')shooterMap[p].goals++;
+      if(s.result==='goal'){shooterMap[p].goals++;if(s.q)shooterMap[p].byQ[s.q].goals++;}
       if(s.result==='save')shooterMap[p].saves++;
+      if(s.result==='miss')shooterMap[p].misses++;
+      if(s.q)shooterMap[p].byQ[s.q].shots++;
+      if(s.attack){const a=s.attack;shooterMap[p].byAttack[a]=(shooterMap[p].byAttack[a]||{shots:0,goals:0});shooterMap[p].byAttack[a].shots++;if(s.result==='goal')shooterMap[p].byAttack[a].goals++;}
+    });
+    // build per-match for each shooter in this match
+    const mShooters=[...new Set((m.data.score?.shots||[]).filter(s=>s.team==='kyoto').map(s=>s.shooter||'?'))];
+    mShooters.forEach(p=>{
+      if(!shooterMap[p])return;
+      const mShots=(m.data.score?.shots||[]).filter(s=>s.team==='kyoto'&&(s.shooter||'?')===p);
+      shooterMap[p].byMatch.push({date:m.date,enemy:m.enemy,shots:mShots.length,goals:mShots.filter(s=>s.result==='goal').length,saves:mShots.filter(s=>s.result==='save').length});
     });
   });
-  // FIX: ...v spread comes first, then games:v.games.size overrides the Set
   const shooters=Object.entries(shooterMap).map(([k,v])=>({num:k,...v,games:v.games.size,rate:pct(v.goals,v.shots),onTgt:pct(v.goals+v.saves,v.shots)}))
     .filter(s=>s.shots>=1).sort((a,b)=>b.goals-a.goals||b.rate-a.rate);
+
+  // --- draw map ---
   const drawMap={};
   DB.forEach(m=>{
     (m.data.draw?.draws||[]).forEach(d=>{
@@ -641,19 +679,75 @@ function renderPlayer(){
     });
   });
   const drawPlayers=Object.entries(drawMap).map(([k,v])=>({num:k,...v,getRate:pct(v.ok,v.ok+v.ng)}))
-    .filter(d=>d.ok+d.ng>=2).sort((a,b)=>b.getRate-a.getRate||b.ok+b.ng-a.ok-a.ng);
+    .filter(d=>d.ok+d.ng>=1).sort((a,b)=>b.getRate-a.getRate||b.ok+b.ng-a.ok-a.ng);
+
+  // --- foul map ---
   const foulMap={};
   DB.forEach(m=>{
     const byP=m.data.gb_foul?.fouls?.summary?.by_player||{};
     Object.entries(byP).forEach(([num,cnt])=>{ foulMap[num]=(foulMap[num]||0)+cnt; });
   });
   const foulPlayers=Object.entries(foulMap).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+  // validate selectedPlayer
+  if(selectedPlayer && !shooterMap[selectedPlayer]) selectedPlayer=null;
+
+  const playerDetailHtml = selectedPlayer ? (()=>{
+    const s=shooterMap[selectedPlayer];
+    if(!s) return '';
+    const attackRows=Object.entries(s.byAttack).sort((a,b)=>b[1].shots-a[1].shots).map(([atk,v])=>`<tr>
+      <td><b>${atk}</b></td><td>${v.shots}</td><td class="good">${v.goals}</td>
+      <td><div class="rb-w"><div class="rb"><div class="rb-f pf-ko" style="width:${pct(v.goals,v.shots)}%"></div></div><span class="rb-lbl ${pct(v.goals,v.shots)>=30?'good':pct(v.goals,v.shots)>=20?'warn':'bad'}">${pct(v.goals,v.shots)}%</span></div></td>
+    </tr>`).join('');
+    const matchRows=s.byMatch.map(bm=>`<tr>
+      <td style="color:var(--tx2)">${bm.date.slice(5)}</td><td>vs ${bm.enemy}</td><td>${bm.shots}</td>
+      <td class="good">${bm.goals}</td>
+      <td><span class="${pct(bm.goals,bm.shots)>=30?'good':pct(bm.goals,bm.shots)>=20?'warn':'bad'}">${pct(bm.goals,bm.shots)}%</span></td>
+    </tr>`).join('');
+    return `<div class="detail-panel">
+      <div class="dp-name">🏃 #${selectedPlayer} 個人詳細</div>
+      <div class="metrics m4" style="margin-bottom:14px">
+        <div class="metric ko"><div class="m-lbl">累計ゴール</div><div class="m-val ko">${s.goals}</div><div class="m-sub">${s.shots}本中</div></div>
+        <div class="metric gr"><div class="m-lbl">決定率</div><div class="m-val gr">${pct(s.goals,s.shots)}<span style="font-size:1.2rem">%</span></div></div>
+        <div class="metric cy"><div class="m-lbl">枠内率</div><div class="m-val cy">${pct(s.goals+s.saves,s.shots)}<span style="font-size:1.2rem">%</span></div></div>
+        <div class="metric en"><div class="m-lbl">出場試合</div><div class="m-val en">${s.games instanceof Set ? s.games.size : s.games}</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        ${[1,2,3,4].map(q=>`<div style="background:var(--s1);border:1px solid var(--s3);border-radius:8px;padding:10px;text-align:center">
+          <div style="font-family:var(--font-b);font-size:.55rem;color:var(--tx3)">Q${q}</div>
+          <div style="font-family:var(--font-d);font-size:1.6rem;color:var(--orange)">${s.byQ[q].goals}<span style="font-size:.9rem;color:var(--tx3)">/${s.byQ[q].shots}</span></div>
+          <div style="font-size:.6rem;color:var(--tx2)">${pct(s.byQ[q].goals,s.byQ[q].shots)}%</div>
+        </div>`).join('')}
+      </div>
+      ${attackRows?`<div class="sub-ttl">攻め方別</div>
+      <div class="tbl-w" style="margin-bottom:12px"><table class="dt">
+        <thead><tr><th>攻め方</th><th>本数</th><th>ゴール</th><th>決定率</th></tr></thead>
+        <tbody>${attackRows}</tbody>
+      </table></div>`:''}
+      <div class="sub-ttl">試合別成績</div>
+      <div class="tbl-w"><table class="dt">
+        <thead><tr><th>日付</th><th>対戦</th><th>本数</th><th>ゴール</th><th>決定率</th></tr></thead>
+        <tbody>${matchRows}</tbody>
+      </table></div>
+      <div class="ch-box" style="margin-top:12px"><canvas id="pPlayerDetail"></canvas></div>
+    </div>`;
+  })() : '';
+
   el.innerHTML=`
   <div class="card">
-    <div class="card-ttl">シューター 累計成績（スコアデータのある試合）</div>
-    ${shooters.length?`<div class="tbl-w"><table class="dt">
-      <thead><tr><th>背番号</th><th>出場試合</th><th>累計本数</th><th>ゴール</th><th>決定率</th><th>枠内率</th></tr></thead>
-      <tbody>${shooters.map((s,i)=>`<tr>
+    <div class="card-ttl">シューター 累計成績</div>
+    ${shooters.length?`
+    <div class="sel-row" style="margin-bottom:10px">
+      <span class="sel-lbl">選手詳細：</span>
+      <select class="sel-inp" onchange="selectedPlayer=this.value||null;renderPlayer()">
+        <option value="">— 選手を選択 —</option>
+        ${shooters.map(s=>`<option value="${s.num}" ${selectedPlayer===s.num?'selected':''}>#${s.num}（${s.goals}G / ${s.shots}本）</option>`).join('')}
+      </select>
+    </div>
+    ${playerDetailHtml}
+    <div class="tbl-w"><table class="dt">
+      <thead><tr><th>背番号</th><th>試合</th><th>本数</th><th>ゴール</th><th>決定率</th><th>枠内率</th></tr></thead>
+      <tbody>${shooters.map((s,i)=>`<tr style="cursor:pointer" onclick="selectedPlayer='${s.num}';renderPlayer()">
         <td><div class="pr-rank ${i===0?'g1':i===1?'g2':i===2?'g3':''}">${i+1}</div> <b>#${s.num}</b></td>
         <td class="nc" style="color:var(--tx2)">${s.games}</td>
         <td class="nc">${s.shots}</td>
@@ -667,9 +761,9 @@ function renderPlayer(){
     <div class="card">
       <div class="card-ttl">ドロワー 累計成績</div>
       ${drawPlayers.length?`<div class="tbl-w"><table class="dt">
-        <thead><tr><th>背番号</th><th>ドロー数</th><th>ゲット</th><th>ゲット率</th></tr></thead>
+        <thead><tr><th>名前</th><th>本数</th><th>ゲット</th><th>ゲット率</th></tr></thead>
         <tbody>${drawPlayers.map((d,i)=>`<tr>
-          <td><span class="pr-rank ${i===0?'g1':i===1?'g2':''}">${i+1}</span> <b>#${d.num}</b></td>
+          <td><span class="pr-rank ${i===0?'g1':i===1?'g2':''}">${i+1}</span> <b>${d.num}</b></td>
           <td class="nc">${d.ok+d.ng+d.foul}</td>
           <td class="nc good">${d.ok}</td>
           <td><div class="rb-w"><div class="rb"><div class="rb-f" style="width:${d.getRate}%;background:${d.getRate>=50?'var(--green)':'var(--red)'}"></div></div><span class="rb-lbl ${d.getRate>=50?'good':'bad'}">${d.getRate}%</span></div></td>
@@ -679,7 +773,7 @@ function renderPlayer(){
     <div class="card">
       <div class="card-ttl">ファール 累計（多い順）</div>
       ${foulPlayers.length?`<div class="tbl-w"><table class="dt">
-        <thead><tr><th>背番号</th><th>累計ファール</th></tr></thead>
+        <thead><tr><th>背番号</th><th>累計</th></tr></thead>
         <tbody>${foulPlayers.map(([num,cnt],i)=>`<tr>
           <td><span class="nc ${i===0?'bad':''}">#${num}</span></td>
           <td class="nc bad">${cnt}</td>
@@ -688,9 +782,10 @@ function renderPlayer(){
     </div>
   </div>
   <div class="card">
-    <div class="card-ttl">ゴール数 推移（シューター別）</div>
+    <div class="card-ttl">ゴール数 推移（上位5名）</div>
     <div class="ch-box"><canvas id="pPlayerTrend"></canvas></div>
   </div>`;
+
   const top5=shooters.slice(0,5);
   const matchLabels=DB.map(m=>m.date.slice(5)+' '+m.enemy.slice(0,4));
   if(top5.length){
@@ -701,6 +796,15 @@ function renderPlayer(){
       borderColor:colors[i],backgroundColor:colors[i]+'22',borderWidth:2,pointRadius:4,tension:.3
     }));
     linechart('pPlayerTrend',matchLabels,datasets);
+  }
+  // individual player detail chart
+  if(selectedPlayer && shooterMap[selectedPlayer]){
+    const s=shooterMap[selectedPlayer];
+    const mLabels=s.byMatch.map(bm=>bm.date.slice(5)+' '+bm.enemy.slice(0,4));
+    barchart('pPlayerDetail',mLabels,[
+      {label:'ゴール',data:s.byMatch.map(bm=>bm.goals),backgroundColor:'rgba(249,115,22,.75)',borderRadius:4},
+      {label:'セーブ(枠内)',data:s.byMatch.map(bm=>bm.saves),backgroundColor:'rgba(56,189,248,.5)',borderRadius:4},
+    ]);
   }
 }
 
@@ -792,9 +896,9 @@ function renderQ(){
   const hmMetrics=[
     {lbl:'得点(平均)',vals:qData.map(d=>(d.kGoals/n).toFixed(1)),max:3,color:'249,115,22'},
     {lbl:'失点(平均)',vals:qData.map(d=>(d.eGoals/n).toFixed(1)),max:3,color:'91,141,184'},
-    {lbl:'決定率(%) ',vals:qData.map(d=>d.dr+'%'),max:50,numVals:qData.map(d=>d.dr),color:'34,197,94'},
-    {lbl:'TO奪われ  ',vals:qData.map(d=>(d.kTO/n).toFixed(1)),max:3,color:'239,68,68'},
-    {lbl:'TO奪得    ',vals:qData.map(d=>(d.eTO/n).toFixed(1)),max:3,color:'249,115,22'},
+    {lbl:'決定率(%)',vals:qData.map(d=>d.dr+'%'),max:50,numVals:qData.map(d=>d.dr),color:'34,197,94'},
+    {lbl:'TO奪われ',vals:qData.map(d=>(d.kTO/n).toFixed(1)),max:3,color:'239,68,68'},
+    {lbl:'TO奪得',vals:qData.map(d=>(d.eTO/n).toFixed(1)),max:3,color:'249,115,22'},
     {lbl:'自陣GBゲット率',vals:qData.map(d=>d.gbTotal?d.gbR+'%':'—'),max:100,numVals:qData.map(d=>d.gbR),color:'56,189,248'},
   ];
   const hmRows=hmMetrics.map(m=>`<div class="q-hm-row">
@@ -807,7 +911,7 @@ function renderQ(){
   </div>`).join('');
   el.innerHTML=`
   <div class="card">
-    <div class="card-ttl">クォーター別 全試合平均</div>
+    <div class="card-ttl">Q別 パフォーマンスヒートマップ（全試合平均）</div>
     <div style="display:flex;gap:2px;margin-bottom:4px;padding-left:20px">
       ${QS.map(q=>`<div style="flex:1;font-family:var(--font-b);font-size:.7rem;font-weight:700;color:var(--tx3);text-align:center">Q${q}</div>`).join('')}
     </div>
@@ -924,6 +1028,329 @@ function renderAll(){
   renderOpponent();
   renderQ();
   renderDetail();
+  renderDraw();
+  renderGoalie();
+}
+
+function renderGoalie(){
+  const el=$('goalieBody');
+  if(!DB.length){el.innerHTML='<div class="nodata"><div class="nd-i">🥅</div>試合データをロードしてください</div>';return;}
+  const hasAny=DB.some(m=>m.data.goalie);
+  if(!hasAny){el.innerHTML='<div class="nodata"><div class="nd-i">🥅</div>ゴーリーデータがまだありません</div>';return;}
+
+  // --- 全試合集計（京大ゴーリー通算）---
+  const overallK={total_shots:0,goals:0,saves:0,misses:0};
+  DB.forEach(m=>{
+    const ks=m.data.goalie?.summary?.kyoto||{};
+    overallK.total_shots+=(ks.total_shots||0);
+    overallK.goals+=(ks.goals||0);
+    overallK.saves+=(ks.saves||0);
+    overallK.misses+=(ks.misses||0);
+  });
+  const overallSvR=pct(overallK.saves,overallK.total_shots);
+  const overallConR=pct(overallK.goals,overallK.total_shots);
+
+  // --- 個別ゴーリー集計 ---
+  const goalieMap={};
+  DB.forEach(m=>{
+    const gs=m.data.goalie?.summary?.kyoto||{};
+    // goalies array if present (per-Q detail)
+    const gArr=gs.goalies||[];
+    if(gArr.length>0){
+      gArr.forEach(g=>{
+        const k=String(g.number||'?');
+        if(!goalieMap[k])goalieMap[k]={num:k,total_shots:0,goals:0,saves:0,misses:0,games:new Set(),byMatch:[]};
+        goalieMap[k].total_shots+=(g.total_shots||0);
+        goalieMap[k].goals+=(g.goals||0);
+        goalieMap[k].saves+=(g.saves||0);
+        goalieMap[k].misses+=(g.misses||0);
+        goalieMap[k].games.add(m.id);
+      });
+      // per-match entry
+      gArr.forEach(g=>{
+        const k=String(g.number||'?');
+        if(!goalieMap[k])return;
+        const existing=goalieMap[k].byMatch.find(bm=>bm.matchId===m.id);
+        if(!existing) goalieMap[k].byMatch.push({matchId:m.id,date:m.date,enemy:m.enemy,total_shots:g.total_shots||0,goals:g.goals||0,saves:g.saves||0});
+      });
+    } else if(gs.total_shots){
+      // fallback: no goalies array, use top-level summary as unknown number
+      const k=gs.goalies?.[0]?.number ? String(gs.goalies[0].number) : '?';
+      if(!goalieMap[k])goalieMap[k]={num:k,total_shots:0,goals:0,saves:0,misses:0,games:new Set(),byMatch:[]};
+      goalieMap[k].total_shots+=(gs.total_shots||0);
+      goalieMap[k].goals+=(gs.goals||0);
+      goalieMap[k].saves+=(gs.saves||0);
+      goalieMap[k].misses+=(gs.misses||0);
+      goalieMap[k].games.add(m.id);
+      goalieMap[k].byMatch.push({matchId:m.id,date:m.date,enemy:m.enemy,total_shots:gs.total_shots||0,goals:gs.goals||0,saves:gs.saves||0});
+    }
+  });
+  const goalies=Object.values(goalieMap).map(g=>({...g,games:g.games.size,svR:pct(g.saves,g.total_shots),conR:pct(g.goals,g.total_shots)}))
+    .sort((a,b)=>b.total_shots-a.total_shots);
+
+  if(selectedGoalie && !goalieMap[selectedGoalie]) selectedGoalie=null;
+
+  // per-match trend data for chart
+  const matchLabels=DB.filter(m=>m.data.goalie).map(m=>m.date.slice(5)+' '+m.enemy.slice(0,4));
+  const svRateByMatch=DB.filter(m=>m.data.goalie).map(m=>m.data.goalie?.summary?.kyoto?.save_rate_pct||0);
+  const conRateByMatch=DB.filter(m=>m.data.goalie).map(m=>pct(m.data.goalie?.summary?.kyoto?.goals||0,m.data.goalie?.summary?.kyoto?.total_shots||0));
+
+  const goalieDetailHtml = selectedGoalie ? (()=>{
+    const g=goalieMap[selectedGoalie];
+    if(!g) return '';
+    const matchRows=g.byMatch.map(bm=>`<tr>
+      <td style="color:var(--tx2)">${bm.date.slice(5)}</td><td>vs ${bm.enemy}</td>
+      <td>${bm.total_shots}</td><td class="bad">${bm.goals}</td>
+      <td class="good">${bm.saves}</td>
+      <td><div class="rb-w"><div class="rb"><div class="rb-f" style="width:${pct(bm.saves,bm.total_shots)}%;background:${pct(bm.saves,bm.total_shots)>=50?'var(--green)':'var(--red)'}"></div></div><span class="rb-lbl ${pct(bm.saves,bm.total_shots)>=50?'good':'bad'}">${pct(bm.saves,bm.total_shots)}%</span></div></td>
+    </tr>`).join('');
+    return`<div class="detail-panel">
+      <div class="dp-name">🥅 #${selectedGoalie} 個人詳細</div>
+      <div class="metrics m4" style="margin-bottom:14px">
+        <div class="metric gr"><div class="m-lbl">セーブ率</div><div class="m-val gr">${pct(g.saves,g.total_shots)}<span style="font-size:1.2rem">%</span></div><div class="m-sub">${g.saves}sv / ${g.total_shots}本</div></div>
+        <div class="metric rd"><div class="m-lbl">失点率</div><div class="m-val rd">${pct(g.goals,g.total_shots)}<span style="font-size:1.2rem">%</span></div><div class="m-sub">${g.goals}失点</div></div>
+        <div class="metric cy"><div class="m-lbl">対応本数</div><div class="m-val cy">${g.total_shots}</div></div>
+        <div class="metric en"><div class="m-lbl">出場試合</div><div class="m-val en">${g.games instanceof Set ? g.games.size : g.games}</div></div>
+      </div>
+      <div class="sub-ttl">試合別成績</div>
+      <div class="tbl-w" style="margin-bottom:12px"><table class="dt">
+        <thead><tr><th>日付</th><th>対戦</th><th>対応</th><th>失点</th><th>セーブ</th><th>セーブ率</th></tr></thead>
+        <tbody>${matchRows}</tbody>
+      </table></div>
+      <div class="ch-box"><canvas id="gGoalieDetail"></canvas></div>
+    </div>`;
+  })() : '';
+
+  el.innerHTML=`
+  <div class="metrics m4" style="margin-bottom:12px">
+    <div class="metric gr"><div class="m-lbl">通算 セーブ率</div><div class="m-val gr">${overallSvR}<span style="font-size:1.3rem">%</span></div><div class="m-sub">${overallK.saves}sv / ${overallK.total_shots}本</div><div class="pbar"><div class="pfill pf-gr" style="width:${overallSvR}%"></div></div></div>
+    <div class="metric rd"><div class="m-lbl">通算 失点率</div><div class="m-val rd">${overallConR}<span style="font-size:1.3rem">%</span></div><div class="m-sub">${overallK.goals}失点</div></div>
+    <div class="metric cy"><div class="m-lbl">累計 対応本数</div><div class="m-val cy">${overallK.total_shots}</div></div>
+    <div class="metric pu"><div class="m-lbl">データ試合数</div><div class="m-val pu">${DB.filter(m=>m.data.goalie).length}</div><div class="m-sub">/ ${DB.length} 試合</div></div>
+  </div>
+  <div class="card">
+    <div class="card-ttl">セーブ率 推移</div>
+    <div class="ch-box"><canvas id="gSvTrend"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-ttl">ゴーリー別 累計成績</div>
+    <div class="sel-row" style="margin-bottom:10px">
+      <span class="sel-lbl">個人詳細：</span>
+      <select class="sel-inp" onchange="selectedGoalie=this.value||null;renderGoalie()">
+        <option value="">— ゴーリーを選択 —</option>
+        ${goalies.map(g=>`<option value="${g.num}" ${selectedGoalie===g.num?'selected':''}>#${g.num}（${g.svR}% / ${g.total_shots}本）</option>`).join('')}
+      </select>
+    </div>
+    ${goalieDetailHtml}
+    ${goalies.length?`<div class="tbl-w"><table class="dt">
+      <thead><tr><th>背番号</th><th>試合</th><th>対応</th><th>失点</th><th>セーブ</th><th>セーブ率</th><th>失点率</th></tr></thead>
+      <tbody>${goalies.map((g,i)=>`<tr style="cursor:pointer" onclick="selectedGoalie='${g.num}';renderGoalie()">
+        <td><span class="pr-rank ${i===0?'g1':i===1?'g2':''}">${i+1}</span> <b>#${g.num}</b></td>
+        <td style="color:var(--tx2)">${g.games}</td>
+        <td>${g.total_shots}</td>
+        <td class="bad">${g.goals}</td>
+        <td class="good">${g.saves}</td>
+        <td><div class="rb-w"><div class="rb"><div class="rb-f" style="width:${g.svR}%;background:var(--green)"></div></div><span class="rb-lbl ${g.svR>=50?'good':'bad'}">${g.svR}%</span></div></td>
+        <td class="nc bad">${g.conR}%</td>
+      </tr>`).join('')}</tbody>
+    </table></div>`:'<div class="nodata" style="padding:12px">データなし</div>'}
+  </div>
+  <div class="card">
+    <div class="card-ttl">試合別 失点 / セーブ数</div>
+    <div class="ch-box"><canvas id="gSvBar"></canvas></div>
+  </div>`;
+
+  linechart('gSvTrend',matchLabels,[
+    {label:'セーブ率(%)',data:svRateByMatch,borderColor:'#22c55e',backgroundColor:'rgba(34,197,94,.08)',tension:.4,borderWidth:2.5,pointRadius:4,pointBackgroundColor:'#22c55e',fill:true},
+    {label:'失点率(%)',data:conRateByMatch,borderColor:'#ef4444',backgroundColor:'rgba(239,68,68,.06)',tension:.4,borderWidth:2,pointRadius:3,pointBackgroundColor:'#ef4444',fill:true}
+  ]);
+  const gMatches=DB.filter(m=>m.data.goalie);
+  barchart('gSvBar',matchLabels,[
+    {label:'セーブ',data:gMatches.map(m=>m.data.goalie?.summary?.kyoto?.saves||0),backgroundColor:'rgba(34,197,94,.65)',borderRadius:4},
+    {label:'失点',data:gMatches.map(m=>m.data.goalie?.summary?.kyoto?.goals||0),backgroundColor:'rgba(239,68,68,.55)',borderRadius:4}
+  ]);
+  if(selectedGoalie && goalieMap[selectedGoalie]){
+    const g=goalieMap[selectedGoalie];
+    const ml=g.byMatch.map(bm=>bm.date.slice(5)+' '+bm.enemy.slice(0,4));
+    barchart('gGoalieDetail',ml,[
+      {label:'セーブ',data:g.byMatch.map(bm=>bm.saves),backgroundColor:'rgba(34,197,94,.65)',borderRadius:4},
+      {label:'失点',data:g.byMatch.map(bm=>bm.goals),backgroundColor:'rgba(239,68,68,.55)',borderRadius:4},
+    ]);
+  }
+}
+
+function renderDraw(){
+  const el=$('drawBody');
+  if(!DB.length){el.innerHTML='<div class="nodata"><div class="nd-i">🎯</div>試合データをロードしてください</div>';return;}
+
+  const allDraws = DB.flatMap(m => (m.data.draw?.draws||[]).map(d=>({...d, matchId:m.id, enemy:m.enemy, date:m.date, matchResult:m.result})));
+  if(!allDraws.length){el.innerHTML='<div class="nodata"><div class="nd-i">🎯</div>ドローデータがまだありません</div>';return;}
+
+  const valid = allDraws.filter(d=>d.result!=='foul');
+  const got   = valid.filter(d=>d.result==='ok');
+  const fouls = allDraws.filter(d=>d.result==='foul');
+  const overallPct = pct(got.length, valid.length);
+
+  const qStats = [1,2,3,4].map(q=>{
+    const qv=valid.filter(d=>d.q===q);
+    const qg=qv.filter(d=>d.result==='ok');
+    return{q,total:qv.length,got:qg.length,pct:pct(qg.length,qv.length)};
+  });
+
+  // drawer map with per-match and per-Q detail
+  const drawerMap={};
+  allDraws.forEach(d=>{
+    const k=d.drawer||'?';
+    if(!drawerMap[k])drawerMap[k]={name:k,tot:0,ok:0,ng:0,foul:0,games:new Set(),byQ:{1:{ok:0,ng:0},2:{ok:0,ng:0},3:{ok:0,ng:0},4:{ok:0,ng:0}},byWay:{},byMatch:[]};
+    drawerMap[k].tot++; drawerMap[k][d.result]=(drawerMap[k][d.result]||0)+1;
+    drawerMap[k].games.add(d.matchId);
+    if(d.q && drawerMap[k].byQ[d.q]){
+      if(d.result==='ok')drawerMap[k].byQ[d.q].ok++;
+      else if(d.result==='ng')drawerMap[k].byQ[d.q].ng++;
+    }
+    if(d.getWay){const w=d.getWay;drawerMap[k].byWay[w]=(drawerMap[k].byWay[w]||{ok:0,ng:0,foul:0});drawerMap[k].byWay[w][d.result]=(drawerMap[k].byWay[w][d.result]||0)+1;}
+  });
+  // per-match aggregate per drawer
+  DB.forEach(m=>{
+    const mDraws=m.data.draw?.draws||[];
+    const names=[...new Set(mDraws.map(d=>d.drawer||'?'))];
+    names.forEach(nm=>{
+      if(!drawerMap[nm])return;
+      const drs=mDraws.filter(d=>(d.drawer||'?')===nm);
+      const v=drs.filter(d=>d.result!=='foul');
+      drawerMap[nm].byMatch.push({date:m.date,enemy:m.enemy,ok:v.filter(d=>d.result==='ok').length,valid:v.length,foul:drs.filter(d=>d.result==='foul').length});
+    });
+  });
+  const drawers=Object.values(drawerMap).map(d=>({...d,games:d.games.size,getRate:pct(d.ok,d.ok+d.ng)}))
+    .sort((a,b)=>b.ok+b.ng-a.ok-a.ng);
+
+  if(selectedDrawer && !drawerMap[selectedDrawer]) selectedDrawer=null;
+
+  const matchDrawStats=DB.map(m=>{
+    const mDraws=m.data.draw?.draws||[];
+    const mv=mDraws.filter(d=>d.result!=='foul');
+    const mg=mv.filter(d=>d.result==='ok');
+    return{date:m.date,enemy:m.enemy,matchResult:m.result,got:mg.length,valid:mv.length,foul:mDraws.filter(d=>d.result==='foul').length,pct:pct(mg.length,mv.length),hasData:mDraws.length>0};
+  }).filter(d=>d.hasData);
+
+  const wayMap={};
+  allDraws.forEach(d=>{const w=d.getWay||'不明';if(!wayMap[w])wayMap[w]={way:w,tot:0,ok:0};wayMap[w].tot++;if(d.result==='ok')wayMap[w].ok++;});
+  const ways=Object.values(wayMap).sort((a,b)=>b.tot-a.tot);
+
+  const drawerDetailHtml = selectedDrawer ? (()=>{
+    const d=drawerMap[selectedDrawer];
+    if(!d) return '';
+    const wayRows=Object.entries(d.byWay).sort((a,b)=>b[1].ok+b[1].ng-a[1].ok-a[1].ng).map(([w,v])=>{
+      const vv=v.ok+v.ng; const r=pct(v.ok,vv);
+      return`<tr><td><b>${w}</b></td><td>${vv}</td><td class="good">${v.ok}</td>
+        <td><div class="rb-w"><div class="rb"><div class="rb-f" style="width:${r}%;background:${r>=50?'var(--orange)':'var(--steel)'}"></div></div><span class="rb-lbl ${r>=50?'good':'bad'}">${r}%</span></div></td></tr>`;
+    }).join('');
+    const matchRows=d.byMatch.map(bm=>`<tr>
+      <td style="color:var(--tx2)">${bm.date.slice(5)}</td><td>vs ${bm.enemy}</td>
+      <td class="nc"><span style="color:var(--orange)">${bm.ok}</span>/${bm.valid}</td>
+      <td><span class="${pct(bm.ok,bm.valid)>=50?'good':'bad'}">${pct(bm.ok,bm.valid)}%</span></td>
+      <td class="${bm.foul>0?'warn':''}">${bm.foul}</td>
+    </tr>`).join('');
+    return`<div class="detail-panel">
+      <div class="dp-name">🎯 ${selectedDrawer} 個人詳細</div>
+      <div class="metrics m4" style="margin-bottom:14px">
+        <div class="metric ko"><div class="m-lbl">ゲット率</div><div class="m-val ${pct(d.ok,d.ok+d.ng)>=50?'ko':'en'}">${pct(d.ok,d.ok+d.ng)}<span style="font-size:1.2rem">%</span></div></div>
+        <div class="metric gr"><div class="m-lbl">ゲット数</div><div class="m-val gr">${d.ok}</div><div class="m-sub">ロスト ${d.ng}</div></div>
+        <div class="metric cy"><div class="m-lbl">総本数</div><div class="m-val cy">${d.ok+d.ng+d.foul}</div></div>
+        <div class="metric rd"><div class="m-lbl">ファール</div><div class="m-val rd">${d.foul}</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px">
+        ${[1,2,3,4].map(q=>{const v=d.byQ[q];const tot=v.ok+v.ng;const r=pct(v.ok,tot);return`<div style="background:var(--s1);border:1px solid var(--s3);border-radius:8px;padding:10px;text-align:center">
+          <div style="font-family:var(--font-b);font-size:.55rem;color:var(--tx3)">Q${q}</div>
+          ${tot>0?`<div style="font-family:var(--font-d);font-size:1.6rem;color:${r>=50?'var(--orange)':'var(--steel)'}">${r}%</div><div style="font-size:.6rem;color:var(--tx2)">${v.ok}/${tot}</div>`:'<div style="font-family:var(--font-d);font-size:1.6rem;color:var(--tx3)">—</div>'}
+        </div>`;}).join('')}
+      </div>
+      ${wayRows?`<div class="sub-ttl">取り方別</div>
+      <div class="tbl-w" style="margin-bottom:12px"><table class="dt">
+        <thead><tr><th>取り方</th><th>本数</th><th>ゲット</th><th>ゲット率</th></tr></thead>
+        <tbody>${wayRows}</tbody>
+      </table></div>`:''}
+      <div class="sub-ttl">試合別成績</div>
+      <div class="tbl-w"><table class="dt">
+        <thead><tr><th>日付</th><th>対戦</th><th>ゲット</th><th>ゲット率</th><th>ファール</th></tr></thead>
+        <tbody>${matchRows}</tbody>
+      </table></div>
+    </div>`;
+  })() : '';
+
+  el.innerHTML=`
+  <div class="metrics m4" style="margin-bottom:12px">
+    <div class="metric ko"><div class="m-lbl">通算 ゲット率</div><div class="m-val ${overallPct>=50?'ko':'en'}">${overallPct}<span style="font-size:1.3rem">%</span></div><div class="m-sub">${got.length}得 / ${valid.length}本</div><div class="pbar"><div class="pfill ${overallPct>=50?'pf-ko':'pf-st'}" style="width:${overallPct}%"></div></div></div>
+    <div class="metric cy"><div class="m-lbl">総ドロー数</div><div class="m-val cy">${allDraws.length}</div><div class="m-sub">有効 ${valid.length} / ファール ${fouls.length}</div></div>
+    <div class="metric gr"><div class="m-lbl">ゲット数</div><div class="m-val gr">${got.length}</div><div class="m-sub">ロスト ${valid.length-got.length}</div></div>
+    <div class="metric pu"><div class="m-lbl">データ試合数</div><div class="m-val pu">${matchDrawStats.length}</div><div class="m-sub">/ ${DB.length} 試合</div></div>
+  </div>
+  <div class="card">
+    <div class="card-ttl">Q別 ゲット率</div>
+    <div class="metrics m4">
+      ${qStats.map(qs=>qs.total>0?`<div style="background:var(--s1);border:1px solid var(--s3);border-radius:var(--r);padding:12px;text-align:center">
+        <div style="font-family:var(--font-b);font-size:.58rem;color:var(--tx3)">Q${qs.q}</div>
+        <div style="font-family:var(--font-d);font-size:2rem;color:${qs.pct>=50?'var(--orange)':'var(--steel)'}">${qs.pct}%</div>
+        <div style="font-size:.62rem;color:var(--tx2)">${qs.got}/${qs.total}</div>
+        <div class="pbar"><div class="pfill ${qs.pct>=50?'pf-ko':'pf-st'}" style="width:${qs.pct}%"></div></div>
+      </div>`:`<div style="background:var(--s1);border:1px dashed var(--s3);border-radius:var(--r);padding:12px;text-align:center;opacity:.4">
+        <div style="font-family:var(--font-b);font-size:.58rem;color:var(--tx3)">Q${qs.q}</div>
+        <div style="font-family:var(--font-d);font-size:2rem;color:var(--tx3)">—</div>
+      </div>`).join('')}
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-ttl">試合別 ゲット率推移</div>
+    <div class="ch-box"><canvas id="dMatchTrend"></canvas></div>
+  </div>
+  <div class="card">
+    <div class="card-ttl">ドロワー別 成績</div>
+    <div class="sel-row" style="margin-bottom:10px">
+      <span class="sel-lbl">個人詳細：</span>
+      <select class="sel-inp" onchange="selectedDrawer=this.value||null;renderDraw()">
+        <option value="">— ドロワーを選択 —</option>
+        ${drawers.map(d=>`<option value="${d.name}" ${selectedDrawer===d.name?'selected':''}>${d.name}（${d.ok}得/${d.ok+d.ng}本 ${d.getRate}%）</option>`).join('')}
+      </select>
+    </div>
+    ${drawerDetailHtml}
+    ${drawers.length?`<div class="tbl-w"><table class="dt">
+      <thead><tr><th>ドロワー</th><th>試合</th><th>本数</th><th>ゲット</th><th>ゲット率</th></tr></thead>
+      <tbody>${drawers.map((d,i)=>`<tr style="cursor:pointer" onclick="selectedDrawer='${d.name}';renderDraw()">
+        <td><span class="pr-rank ${i===0?'g1':i===1?'g2':i===2?'g3':''}">${i+1}</span> <b>${d.name}</b></td>
+        <td style="color:var(--tx2)">${d.games}</td>
+        <td>${d.ok+d.ng+d.foul}</td>
+        <td class="good">${d.ok}</td>
+        <td><div class="rb-w"><div class="rb"><div class="rb-f" style="width:${d.getRate}%;background:${d.getRate>=50?'var(--orange)':'var(--steel)'}"></div></div><span class="rb-lbl ${d.getRate>=50?'good':'bad'}">${d.getRate}%</span></div></td>
+      </tr>`).join('')}</tbody>
+    </table></div>`:'<div class="nodata" style="padding:12px">データなし</div>'}
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-ttl">取り方別 ゲット状況</div>
+      ${ways.length?`<div class="tbl-w"><table class="dt">
+        <thead><tr><th>取り方</th><th>本数</th><th>ゲット</th><th>ゲット率</th></tr></thead>
+        <tbody>${ways.map(w=>`<tr><td><b>${w.way}</b></td><td>${w.tot}</td><td class="good">${w.ok}</td>
+          <td><div class="rb-w"><div class="rb"><div class="rb-f" style="width:${pct(w.ok,w.tot)}%;background:${pct(w.ok,w.tot)>=50?'var(--orange)':'var(--steel)'}"></div></div><span class="rb-lbl ${pct(w.ok,w.tot)>=50?'good':'bad'}">${pct(w.ok,w.tot)}%</span></div></td>
+        </tr>`).join('')}</tbody>
+      </table></div>`:'<div class="nodata" style="padding:12px">データなし</div>'}
+    </div>
+    <div class="card">
+      <div class="card-ttl">試合別 ドロー詳細</div>
+      <div class="tbl-w"><table class="dt">
+        <thead><tr><th>日付</th><th>相手</th><th>ゲット</th><th>ゲット率</th><th>F</th></tr></thead>
+        <tbody>${matchDrawStats.map(d=>`<tr>
+          <td style="color:var(--tx2)">${d.date.slice(5)}</td>
+          <td>${d.enemy.slice(0,6)}</td>
+          <td class="nc"><span style="color:var(--orange)">${d.got}</span>/${d.valid}</td>
+          <td><span class="${d.pct>=50?'good':'bad'}">${d.pct}%</span></td>
+          <td class="${d.foul>0?'warn':''}">${d.foul}</td>
+        </tr>`).join('')}</tbody>
+      </table></div>
+    </div>
+  </div>`;
+
+  const chartLabels=matchDrawStats.map(d=>`${d.date.slice(5)} ${d.enemy.slice(0,4)}`);
+  barchart('dMatchTrend',chartLabels,[{label:'ゲット率(%)',data:matchDrawStats.map(d=>d.pct),backgroundColor:matchDrawStats.map(d=>d.pct>=50?'rgba(249,115,22,.75)':'rgba(91,141,184,.55)'),borderRadius:5}]);
 }
 
 function loadTestMatches(){
@@ -987,5 +1414,6 @@ function loadTestMatches(){
 loadDB();
 renderAll();
 </script>
+
 </body>
 </html>
